@@ -29,12 +29,28 @@ const BAND: Record<string, AlertBand> = {
 export class SupabaseGuardianChannel implements GuardianChannel {
   private state: GuardianConnectionState = 'UNPAIRED';
   private userId: string | null = null;
+  private unsubscribe: (() => void) | null = null;
 
-  /** Called once a session exists. Until then the channel reports disconnected. */
+  /**
+   * Attach is called at start-up, long before anyone signs in, so reading the
+   * session once left userId null for the life of the process: every alert was
+   * dropped on the floor after a successful sign-in, silently. It now tracks
+   * auth state for as long as the app runs.
+   */
   async attach(): Promise<void> {
     const {data} = await supabase.auth.getSession();
-    this.userId = data.session?.user.id ?? null;
-    this.state = this.userId ? 'ONLINE' : 'UNPAIRED';
+    this.setUser(data.session?.user.id ?? null);
+
+    if (this.unsubscribe) return;
+    const sub = supabase.auth.onAuthStateChange((_event, session) => {
+      this.setUser(session?.user.id ?? null);
+    });
+    this.unsubscribe = () => sub.data.subscription.unsubscribe();
+  }
+
+  private setUser(id: string | null): void {
+    this.userId = id;
+    this.state = id ? 'ONLINE' : 'UNPAIRED';
   }
 
   getState(): GuardianConnectionState {
@@ -54,9 +70,15 @@ export class SupabaseGuardianChannel implements GuardianChannel {
         kind: 'payment',
         band: BAND[alert.level] ?? 'HIGH',
         score: Math.round(alert.score),
-        // Reasons are the human-readable strings the user is already shown.
-        // The transcript is not sent, and the schema has no column for one.
-        reasons: alert.reasons.map(r => (typeof r === 'string' ? r : r.code)),
+        // The label, not just the code: a guardian has to read this and decide
+        // whether to phone someone, and COERCION_DETECTED tells them nothing.
+        // It is the same line already shown on the phone, so nothing new is
+        // disclosed. The transcript is not sent and the schema has no column
+        // for one. The console prefers label and falls back to code, so both
+        // are included.
+        reasons: alert.reasons.map(r =>
+          typeof r === 'string' ? r : {code: r.code, label: r.label},
+        ),
         amount_minor: alert.amountMinor,
         payee_label: alert.payeeDisplayName,
       })
