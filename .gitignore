@@ -79,3 +79,8 @@ captures/
 
 # Probe output is machine-specific; commit deliberately, not by accident
 docs/device-report.md
+
+# Gradle wrapper jar is committed deliberately; build dirs are not
+android/.gradle/
+android/build/
+android/*/build/
