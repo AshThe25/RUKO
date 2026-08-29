@@ -1,10 +1,6 @@
 /* eslint-env jest */
-// react-native-screens / safe-area-context are native modules; the mobile test
-// suite runs headless against the mock service layer, so they are stubbed.
-jest.mock('react-native-screens', () => ({
-  enableScreens: jest.fn(),
-}));
-
+// safe-area-context is a native module; the test suite runs headless against
+// the stub service layer, so insets are stubbed to zero.
 jest.mock('react-native-safe-area-context', () => {
   const React = require('react');
   const inset = {top: 0, right: 0, bottom: 0, left: 0};

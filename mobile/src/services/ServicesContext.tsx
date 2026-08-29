@@ -1,0 +1,41 @@
+import React, {createContext, useContext, useEffect, useMemo, useState} from 'react';
+import type {RukoServices} from '@contracts';
+import {createServices, type DemoControls, type RukoRuntime} from './createServices';
+
+const RuntimeContext = createContext<RukoRuntime | null>(null);
+
+export function ServicesProvider({
+  children,
+  runtime,
+}: {
+  children: React.ReactNode;
+  /** Tests inject their own runtime; the app builds the default one. */
+  runtime?: RukoRuntime;
+}) {
+  const [value] = useState<RukoRuntime>(() => runtime ?? createServices());
+
+  useEffect(() => {
+    // Loading the classifier is async and can fail; the diagnostics screen
+    // reports whatever actually happened rather than assuming success.
+    void value.demo.bus.init();
+  }, [value]);
+
+  const memo = useMemo(() => value, [value]);
+  return <RuntimeContext.Provider value={memo}>{children}</RuntimeContext.Provider>;
+}
+
+export function useRuntime(): RukoRuntime {
+  const runtime = useContext(RuntimeContext);
+  if (!runtime) {
+    throw new Error('useRuntime must be used inside <ServicesProvider>');
+  }
+  return runtime;
+}
+
+export function useServices(): RukoServices {
+  return useRuntime().services;
+}
+
+export function useDemo(): DemoControls {
+  return useRuntime().demo;
+}

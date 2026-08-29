@@ -35,6 +35,8 @@ const LEXICON: LexEntry[] = [
   {re: /\b(calling|speaking) from (your |the )?(bank|hdfc|sbi|icici|axis)\b/gi, label: 'authority', weight: 0.55},
   {re: /\b(bank|rbi|reserve bank) (official|officer|department|security team)\b/gi, label: 'authority', weight: 0.5},
   {re: /\b(police|cyber ?crime|cbi|income tax|customs department)\b/gi, label: 'authority', weight: 0.5},
+  {re: /\b(bank|account|card) security (team|department|division)\b/gi, label: 'authority', weight: 0.4},
+  {re: /\bsuspicious (activity|transaction) (on|in) your account\b/gi, label: 'authority', weight: 0.35},
   {re: /\b(officer|inspector|sub ?inspector) [a-z]+\b/gi, label: 'authority', weight: 0.3},
   {re: /\b(kyc|know your customer) (update|verification|is pending|expired)\b/gi, label: 'authority', weight: 0.3},
 

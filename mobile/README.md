@@ -1,79 +1,75 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# mobile/ — the Ruko app
 
-# Getting Started
-
->**Note**: Make sure you have completed the [React Native - Environment Setup](https://reactnative.dev/docs/environment-setup) instructions till "Creating a new application" step, before proceeding.
-
-## Step 1: Start the Metro Server
-
-First, you will need to start **Metro**, the JavaScript _bundler_ that ships _with_ React Native.
-
-To start Metro, run the following command from the _root_ of your React Native project:
+React Native + TypeScript. Owned by Aishwarya.
 
 ```bash
-# using npm
-npm start
-
-# OR using Yarn
-yarn start
+npm install
+npm start          # metro
+npm run android    # build + install on the connected iQOO 15
+npm test           # 51 tests
+npx tsc --noEmit
+npm run lint
 ```
 
-## Step 2: Start your Application
+## Layout
 
-Let Metro Bundler run in its _own_ terminal. Open a _new_ terminal from the _root_ of your React Native project. Run the following command to start your _Android_ or _iOS_ app:
-
-### For Android
-
-```bash
-# using npm
-npm run android
-
-# OR using Yarn
-yarn android
+```
+src/
+  theme/         design tokens — colours, spacing, type, motion
+  components/    primitives: Txt, Screen, Card, Button, Pill, Row,
+                 RiskScore, SignalBar, InvestigationStep, state views
+  screens/       onboarding, permissions, home, investigation,
+                 intervention, guardian, history, engineering, RukoPayDemo
+  navigation/    state-driven router
+  store/         protection state machine + orchestration controller
+  services/      the service container and, for now, the stubs
+  utils/         formatting (money is paise everywhere), ids
+android/         native project — Puneesh's lane
 ```
 
-### For iOS
+React Native keeps `android/` inside the JS project, so native services live at
+`mobile/android/app/src/main/java/com/ruko/` rather than at the repo root.
 
-```bash
-# using npm
-npm run ios
+## How it is wired
 
-# OR using Yarn
-yarn ios
+Every screen reads services from React context. The container is built once in
+[`src/services/createServices.ts`](src/services/createServices.ts) — that is the
+only file that knows whether it is talking to a stub or the real thing, and the
+only file that changes when the ML and Android layers land.
+
+```
+providers  →  investigation agent  →  risk engine  →  policy  →  screen
+(stubbed)     (stubbed)               (stubbed)        real       real
 ```
 
-If everything is set up _correctly_, you should see your new app running in your _Android Emulator_ or _iOS Simulator_ shortly provided you have set up your emulator/simulator correctly.
+The stubs are documented in
+[`src/services/stubs/README.md`](src/services/stubs/README.md). They report
+themselves honestly — `stub-lexicon-v0`, `HEURISTIC`, `source: 'DEMO'` — and the
+engineering screen prints those values verbatim.
 
-This is one way to run your app — you can also run it directly from within Android Studio and Xcode respectively.
+## Things that are deliberate
 
-## Step 3: Modifying your App
+- **Money is paise (`amountMinor`) everywhere.** Rupees exist only in
+  `utils/format.ts`, at the point of display.
+- **No live "current risk" number on the home screen.** With no payment in
+  progress there is nothing to score, so a number there would be invented.
+  The last real check is shown instead.
+- **The investigation screen paces its reveal.** The analysis finishes in
+  milliseconds; the feed reveals it a line at a time so a person can follow,
+  and prints the real compute time so the pacing cannot be mistaken for the
+  analysis.
+- **The back button cannot dismiss an intervention.** It is dismissed by making
+  a decision.
+- **Continuing past a critical warning takes a second, deliberate action** with
+  a short delay — long enough to think, not so long it feels like a punishment.
 
-Now that you have successfully run the app, let's modify it.
+## Tests
 
-1. Open `App.tsx` in your text editor of choice and edit some lines.
-2. For **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Developer Menu** (<kbd>Ctrl</kbd> + <kbd>M</kbd> (on Window and Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (on macOS)) to see your changes!
-
-   For **iOS**: Hit <kbd>Cmd ⌘</kbd> + <kbd>R</kbd> in your iOS Simulator to reload the app and see your changes!
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [Introduction to React Native](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you can't get this to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+```
+riskEngine   scoring, corroboration, degraded evidence, the false-positive cases
+pipeline     scripted speech → classifier → agent → engine → policy, end to end
+classifier   pressure tactics detected, friendly requests not
+behaviour    the amount-anomaly curve and cold-start behaviour
+store        navigation stack and the audit log
+screens      every screen mounts, including empty, error and no-result states
+```

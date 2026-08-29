@@ -7,6 +7,6 @@ module.exports = {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(?:@react-native|react-native|@react-navigation|react-native-screens|react-native-safe-area-context)/)',
+    'node_modules/(?!(?:@react-native|react-native|react-native-safe-area-context)/)',
   ],
 };

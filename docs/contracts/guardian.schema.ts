@@ -10,8 +10,8 @@
  * never paired, the phone must continue to protect the user exactly as before.
  */
 
-import type { Timestamp } from './common.schema';
-import type { RiskLevel, RiskReason, RiskScore } from './risk.schema';
+import type { RiskScore, Timestamp } from './common.schema';
+import type { RiskLevel, RiskReason } from './risk.schema';
 
 export type GuardianConnectionState = 'UNPAIRED' | 'OFFLINE' | 'CONNECTING' | 'ONLINE';
 
