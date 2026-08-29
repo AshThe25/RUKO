@@ -28,6 +28,9 @@ logger = logging.getLogger("ruko.proxy")
 router = APIRouter()
 
 SARVAM_ASR_URL = "https://api.sarvam.ai/speech-to-text"
+# Pinned rather than "latest": a fraud pipeline should not change
+# transcription behaviour underneath itself without a deploy.
+SARVAM_ASR_MODEL = "saarika:v2.5"
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_VERSION = "2023-06-01"
 EXPLAIN_MODEL = "claude-sonnet-4-6"
@@ -90,7 +93,10 @@ async def transcribe(
                 headers={"api-subscription-key": config.sarvam_api_key},
                 files={"file": (audio.filename or "audio.wav", payload,
                                 audio.content_type or "audio/wav")},
-                data={"language_code": language_code, "model": "saarika:v2"},
+                # saarika:v2 was retired and Sarvam answers 400 for it, which
+                # is what the upstream status above revealed. v2.5 is the
+                # current general model; the key itself was never the problem.
+                data={"language_code": language_code, "model": SARVAM_ASR_MODEL},
             )
     except httpx.RequestError as exc:
         # The device keeps its own ASR, so an upstream outage degrades quality
