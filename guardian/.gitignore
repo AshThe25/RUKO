@@ -1,1 +1,7 @@
-guardian/.env.local
+# Paths in this file are relative to guardian/ itself — an earlier version said
+# "guardian/.env.local", which only matched guardian/guardian/.env.local and so
+# ignored nothing at all.
+.env.local
+.env*.local
+node_modules/
+.next/

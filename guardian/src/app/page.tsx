@@ -1,52 +1,106 @@
 'use client';
 
-import { useState } from 'react';
-
-import { AlertPanel } from '@/components/AlertPanel';
+import { AlertCard } from '@/components/AlertCard';
+import { InviteList } from '@/components/InviteList';
 import { Masthead } from '@/components/Masthead';
-import { PairPanel } from '@/components/PairPanel';
-import { QuietPanel } from '@/components/QuietPanel';
-import { type GuardianSession, useGuardianSocket } from '@/lib/useGuardianSocket';
+import { SignIn } from '@/components/SignIn';
+import { supabaseConfigured } from '@/lib/supabase';
+import { useAlerts } from '@/lib/useAlerts';
+import { useAuth } from '@/lib/useAuth';
+import { useInvites } from '@/lib/useInvites';
+
+/**
+ * Two setup problems are worth naming precisely, because both look like "the
+ * app is broken" and neither is fixable in this code: the `ruko` schema has to
+ * be exposed to the API, and Google has to be enabled as a provider.
+ */
+function setupHint(message: string | null): string | null {
+  if (!message) return null;
+  if (/invalid schema|PGRST106/i.test(message)) {
+    return (
+      'The API is not exposing the `ruko` schema yet. In Supabase: Project Settings → ' +
+      'API → Exposed schemas → add "ruko", then reload.'
+    );
+  }
+  if (/provider is not enabled|validation_failed/i.test(message)) {
+    return (
+      'Google sign-in is not enabled on this Supabase project. In Supabase: ' +
+      'Authentication → Providers → Google → enable and add the OAuth client.'
+    );
+  }
+  return null;
+}
 
 export default function GuardianConsole() {
-  const [session, setSession] = useState<GuardianSession | null>(null);
-  const socket = useGuardianSocket(session);
+  const { user, loading: authLoading, error: authError, signIn, signOut } = useAuth();
+  const userId = user?.id ?? null;
+
+  const { alerts, status, error: feedError, loading: feedLoading, acknowledge } = useAlerts(userId);
+  const { invites, accepted, error: inviteError, accept } = useInvites(userId);
+
+  if (!supabaseConfigured) {
+    return (
+      <main className="shell">
+        <div className="notice">
+          Supabase is not configured. Copy <code>guardian/.env.example</code> to{' '}
+          <code>guardian/.env.local</code>, then restart <code>npm run dev</code>.
+        </div>
+      </main>
+    );
+  }
+
+  if (authLoading) {
+    return (
+      <main className="shell">
+        <p className="small">Checking your session…</p>
+      </main>
+    );
+  }
+
+  if (!user) {
+    return (
+      <main className="shell">
+        <SignIn onSignIn={signIn} error={setupHint(authError) ?? authError} />
+      </main>
+    );
+  }
+
+  const problem = feedError ?? inviteError;
+  const hint = setupHint(problem);
 
   return (
     <main className="shell">
-      <Masthead
-        connection={socket.connection}
-        presence={socket.presence}
-        paired={session !== null}
-      />
+      <Masthead user={user} status={status} onSignOut={signOut} />
 
-      {session === null ? (
-        <PairPanel onPaired={setSession} />
-      ) : socket.alert ? (
-        <AlertPanel
-          alert={socket.alert}
-          ack={socket.ack}
-          canAct={socket.connection === 'connected'}
-          onDecide={socket.decide}
-          onDismiss={socket.dismiss}
-        />
-      ) : (
-        <QuietPanel presence={socket.presence} phoneDisplayName={session.phoneDisplayName} />
-      )}
+      {hint ? <div className="notice notice-warm">{hint}</div> : null}
+      {problem && !hint ? <div className="notice">{problem}</div> : null}
 
-      {socket.lastError && !socket.lastError.recoverable ? (
-        <p className="error" style={{ marginTop: 24, textAlign: 'center' }}>
-          {socket.lastError.message}
-        </p>
-      ) : null}
+      <InviteList invites={invites} accepted={accepted} onAccept={accept} />
 
-      {socket.rejectedFrames > 0 ? (
-        <p className="footnote">
-          {socket.rejectedFrames} message{socket.rejectedFrames === 1 ? '' : 's'} from the relay
-          could not be read and {socket.rejectedFrames === 1 ? 'was' : 'were'} ignored. This
-          usually means the phone and this console are on different versions.
-        </p>
-      ) : null}
+      <section className="section">
+        <div className="section-head">
+          <h2>Alerts</h2>
+          <span className="small">
+            {alerts.length === 0 ? 'nothing yet' : `${alerts.length} in view`}
+          </span>
+        </div>
+
+        {feedLoading ? (
+          <p className="small">Loading…</p>
+        ) : alerts.length === 0 ? (
+          <div className="empty">
+            <p className="lede">Nothing has needed your attention.</p>
+            <p className="small" style={{ marginTop: 8 }}>
+              If Ruko stops a risky payment or call, it appears here immediately — you
+              will not need to refresh.
+            </p>
+          </div>
+        ) : (
+          alerts.map((alert) => (
+            <AlertCard key={alert.id} alert={alert} onAcknowledge={acknowledge} />
+          ))
+        )}
+      </section>
     </main>
   );
 }

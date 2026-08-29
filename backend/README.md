@@ -1,5 +1,11 @@
 # Ruko relay (`backend/`)
 
+> **Status: superseded, kept running.** Guardian alerting has moved to Supabase
+> (Postgres + RLS + Realtime); see `guardian/`. The WebSocket relay below is no
+> longer on the alert path. It is retained, tested and green while the intended
+> replacement — a thin API-key proxy — is specified with Aishwarya. Nothing here
+> has been deleted, and none of its behaviour has changed.
+
 FastAPI service that connects a Ruko phone to a trusted person's Guardian
 console. **Owner: Puneesh.**
 
