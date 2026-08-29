@@ -24,7 +24,9 @@ SRC = ROOT / "docs" / "contracts"
 OUT = ROOT / "mobile" / "src" / "contracts" / "index.ts"
 
 # Dependency order: each file may only reference ones above it.
-ORDER = ["common", "conversation", "payment", "risk", "investigation", "guardian"]
+# providers.schema.ts is last: it references every other schema.
+ORDER = ["common", "conversation", "payment", "risk", "investigation", "guardian",
+         "providers"]
 
 # Local `import ... from './x.schema'` lines become redundant once everything is
 # in one module, so they are stripped. Imports from anywhere else are an error.

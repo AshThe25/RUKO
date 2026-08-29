@@ -13,7 +13,7 @@
  */
 
 import type {
-  CallEvidence, LocalRiskClassifier, NotificationEvidence,
+  CallEvidence, ConversationEvidence, LocalRiskClassifier, NotificationEvidence,
   PaymentEvidence, TransactionRecord,
 } from '../contracts/index.ts';
 
@@ -24,6 +24,17 @@ export interface ConversationProvider {
    */
   getRecentTranscript(): Promise<{ text: string; windowMs: number; asrConfidence: number } | null>;
   classifier: LocalRiskClassifier;
+
+  /**
+   * Optional: return already-classified evidence instead of a transcript.
+   *
+   * Two valid places to run the classifier: inside the provider, or inside the
+   * conversationTool. The mobile app runs it in the provider, because the live
+   * investigation screen subscribes to evidence rather than to text. When this
+   * is present the tool uses it directly and does not classify again --
+   * classifying twice would double the only expensive call in the pipeline.
+   */
+  readEvidence?(): Promise<ConversationEvidence>;
 }
 
 export interface PaymentProvider {

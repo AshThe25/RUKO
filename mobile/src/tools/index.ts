@@ -94,6 +94,12 @@ export function createTools(providers: RukoProviders): InvestigationTool[] {
     description: 'What manipulation tactics are present in what was just said?',
     cost: 'HIGH',
     execute: () => run('conversationTool', 'ON_DEVICE_MODEL', async () => {
+      // A provider that classifies internally (the mobile app does) hands back
+      // evidence directly. Classifying again here would double the cost of the
+      // only expensive call in the pipeline.
+      if (providers.conversation.readEvidence) {
+        return providers.conversation.readEvidence();
+      }
       const window = await providers.conversation.getRecentTranscript();
       if (!window || !window.text.trim()) {
         const unavailable: ConversationEvidence = {
