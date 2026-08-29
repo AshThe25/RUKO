@@ -153,13 +153,14 @@ class RukoNativeModule(
         promise.resolve(
             Arguments.createMap().apply {
                 putBoolean("active", evidence.active)
-                putDouble("amount", evidence.amount.toDouble())
+                evidence.amountMinor?.let { putDouble("amountMinor", it.toDouble()) }
+                    ?: putNull("amountMinor")
                 putString("currency", evidence.currency)
-                putString("payee", evidence.payee)
+                putString("payee", evidence.payeeDisplayName)
                 putString("payeeHash", evidence.payeeHash)
                 putString("source", evidence.source.name)
-                putString("packageName", evidence.packageName)
-                putString("observedAt", evidence.observedAt)
+                putString("packageName", evidence.appPackage)
+                putDouble("observedAt", evidence.timestamp.toDouble())
             },
         )
     }
@@ -295,11 +296,16 @@ class RukoNativeModule(
 
     // ------------------------------------------------------------------ demo
 
-    /** Called by RukoPayDemo. Clearly labelled as the demo surface, not an interception. */
+    /**
+     * Called by RukoPayDemo. Clearly labelled as the demo surface, not an
+     * interception.
+     *
+     * @param amountMinor integer paise, matching payment.schema.ts.
+     */
     @ReactMethod
-    fun beginDemoPayment(amountRupees: Double, payee: String, payeeId: String, promise: Promise) {
+    fun beginDemoPayment(amountMinor: Double, payee: String, payeeId: String, promise: Promise) {
         DemoPaymentProvider.beginPayment(
-            amountRupees = amountRupees.toLong(),
+            amountMinor = amountMinor.toLong(),
             payee = payee,
             payeeHash = PayeeHasher.hash(payeeId, payeeSalt),
         )

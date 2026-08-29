@@ -31,6 +31,9 @@ val androidSdkAvailable =
 
 if (androidSdkAvailable) {
     include(":ruko-native")
+    // The installable harness: RukoPayDemo plus an engineering screen that
+    // reports what the device genuinely supports. Not the product UI.
+    include(":ruko-devapp")
 } else {
     logger.lifecycle(
         "[ruko] No Android SDK detected — building :ruko-core only. " +

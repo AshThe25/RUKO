@@ -1,6 +1,5 @@
 plugins {
     id("com.android.library")
-    id("org.jetbrains.kotlin.android")
 }
 
 android {
@@ -17,7 +16,8 @@ android {
         // AudioRecord behaviour Ruko relies on, without dragging in shims for
         // devices nobody in this market still uses.
         minSdk = 26
-        targetSdk = 35
+        // AGP 9 removed targetSdk from library modules: the consuming app
+        // decides it, which is the correct place for that decision anyway.
         consumerProguardFiles("consumer-rules.pro")
     }
 
@@ -30,10 +30,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = "17"
     }
 
     testOptions {

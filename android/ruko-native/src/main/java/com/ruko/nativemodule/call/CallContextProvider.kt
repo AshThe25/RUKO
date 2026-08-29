@@ -79,6 +79,7 @@ class CallContextProvider(private val context: Context) {
     }
 
     fun current(): CallEvidence = CallEvidence(
+        available = true,
         active = callActive,
         // Honest default. Ruko does not request READ_CALL_LOG, so it genuinely
         // does not know whether this caller is in the user's contacts.

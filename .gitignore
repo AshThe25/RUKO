@@ -63,3 +63,16 @@ mobile/ios/Pods/
 mobile/ios/build/
 mobile/ios/*.xcworkspace/xcuserdata/
 .metro-health-check*
+
+# --- Guardian console (Next.js) ---
+.next/
+next-env.d.ts
+
+# --- Relay / tooling ---
+.ruff_cache/
+
+# Device probe output is machine-specific: commit it deliberately, not by accident.
+docs/device-report.md
+
+# Published by ml/ when a model ships; absent means "no model published".
+backend/model_manifest.json
