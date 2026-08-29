@@ -22,7 +22,8 @@ src/
                  intervention, guardian, history, engineering, RukoPayDemo
   navigation/    state-driven router
   store/         protection state machine + orchestration controller
-  services/      the service container and, for now, the stubs
+  services/      the service container, native adapters, diagnostics,
+                 and (for now) the stubs
   utils/         formatting (money is paise everywhere), ids
 android/         native project — Puneesh's lane
 ```
@@ -39,8 +40,13 @@ only file that changes when the ML and Android layers land.
 
 ```
 providers  →  investigation agent  →  risk engine  →  policy  →  screen
-(stubbed)     (stubbed)               (stubbed)        real       real
+  ↑                                                                
+native adapters when RukoNative is installed, stubs when it is not
 ```
+
+`runtime.origins` records which half of every seam is live, and the home screen
+prints the stand-ins by name. There is no build in which the app looks like it
+has device access it does not have.
 
 The stubs are documented in
 [`src/services/stubs/README.md`](src/services/stubs/README.md). They report
@@ -72,4 +78,7 @@ classifier   pressure tactics detected, friendly requests not
 behaviour    the amount-anomaly curve and cold-start behaviour
 store        navigation stack and the audit log
 screens      every screen mounts, including empty, error and no-result states
+native       payload adapters and the stub fallback when there is no module
 ```
+
+60 tests.

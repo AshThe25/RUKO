@@ -89,3 +89,38 @@ sit beside it.
 
 The history fix for `feature/aishwarya-ui` in that document has been run — this
 branch is rebased onto `95c0d0f` and its two commits replayed cleanly.
+
+## 6. The native seam is already adapted
+
+`src/services/native/` is written and tested, ahead of the native module:
+
+- `RukoNative.ts` — typed access to `NativeModules.RukoNative` plus the four
+  events (`onCallStateChanged`, `onPaymentContext`, `onNotificationContext`,
+  `onSpeechChunk`). `hasNativeModule()` is false on a build without it, and
+  nothing throws.
+- `nativeProviders.ts` — turns native payloads into contract evidence. Native
+  output is treated as untrusted: a missing field becomes `available: false`
+  with a reason, never a zero.
+
+`createServices()` picks the native providers when the module is present and
+the stubs when it is not, and records the choice in `runtime.origins`.
+
+**Puneesh** — the shapes I expect are the `Native*` interfaces at the top of
+`RukoNative.ts`. Two that matter:
+
+1. `getPaymentContext()` should return `amountMinor: null` when the
+   accessibility parse failed, and still set `active: true`. The adapter turns
+   that into unavailable-with-a-reason. If it returned `amountMinor: 0`
+   instead, an unreadable payment screen would score as a perfectly safe
+   payment — that is the one failure mode this seam must not have.
+2. `onSpeechChunk` should send **transcript text**, not audio. The audio
+   boundary stays on your side of the bridge; the JS layer never sees a buffer.
+
+Change the shapes if Android cannot produce them — the adapters are mine to fix.
+
+## 7. Classifier
+
+Vedant's `src/risk/classifier/heuristicClassifier.ts` supersedes my
+`stubs/lexicalClassifier.ts` as the offline fallback. Both implement
+`LocalRiskClassifier`, so it is a one-line change in `createServices` and the
+engineering screen starts reporting his model version on its own.

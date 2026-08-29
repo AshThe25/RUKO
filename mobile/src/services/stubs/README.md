@@ -10,8 +10,18 @@ contract from `docs/contracts/` and is swapped out in exactly one place:
 | `lexicalClassifier.ts` | ONNX manipulation classifier, `mobile/src/risk/` | Vedant |
 | `stubRiskEngine.ts` | deterministic risk engine, `mobile/src/risk/` | Vedant |
 | `stubAgent.ts` | investigation agent, `mobile/src/agent/` + `mobile/src/tools/` | Vedant |
-| `deviceStubs.ts` | Android call / payment / notification providers | Puneesh |
+| `deviceStubs.ts` | `../native/nativeProviders.ts`, once the native module ships | Puneesh |
 | `guardianStub.ts` | WebSocket guardian channel | Puneesh |
+
+The native adapters already exist in `../native/`. `createServices` picks them
+automatically when `RukoNative` is installed and falls back here when it is
+not, so a build without the native layer is a supported configuration rather
+than a broken one — and `runtime.origins` records which half is live.
+
+`lexicalClassifier.ts` will be replaced by the ML workstream's
+`src/risk/classifier/heuristicClassifier.ts` as the offline fallback, with the
+ONNX model in front of it. Both sit behind `LocalRiskClassifier`, so this is a
+one-line change in `createServices`.
 
 ## The rules these stubs follow
 

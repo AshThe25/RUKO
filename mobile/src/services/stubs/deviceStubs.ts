@@ -20,8 +20,6 @@ import {
   type CallEvidence,
   type ConversationEvidence,
   type ConversationProvider,
-  type DiagnosticsProvider,
-  type EngineDiagnostics,
   type NotificationContextProvider,
   type NotificationEvidence,
   type PayeeEvidence,
@@ -35,7 +33,6 @@ import {newId, now} from '@/utils/id';
 import {Emitter} from './emitter';
 import {LexicalClassifier, STUB_MODEL_VERSION} from './lexicalClassifier';
 import {SCENARIOS, type Scenario, type ScenarioId} from './scenarios';
-import {STUB_ENGINE_VERSION, STUB_POLICY_VERSION, STUB_WEIGHTS_VERSION} from './stubRiskEngine';
 
 const MIN_MATURE_SAMPLE = 5;
 
@@ -435,43 +432,4 @@ export function percentile(sortedAscending: number[], p: number): number {
     Math.max(0, Math.ceil(p * sortedAscending.length) - 1),
   );
   return sortedAscending[idx]!;
-}
-
-/* ------------------------------------------------------------------ *
- * Diagnostics — reports what is actually loaded, including "nothing"
- * ------------------------------------------------------------------ */
-
-export function createDiagnosticsProvider(bus: StubDeviceBus): DiagnosticsProvider {
-  const emitter = new Emitter<EngineDiagnostics>(snapshot(bus));
-  return {
-    read: async () => {
-      const value = snapshot(bus);
-      emitter.emit(value);
-      return value;
-    },
-    subscribe: l => emitter.subscribe(l),
-  };
-}
-
-function snapshot(bus: StubDeviceBus): EngineDiagnostics {
-  return {
-    classifier: bus.getClassifier().getModelInfo(),
-    asr: {
-      // Honest: there is no on-device ASR yet. The screen says so rather than
-      // showing a green tick next to something that does not exist.
-      available: false,
-      local: false,
-      modelVersion: null,
-      backend: 'UNAVAILABLE',
-      lastLatencyMs: null,
-    },
-    riskEngine: {
-      engineVersion: STUB_ENGINE_VERSION,
-      weightsVersion: STUB_WEIGHTS_VERSION,
-      policyVersion: STUB_POLICY_VERSION,
-    },
-    offline: true,
-    deviceModel: null,
-    lastUpdated: now(),
-  };
 }

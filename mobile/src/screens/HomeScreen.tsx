@@ -1,9 +1,10 @@
 import React, {useEffect, useState} from 'react';
 import {Pressable, StyleSheet, View} from 'react-native';
-import type {EngineDiagnostics} from '@contracts';
-import {Card, EmptyState, Pill, Screen, Txt} from '@/components';
+import type {CallEvidence, EngineDiagnostics} from '@contracts';
+import {Card, EmptyState, OfflineBanner, Pill, Screen, Txt} from '@/components';
 import {colors, radius, riskPalette, space} from '@/theme';
-import {useServices} from '@/services/ServicesContext';
+import {stubbedParts} from '@/services/createServices';
+import {useRuntime, useServices} from '@/services/ServicesContext';
 import {
   useCheckedToday,
   useInterventionsToday,
@@ -18,6 +19,7 @@ import {formatMinor, formatRelative} from '@/utils/format';
  */
 export function HomeScreen() {
   const services = useServices();
+  const runtime = useRuntime();
   const navigate = useProtectionStore(s => s.navigate);
   const machineState = useProtectionStore(s => s.machineState);
   const protectionEnabled = useProtectionStore(s => s.protectionEnabled);
@@ -28,6 +30,7 @@ export function HomeScreen() {
   const interventions = useInterventionsToday();
 
   const [diagnostics, setDiagnostics] = useState<EngineDiagnostics | null>(null);
+  const [call, setCall] = useState<CallEvidence | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -41,7 +44,13 @@ export function HomeScreen() {
     };
   }, [services.diagnostics]);
 
+  // Live call state, so the monitoring banner reflects the device rather than
+  // a screen-local guess.
+  useEffect(() => services.call.subscribe(setCall), [services.call]);
+
   const last = history[0];
+  const listening = !!call?.active && protectionEnabled;
+  const stubs = stubbedParts(runtime.origins);
 
   return (
     <Screen testID="home-screen">
@@ -60,6 +69,15 @@ export function HomeScreen() {
           />
         </Pressable>
       </View>
+
+      {listening ? (
+        <View style={styles.monitoring} testID="monitoring-banner">
+          <View style={styles.pulse} />
+          <Txt variant="caption" color={colors.safe}>
+            Listening during this call. Audio stays on this phone.
+          </Txt>
+        </View>
+      ) : null}
 
       <Txt variant="title" style={styles.state}>
         {STATE_COPY[machineState] ?? 'Watching for payment pressure.'}
@@ -104,6 +122,12 @@ export function HomeScreen() {
         </Pressable>
       </Card>
 
+      {diagnostics?.offline ? (
+        <View style={styles.card}>
+          <OfflineBanner guardianReachable={guardianState === 'ONLINE'} />
+        </View>
+      ) : null}
+
       <Card title="Recent checks" style={styles.card}>
         {last ? (
           history.slice(0, 4).map(event => (
@@ -132,10 +156,28 @@ export function HomeScreen() {
       </Card>
 
       <View style={styles.actions}>
-        <NavTile label="Demo mode" caption="Run a scenario end to end" onPress={() => navigate('paydemo')} />
+        {runtime.demoAvailable ? (
+          <NavTile
+            label="Demo mode"
+            caption="Run a scenario through the real pipeline"
+            onPress={() => navigate('paydemo')}
+          />
+        ) : null}
         <NavTile label="Guardian" caption="Office Kit link" onPress={() => navigate('guardian')} />
         <NavTile label="History" caption="Every decision Ruko made" onPress={() => navigate('history')} />
+        <NavTile
+          label="Permissions"
+          caption="What Ruko can see, and what it cannot"
+          onPress={() => navigate('permissions')}
+        />
       </View>
+
+      {stubs.length > 0 ? (
+        <Txt variant="caption" tone="tertiary" style={styles.buildNote}>
+          Development build. Standing in for the real thing: {stubs.join(', ')}. The
+          engineering screen shows exactly what is loaded.
+        </Txt>
+      ) : null}
     </Screen>
   );
 }
@@ -187,6 +229,19 @@ function NavTile({label, caption, onPress}: {label: string; caption: string; onP
 
 const styles = StyleSheet.create({
   header: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'},
+  monitoring: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: space.lg,
+    paddingVertical: space.sm,
+  },
+  pulse: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.safe,
+    marginRight: space.sm,
+  },
   state: {marginTop: space.xl},
   stateSub: {marginTop: space.md},
   statRow: {flexDirection: 'row', marginTop: space.xl, marginBottom: space.lg},
@@ -212,4 +267,5 @@ const styles = StyleSheet.create({
     marginBottom: space.sm,
   },
   tilePressed: {backgroundColor: colors.surfacePressed},
+  buildNote: {marginTop: space.lg},
 });
