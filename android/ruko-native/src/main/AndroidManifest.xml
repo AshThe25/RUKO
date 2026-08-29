@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Ruko native layer.
+
+    Every permission here is requested in context with an explanation first
+    (build prompt §24). Deliberately absent: READ_CALL_LOG, READ_CONTACTS,
+    READ_SMS, location and PACKAGE_USAGE_STATS. See docs/android-capabilities.md
+    §4 and §8 for why each one is not needed.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Hears the room during a protected session. Ruko cannot access the
+         protected call stream; VOICE_CALL requires a privileged permission. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- The session must be visible and survivable while it runs. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Call state only: idle / ringing / off-hook. Not the number. -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+
+    <!-- Draws the intervention over the payment screen. User-granted in Settings. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!-- Guardian relay only. Core protection never needs the network. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Offered, never demanded: OriginOS kills background work aggressively. -->
+    <uses-permission
+        android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
+        tools:ignore="BatteryLife" />
+
+    <application>
+
+        <!--
+            Keeps the microphone session alive and visible. `microphone` type is
+            mandatory from API 34, and the service can only be started while the
+            app is visible — Ruko starts it from a user tap, which satisfies that.
+        -->
+        <service
+            android:name=".monitoring.RukoForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
+
+        <!--
+            Reads the foreground app and visible payment text.
+
+            Play policy restricts AccessibilityService to accessibility purposes.
+            Ruko's use is a prototype and an OEM-integration proposal, not a
+            Play-shippable design; see docs/android-capabilities.md §3.1.
+        -->
+        <service
+            android:name=".accessibility.RukoAccessibilityService"
+            android:exported="false"
+            android:label="@string/ruko_accessibility_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/ruko_accessibility_service" />
+        </service>
+
+        <!-- Finance-related notifications only; filtered before anything is stored. -->
+        <service
+            android:name=".notifications.RukoNotificationListenerService"
+            android:exported="false"
+            android:label="@string/ruko_notification_label"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+    </application>
+</manifest>

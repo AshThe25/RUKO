@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Ruko Native Harness</string>
+    <string name="engineering_title">Ruko Edge Engine</string>
+    <string name="paydemo_name">RukoPay Demo</string>
+</resources>
