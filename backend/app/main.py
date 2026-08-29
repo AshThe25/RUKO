@@ -14,8 +14,9 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import rest, ws
+from app.api import proxy, rest, ws
 from app.config import get_settings
+from app.core.cache import TTLCache
 from app.core.sessions import SessionRegistry
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -49,6 +50,14 @@ def create_app() -> FastAPI:
         allow_headers=["Authorization", "Content-Type"],
     )
 
+    # "At most once per critical alert" lives here so it survives across
+    # requests but not across restarts.
+    app.state.explain_cache = TTLCache(
+        max_size=config.explain_cache_size,
+        ttl_seconds=config.explain_cache_ttl_seconds,
+    )
+
+    app.include_router(proxy.router, tags=["proxy"])
     app.include_router(rest.router, tags=["relay"])
     app.include_router(ws.router, tags=["guardian"])
 

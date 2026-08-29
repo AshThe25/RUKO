@@ -1,10 +1,74 @@
 # Ruko relay (`backend/`)
 
-> **Status: superseded, kept running.** Guardian alerting has moved to Supabase
-> (Postgres + RLS + Realtime); see `guardian/`. The WebSocket relay below is no
-> longer on the alert path. It is retained, tested and green while the intended
-> replacement — a thin API-key proxy — is specified with Aishwarya. Nothing here
-> has been deleted, and none of its behaviour has changed.
+> **Status: two things live here.** Guardian alerting moved to Supabase
+> (Postgres + RLS + Realtime); see `guardian/`. The WebSocket relay documented
+> further down is no longer on the alert path but is retained and still green.
+> The service's active job is now the **API-key proxy** described immediately
+> below.
+
+## The API-key proxy
+
+### Why it exists
+
+An APK is a zip file. `apktool d app.apk` recovers embedded strings in about a
+minute, so any vendor key shipped inside the app is a public key with extra
+steps — and a leaked key is someone else's bill and someone else's abuse.
+
+So the phone holds no Sarvam or Anthropic key. It calls these two endpoints with
+the Supabase access token it already has from signing in, and the keys exist only
+in this process's environment.
+
+| Method | Path | Auth | Purpose |
+| --- | --- | --- | --- |
+| `POST` | `/transcribe` | Supabase JWT | Audio to text via Sarvam Saarika. |
+| `POST` | `/explain` | Supabase JWT | One plain-language explanation per alert. |
+
+### Identity
+
+There is no second auth scheme here — no enrolment, no key issuing, no session of
+its own. The proxy verifies the Supabase JWT against the project's own signing
+keys, supporting both shapes a project can be in:
+
+- **asymmetric (ES256/RS256)** against the published JWKS. The default for
+  current projects, and no shared secret is needed here.
+- **symmetric (HS256)** with `RUKO_SUPABASE_JWT_SECRET`, for legacy projects.
+
+Rejected: unsigned, expired, wrong-audience, `service_role`, and **anonymous**
+sessions. Anonymous matters because a Supabase anonymous user still carries
+`role: authenticated` — `is_anonymous` is what actually separates "someone
+signed in" from "anyone at all". Every failure returns the same body, so the
+endpoint cannot be used as an oracle.
+
+### Cost control
+
+`/explain` is idempotent per `alert_id`. The first call buys a completion; every
+repeat returns the stored text with `"cached": true`. A phone retrying after a
+dropped connection cannot quietly bill twice. The cache is in-process, so a cold
+start can cost one extra completion — the failure mode is a duplicate spend, not
+a wrong answer, which is why this is not a database.
+
+### What may be sent
+
+`/explain` accepts the *facts of an alert* — band, score, reason codes, amount,
+payee, kind — and **rejects anything else with a 422**, including `transcript`,
+`text`, `audio` and `message_body`. Ruko's promise is that what was said stays on
+the device, and an explanation is built from the reason codes the on-device
+engine already produced. The prompt also instructs the model not to imply it
+heard the conversation.
+
+`/transcribe` is a pass-through: audio is streamed to the vendor and dropped. It
+is capped (`RUKO_MAX_AUDIO_BYTES`) because Saarika takes utterances, not whole
+calls, and an uncapped upload endpoint is a file host. Nothing is written down.
+
+> If the product later wants transcript text in `/explain`, that is a deliberate
+> change to the privacy promise and should be argued for — not enabled by
+> loosening a schema.
+
+### Deploying
+
+`render.yaml` is a Render blueprint. Every key is `sync: false`, so Render
+prompts for it in the dashboard and it never enters this repository.
+
 
 FastAPI service that connects a Ruko phone to a trusted person's Guardian
 console. **Owner: Puneesh.**

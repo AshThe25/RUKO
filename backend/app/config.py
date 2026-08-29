@@ -33,6 +33,30 @@ class Settings(BaseSettings):
         description="Where ml/ publishes model metadata. Absent means no published model.",
     )
 
+    # --- API-key proxy (build prompt: keys must never ship inside the APK) ---
+    # An APK is a zip; `apktool d app.apk` recovers embedded strings in about a
+    # minute. So the phone holds no vendor key and calls these endpoints with the
+    # Supabase token it already has, and the keys live only in the host's env.
+    supabase_url: str = Field(default="", description="Project URL, for JWKS discovery.")
+    supabase_jwt_secret: str = Field(
+        default="",
+        description="Legacy HS256 secret. Leave empty on projects using asymmetric JWTs.",
+    )
+    sarvam_api_key: str = Field(default="", description="Sarvam Saarika, for /transcribe.")
+    anthropic_api_key: str = Field(default="", description="Anthropic, for /explain.")
+    anthropic_model: str = Field(default="claude-sonnet-4-6")
+
+    #: Saarika takes short utterances, not whole calls. A cap here is the
+    #: difference between a proxy and an open file-upload endpoint.
+    max_audio_bytes: int = Field(default=8 * 1024 * 1024, ge=1024)
+    upstream_timeout_seconds: float = Field(default=30.0, gt=0)
+
+    #: "At most once per critical alert" is enforced by remembering which alert
+    #: ids have already been explained and returning the stored text instead of
+    #: paying for a second completion.
+    explain_cache_size: int = Field(default=500, ge=1)
+    explain_cache_ttl_seconds: int = Field(default=24 * 3600, ge=60)
+
     # Bounds. The relay is a routing surface, not a database — these keep a
     # misbehaving or hostile client from turning it into one.
     max_sessions: int = Field(default=200, ge=1)

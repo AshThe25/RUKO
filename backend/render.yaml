@@ -1,0 +1,38 @@
+# Render blueprint for the Ruko API-key proxy.
+#
+# Every key is `sync: false`, which means Render prompts for it in the dashboard
+# and never stores it in this repository. That is the entire point of the
+# service: the values exist in exactly one place, and it is not the APK and not
+# git.
+services:
+  - type: web
+    name: ruko-proxy
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install --upgrade pip && pip install .
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      # Identity. The proxy verifies the Supabase token the client already has.
+      - key: RUKO_SUPABASE_URL
+        sync: false
+      # Only for projects still on symmetric (HS256) JWTs. Leave unset when the
+      # project uses asymmetric keys — verification then uses the public JWKS
+      # and there is no shared secret to leak.
+      - key: RUKO_SUPABASE_JWT_SECRET
+        sync: false
+      # Vendor keys. Set these in the Render dashboard, never here.
+      - key: RUKO_SARVAM_API_KEY
+        sync: false
+      - key: RUKO_ANTHROPIC_API_KEY
+        sync: false
+      # Browser origins allowed to call this. Include the deployed Guardian.
+      - key: RUKO_ALLOWED_ORIGINS
+        sync: false
+      - key: RUKO_ENV
+        value: production
+      # The relay half of this service still mints its own tokens; in production
+      # it must not fall back to a per-process random secret.
+      - key: RUKO_RELAY_SECRET
+        generateValue: true

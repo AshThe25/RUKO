@@ -66,3 +66,32 @@ it.
 npm test          # vitest: money, bands, reason shapes, ordering, privacy guard
 npm run lint      # tsc --noEmit
 ```
+
+## Deploying to Vercel
+
+The console is a static-rendered Next.js app that talks to Supabase from the
+browser, so there is nothing server-side to configure and no secret to hold.
+
+1. **Import the repo** in Vercel and set **Root Directory to `guardian`** — the
+   repo root is not a Next.js project, and this is the step that is easy to miss.
+2. **Environment variables** (Production + Preview):
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+
+   Both are `NEXT_PUBLIC_`, so they are compiled into the client bundle. That is
+   correct here: the publishable key is designed to be public, and RLS is what
+   protects the rows. Never put the service-role key in this project.
+3. **Allow the new origin to complete sign-in.** OAuth will fail until both are
+   updated:
+   - Supabase → Authentication → URL Configuration → Redirect URLs:
+     add `https://<deployment>.vercel.app/**`
+   - Google Cloud → the Web client's authorised redirect URIs already point at
+     `https://<project>.supabase.co/auth/v1/callback`, which does not change per
+     deployment — so this usually needs **no** edit. Only the Supabase redirect
+     allow-list is per-origin.
+4. Vercel gives every deployment its own preview URL. Each one you intend to sign
+   in from needs to be in the Supabase allow-list; the wildcard above covers them.
+
+While the Google app is in **Testing** mode, only the listed test users can sign
+in — everyone else gets `403: access_denied`, on the deployed origin exactly as
+on localhost.
