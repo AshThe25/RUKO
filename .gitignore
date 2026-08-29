@@ -52,3 +52,14 @@ ml/runs/
 *.pem
 *.key
 secrets.json
+
+# --- React Native keeps the native projects inside mobile/ ---
+mobile/android/.gradle/
+mobile/android/build/
+mobile/android/app/build/
+mobile/android/.cxx/
+mobile/android/local.properties
+mobile/ios/Pods/
+mobile/ios/build/
+mobile/ios/*.xcworkspace/xcuserdata/
+.metro-health-check*
