@@ -15,7 +15,7 @@ export const MODEL_MAX_LENGTH = 64;
 
 /** sha256 of the int8 model that these thresholds were evaluated against. */
 export const EXPECTED_MODEL_SHA256 =
-  'd65e7c689d893d0835543f9999724b4f3a4a4b756cd3003185ce69eb78362be1';
+  'f3d2bc09063a2628f966e9054c11268a7512cd11745ec593712b32e7ff2afedc';
 export const MODEL_SIZE_BYTES = 22872082;
 export const VOCAB_SHA256 = '07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3';
 

@@ -12,16 +12,16 @@
     "credentialRequest"
   ],
   "thresholds": {
-    "authority": 0.2,
-    "coercion": 0.5,
+    "authority": 0.38,
+    "coercion": 0.2,
     "urgency": 0.2,
     "financialInstruction": 0.2,
-    "secrecy": 0.2,
-    "credentialRequest": 0.8
+    "secrecy": 0.61,
+    "credentialRequest": 0.2
   },
   "hyperparameters": {
     "epochs": 6,
-    "best_epoch": 6,
+    "best_epoch": 2,
     "batch_size": 32,
     "encoder_lr": 2e-05,
     "head_lr": 0.0005,
@@ -39,261 +39,261 @@
   },
   "training": {
     "device": "mps",
-    "seconds": 70.1,
+    "seconds": 85.2,
     "history": [
       {
         "epoch": 1,
-        "train_loss": 0.6199,
-        "val_macro_f1_at_0.5": 0.6268
+        "train_loss": 0.6272,
+        "val_macro_f1_at_0.5": 0.5614
       },
       {
         "epoch": 2,
-        "train_loss": 0.1689,
-        "val_macro_f1_at_0.5": 0.6597
+        "train_loss": 0.1951,
+        "val_macro_f1_at_0.5": 0.6016
       },
       {
         "epoch": 3,
-        "train_loss": 0.0624,
-        "val_macro_f1_at_0.5": 0.6531
+        "train_loss": 0.0833,
+        "val_macro_f1_at_0.5": 0.6005
       },
       {
         "epoch": 4,
-        "train_loss": 0.0355,
-        "val_macro_f1_at_0.5": 0.6537
+        "train_loss": 0.051,
+        "val_macro_f1_at_0.5": 0.5848
       },
       {
         "epoch": 5,
-        "train_loss": 0.0273,
-        "val_macro_f1_at_0.5": 0.6643
+        "train_loss": 0.0392,
+        "val_macro_f1_at_0.5": 0.5914
       },
       {
         "epoch": 6,
-        "train_loss": 0.0235,
-        "val_macro_f1_at_0.5": 0.6654
+        "train_loss": 0.0339,
+        "val_macro_f1_at_0.5": 0.5878
       }
     ]
   },
   "results": {
     "validation": {
       "rows": 1200,
-      "macro_f1": 0.7171,
-      "micro_precision": 0.7638,
-      "micro_recall": 0.7503,
-      "micro_f1": 0.757,
-      "exact_match": 0.3458,
+      "macro_f1": 0.6923,
+      "micro_precision": 0.6749,
+      "micro_recall": 0.7757,
+      "micro_f1": 0.7218,
+      "exact_match": 0.2533,
       "per_label": {
         "authority": {
-          "threshold": 0.2,
-          "precision": 0.9392,
-          "recall": 0.9239,
-          "f1": 0.9315,
-          "tp": 510,
-          "fp": 33,
-          "fn": 42,
-          "tn": 615
+          "threshold": 0.38,
+          "precision": 0.8872,
+          "recall": 0.9421,
+          "f1": 0.9138,
+          "tp": 716,
+          "fp": 91,
+          "fn": 44,
+          "tn": 349
         },
         "coercion": {
-          "threshold": 0.5,
-          "precision": 0.8852,
-          "recall": 0.9426,
-          "f1": 0.913,
-          "tp": 509,
-          "fp": 66,
-          "fn": 31,
-          "tn": 594
+          "threshold": 0.2,
+          "precision": 0.6536,
+          "recall": 0.7373,
+          "f1": 0.6929,
+          "tp": 334,
+          "fp": 177,
+          "fn": 119,
+          "tn": 570
         },
         "urgency": {
           "threshold": 0.2,
-          "precision": 0.7273,
-          "recall": 0.3431,
-          "f1": 0.4662,
-          "tp": 176,
-          "fp": 66,
-          "fn": 337,
-          "tn": 621
+          "precision": 0.3941,
+          "recall": 0.4302,
+          "f1": 0.4114,
+          "tp": 188,
+          "fp": 289,
+          "fn": 249,
+          "tn": 474
         },
         "financialInstruction": {
           "threshold": 0.2,
-          "precision": 0.833,
-          "recall": 0.7949,
-          "f1": 0.8135,
-          "tp": 434,
-          "fp": 87,
-          "fn": 112,
-          "tn": 567
+          "precision": 0.8386,
+          "recall": 0.8765,
+          "f1": 0.8571,
+          "tp": 426,
+          "fp": 82,
+          "fn": 60,
+          "tn": 632
         },
         "secrecy": {
-          "threshold": 0.2,
-          "precision": 0.5502,
-          "recall": 0.5977,
-          "f1": 0.573,
-          "tp": 159,
-          "fp": 130,
-          "fn": 107,
-          "tn": 804
+          "threshold": 0.61,
+          "precision": 0.7608,
+          "recall": 0.8472,
+          "f1": 0.8017,
+          "tp": 194,
+          "fp": 61,
+          "fn": 35,
+          "tn": 910
         },
         "credentialRequest": {
-          "threshold": 0.8,
-          "precision": 0.4683,
-          "recall": 0.8554,
-          "f1": 0.6053,
-          "tp": 207,
-          "fp": 235,
-          "fn": 35,
-          "tn": 723
+          "threshold": 0.2,
+          "precision": 0.3683,
+          "recall": 0.6752,
+          "f1": 0.4766,
+          "tp": 158,
+          "fp": 271,
+          "fn": 76,
+          "tn": 695
         }
       }
     },
     "generated_test": {
       "rows": 1200,
-      "macro_f1": 0.6395,
-      "micro_precision": 0.7429,
-      "micro_recall": 0.621,
-      "micro_f1": 0.6765,
-      "exact_match": 0.3425,
+      "macro_f1": 0.6422,
+      "micro_precision": 0.6726,
+      "micro_recall": 0.7826,
+      "micro_f1": 0.7234,
+      "exact_match": 0.3517,
       "per_label": {
         "authority": {
-          "threshold": 0.2,
-          "precision": 0.8869,
-          "recall": 0.8467,
-          "f1": 0.8663,
-          "tp": 392,
-          "fp": 50,
-          "fn": 71,
-          "tn": 687
+          "threshold": 0.38,
+          "precision": 0.8379,
+          "recall": 0.9335,
+          "f1": 0.8831,
+          "tp": 646,
+          "fp": 125,
+          "fn": 46,
+          "tn": 383
         },
         "coercion": {
-          "threshold": 0.5,
-          "precision": 0.7083,
-          "recall": 0.8908,
-          "f1": 0.7892,
-          "tp": 204,
-          "fp": 84,
-          "fn": 25,
-          "tn": 887
+          "threshold": 0.2,
+          "precision": 0.4977,
+          "recall": 0.9821,
+          "f1": 0.6607,
+          "tp": 220,
+          "fp": 222,
+          "fn": 4,
+          "tn": 754
         },
         "urgency": {
           "threshold": 0.2,
-          "precision": 0.2961,
-          "recall": 0.1266,
-          "f1": 0.1773,
-          "tp": 61,
-          "fp": 145,
-          "fn": 421,
-          "tn": 573
+          "precision": 0.6083,
+          "recall": 0.6667,
+          "f1": 0.6362,
+          "tp": 278,
+          "fp": 179,
+          "fn": 139,
+          "tn": 604
         },
         "financialInstruction": {
           "threshold": 0.2,
-          "precision": 0.8142,
-          "recall": 0.8193,
-          "f1": 0.8167,
-          "tp": 517,
-          "fp": 118,
-          "fn": 114,
-          "tn": 451
+          "precision": 0.7817,
+          "recall": 0.8481,
+          "f1": 0.8135,
+          "tp": 469,
+          "fp": 131,
+          "fn": 84,
+          "tn": 516
         },
         "secrecy": {
-          "threshold": 0.2,
-          "precision": 0.6282,
-          "recall": 0.4188,
-          "f1": 0.5026,
-          "tp": 98,
-          "fp": 58,
-          "fn": 136,
-          "tn": 908
+          "threshold": 0.61,
+          "precision": 0.5684,
+          "recall": 0.2727,
+          "f1": 0.3686,
+          "tp": 54,
+          "fp": 41,
+          "fn": 144,
+          "tn": 961
         },
         "credentialRequest": {
-          "threshold": 0.8,
-          "precision": 0.8021,
-          "recall": 0.5976,
-          "f1": 0.6849,
-          "tp": 150,
-          "fp": 37,
-          "fn": 101,
-          "tn": 912
+          "threshold": 0.2,
+          "precision": 0.4136,
+          "recall": 0.604,
+          "f1": 0.4909,
+          "tp": 122,
+          "fp": 173,
+          "fn": 80,
+          "tn": 825
         }
       }
     },
     "authored_holdout": {
       "rows": 107,
-      "macro_f1": 0.6274,
-      "micro_precision": 0.6491,
-      "micro_recall": 0.5968,
-      "micro_f1": 0.6218,
-      "exact_match": 0.4299,
+      "macro_f1": 0.6151,
+      "micro_precision": 0.515,
+      "micro_recall": 0.6935,
+      "micro_f1": 0.5911,
+      "exact_match": 0.2897,
       "per_label": {
         "authority": {
-          "threshold": 0.2,
-          "precision": 0.7083,
+          "threshold": 0.38,
+          "precision": 0.68,
           "recall": 0.7391,
-          "f1": 0.7234,
+          "f1": 0.7083,
           "tp": 17,
-          "fp": 7,
+          "fp": 8,
           "fn": 6,
-          "tn": 77
+          "tn": 76
         },
         "coercion": {
-          "threshold": 0.5,
-          "precision": 0.55,
-          "recall": 0.4783,
-          "f1": 0.5116,
-          "tp": 11,
-          "fp": 9,
-          "fn": 12,
-          "tn": 75
+          "threshold": 0.2,
+          "precision": 0.5652,
+          "recall": 0.5652,
+          "f1": 0.5652,
+          "tp": 13,
+          "fp": 10,
+          "fn": 10,
+          "tn": 74
         },
         "urgency": {
           "threshold": 0.2,
-          "precision": 0.3889,
-          "recall": 0.35,
-          "f1": 0.3684,
-          "tp": 7,
-          "fp": 11,
-          "fn": 13,
-          "tn": 76
+          "precision": 0.25,
+          "recall": 0.6,
+          "f1": 0.3529,
+          "tp": 12,
+          "fp": 36,
+          "fn": 8,
+          "tn": 51
         },
         "financialInstruction": {
           "threshold": 0.2,
-          "precision": 0.75,
-          "recall": 0.48,
-          "f1": 0.5854,
-          "tp": 12,
-          "fp": 4,
-          "fn": 13,
-          "tn": 78
+          "precision": 0.6111,
+          "recall": 0.44,
+          "f1": 0.5116,
+          "tp": 11,
+          "fp": 7,
+          "fn": 14,
+          "tn": 75
         },
         "secrecy": {
-          "threshold": 0.2,
-          "precision": 0.6,
-          "recall": 0.75,
-          "f1": 0.6667,
-          "tp": 12,
-          "fp": 8,
-          "fn": 4,
-          "tn": 83
+          "threshold": 0.61,
+          "precision": 0.5161,
+          "recall": 1.0,
+          "f1": 0.6809,
+          "tp": 16,
+          "fp": 15,
+          "fn": 0,
+          "tn": 76
         },
         "credentialRequest": {
-          "threshold": 0.8,
-          "precision": 0.9375,
-          "recall": 0.8824,
-          "f1": 0.9091,
-          "tp": 15,
-          "fp": 1,
-          "fn": 2,
-          "tn": 89
+          "threshold": 0.2,
+          "precision": 0.7727,
+          "recall": 1.0,
+          "f1": 0.8718,
+          "tp": 17,
+          "fp": 5,
+          "fn": 0,
+          "tn": 85
         }
       }
     }
   },
   "provenance": {
-    "git_commit": "0abe9dc",
+    "git_commit": "9133357",
     "dataset_manifest": {
-      "processed/train.jsonl": "7886d0e495cd34e1416534ca858e9f9f5220594add8feb2df26ccbfe93a39963",
-      "processed/val.jsonl": "d736abc7bfa97616b98b4474e0092a5e2edbd29e3da5a0eaca0807b65e278ea2",
-      "processed/test.jsonl": "21447c267ed46529471e37ed1b287071558f7b07345b5636564c8df5322c522b",
+      "processed/train.jsonl": "e77e3fd8d976bb4c4c67dda7e0c43901c6de30c50f2d251afe77f9fb53938f0c",
+      "processed/val.jsonl": "1031506e101cc4939065d33f24b02f4ff401cc2b2a14c90c17100cf5e04a9005",
+      "processed/test.jsonl": "27dc610cfb6cc21b16a9c130a4809c61aae8656259d535d7fc3a54df720a05ce",
       "holdout/test_holdout.jsonl": "e458b9b13d567696b62c12bb2dda3280b98bd3a613b5a921ebde61c3a98010bd"
     },
     "torch": "2.13.0",
-    "trained_at_utc": "2026-08-29T08:38:28Z"
+    "trained_at_utc": "2026-08-29T15:28:45Z"
   }
 }

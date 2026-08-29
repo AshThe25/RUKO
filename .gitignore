@@ -38,6 +38,10 @@ venv/
 ml/models/**/*.bin
 ml/models/**/*.safetensors
 ml/models/**/*.onnx
+# ...except the shipped ruko-manip-v1 weights, which the app needs at
+# runtime. They are committed through git LFS (see .gitattributes), and
+# their sha256 is recorded in model_card.json.
+!ml/models/ruko-manip-v1/onnx/model_int8.onnx
 ml/models/**/*.pt
 ml/models/**/checkpoints/
 ml/runs/
