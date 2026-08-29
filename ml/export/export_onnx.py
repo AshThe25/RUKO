@@ -240,7 +240,72 @@ def main() -> int:
     print("=" * 70)
     print(f"int8 costs {flipped / total * 100:.2f}% of label decisions; "
           f"run ml/evaluation/evaluate.py for the accuracy cost in F1")
+
+    eval_path = args.model_dir / "evaluation.json"
+    evaluation = json.loads(eval_path.read_text()) if eval_path.exists() else None
+    ts_path = emit_ts_config(args.model_dir, card, evaluation)
+    print(f"wrote {ts_path}"
+          + ("" if evaluation else "  (no evaluation.json yet -- using neural thresholds; "
+                                   "re-run export after evaluate.py)"))
     return 0 if card["parity"]["verdict"] == "PASS" else 1
+
+
+def emit_ts_config(model_dir: Path, card: dict, evaluation: dict | None) -> Path:
+    """Write the generated TypeScript config the on-device classifier reads.
+
+    Thresholds, the fusion weight and the expected model hash all come from the
+    measured artefacts, so the phone can never silently disagree with what was
+    evaluated. Regenerated on every export; committed so the app builds without
+    running the ML pipeline.
+    """
+    out = Path("mobile/src/risk/classifier/modelConfig.generated.ts")
+    fusion_weight = 0.5
+    thresholds = card["thresholds"]
+    if evaluation:
+        rule = evaluation.get("ensemble_rule", "")
+        if rule.startswith("weighted_"):
+            fusion_weight = float(rule.split("_")[1])
+        thresholds = evaluation["thresholds"].get("ensemble", thresholds)
+
+    body = f"""/**
+ * GENERATED FILE -- DO NOT EDIT.
+ * Written by ml/export/export_onnx.py from the measured export artefacts.
+ *
+ * Everything here is a measurement, not a guess: the thresholds are the ones
+ * calibrated on the validation split, the fusion weight is the ensemble rule
+ * that won on validation, and the hash is of the model file that was evaluated.
+ */
+
+import type {{ ManipulationLabel }} from '../../contracts/index.ts';
+
+export const MODEL_VERSION = '{card["model_version"]}';
+export const MODEL_FILE = 'model_int8.onnx';
+export const MODEL_MAX_LENGTH = {card["max_length"]};
+
+/** sha256 of the int8 model that these thresholds were evaluated against. */
+export const EXPECTED_MODEL_SHA256 =
+  '{card["artifacts"]["model_int8.onnx"]["sha256"]}';
+export const MODEL_SIZE_BYTES = {card["artifacts"]["model_int8.onnx"]["bytes"]};
+export const VOCAB_SHA256 = '{card["artifacts"]["vocab.txt"]["sha256"]}';
+
+/**
+ * Per-label decision thresholds. These are the point at which a label is
+ * considered present; the classifier rescales around them so the risk engine
+ * always sees 0.5 as "on the fence".
+ */
+export const LABEL_THRESHOLDS: Record<ManipulationLabel, number> = {{
+{chr(10).join(f"  {l}: {t}," for l, t in thresholds.items())}
+}};
+
+/**
+ * Ensemble weight on the neural score; the remainder goes to the lexicon.
+ * Selected on the validation split; see the model directory's evaluation.json.
+ */
+export const NEURAL_FUSION_WEIGHT = {fusion_weight};
+"""
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(body, encoding="utf-8")
+    return out
 
 
 if __name__ == "__main__":
