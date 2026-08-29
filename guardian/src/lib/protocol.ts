@@ -1,5 +1,5 @@
 /**
- * Guardian-side mirror of `docs/contracts/guardian.schema.ts`.
+ * Guardian-side mirror of `docs/contracts/guardian-protocol.schema.ts`.
  *
  * Everything arriving over the socket is untrusted input, so the types here
  * are paired with runtime guards. A frame that does not match is dropped and

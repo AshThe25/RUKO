@@ -1,4 +1,4 @@
-"""Pydantic mirror of `docs/contracts/guardian.schema.ts`.
+"""Pydantic mirror of `docs/contracts/guardian-protocol.schema.ts`.
 
 Every model forbids unknown fields. That is the single most important line in
 this file: the relay is the only place a hostile or buggy client meets the

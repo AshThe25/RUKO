@@ -1,6 +1,6 @@
 """Guards the Python mirror against drift from the canonical TypeScript.
 
-`docs/contracts/guardian.schema.ts` is the source of truth. This test parses it
+`docs/contracts/guardian-protocol.schema.ts` is the source of truth. This test parses it
 and compares field names against the Pydantic models, so a field added on one
 side and forgotten on the other fails the build instead of failing in the demo.
 
@@ -27,7 +27,9 @@ from app.models.contracts import (
     RiskEventReport,
 )
 
-CONTRACT = Path(__file__).resolve().parents[2] / "docs" / "contracts" / "guardian.schema.ts"
+CONTRACT = (
+    Path(__file__).resolve().parents[2] / "docs" / "contracts" / "guardian-protocol.schema.ts"
+)
 
 _TYPE_BLOCK = re.compile(r"export type (\w+)\s*=\s*\{(.*?)\n\};", re.DOTALL)
 _FIELD = re.compile(r"^\s{2}(\w+)\??\s*:", re.MULTILINE)
