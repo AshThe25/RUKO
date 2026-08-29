@@ -1,0 +1,393 @@
+{
+ "model_version": "ruko-manip-v1",
+ "thresholds": {
+  "authority": 0.2,
+  "coercion": 0.4,
+  "urgency": 0.2,
+  "financialInstruction": 0.37,
+  "secrecy": 0.4,
+  "credentialRequest": 0.49
+ },
+ "neural_fusion_weight": 0.5,
+ "note": "logits are from model_int8.onnx via onnxruntime 1.29.0 on CPUExecutionProvider",
+ "cases": [
+  {
+   "text": "hello sir i am calling from your bank your account will be frozen you must transfer 48000 immediately do not disconnect this call",
+   "input_ids": [
+    101,
+    7592,
+    2909,
+    1045,
+    2572,
+    4214,
+    2013,
+    2115,
+    2924,
+    2115,
+    4070,
+    2097,
+    2022,
+    7708,
+    2017,
+    2442,
+    4651,
+    17295,
+    8889,
+    3202,
+    2079,
+    2025,
+    12532,
+    10087,
+    6593,
+    2023,
+    2655,
+    102
+   ],
+   "logits": [
+    2.3517589569091797,
+    8.16248607635498,
+    -4.919901371002197,
+    1.6604028940200806,
+    -3.014273166656494,
+    -6.782487869262695
+   ],
+   "neural_probs": {
+    "authority": 0.9130739373071537,
+    "coercion": 0.9997149286871041,
+    "urgency": 0.007246949140853521,
+    "financialInstruction": 0.8402920793710972,
+    "secrecy": 0.04678520854026658,
+    "credentialRequest": 0.0011321682506833172
+   },
+   "neural_calibrated": {
+    "authority": 0.9456712108169711,
+    "coercion": 0.9997624405725867,
+    "urgency": 0.0181173728521338,
+    "financialInstruction": 0.8732476820405533,
+    "secrecy": 0.05848151067533323,
+    "credentialRequest": 0.0011552737251870585
+   }
+  },
+  {
+   "text": "can you send me 500 for dinner last night",
+   "input_ids": [
+    101,
+    2064,
+    2017,
+    4604,
+    2033,
+    3156,
+    2005,
+    4596,
+    2197,
+    2305,
+    102
+   ],
+   "logits": [
+    -9.116806030273438,
+    -8.037824630737305,
+    -5.478975772857666,
+    -6.38655424118042,
+    -4.558818817138672,
+    -6.803861618041992
+   ],
+   "neural_probs": {
+    "authority": 0.00010979277537709065,
+    "coercion": 0.00032290655195456753,
+    "urgency": 0.004156255668282493,
+    "financialInstruction": 0.0016812177889240318,
+    "secrecy": 0.010365847568326774,
+    "credentialRequest": 0.0011082528801799319
+   },
+   "neural_calibrated": {
+    "authority": 0.0002744819384427266,
+    "coercion": 0.0004036331899432094,
+    "urgency": 0.010390639170706232,
+    "financialInstruction": 0.0022719159309784213,
+    "secrecy": 0.012957309460408467,
+    "credentialRequest": 0.0011308702858978897
+   }
+  },
+  {
+   "text": "main crime branch se bol raha hoon aapka account block ho jayega turant paisa bhej dijiye aur kisi ko mat bataiye",
+   "input_ids": [
+    101,
+    2364,
+    4126,
+    3589,
+    7367,
+    8945,
+    2140,
+    10958,
+    3270,
+    7570,
+    2239,
+    9779,
+    2361,
+    2912,
+    4070,
+    3796,
+    7570,
+    6108,
+    29107,
+    10722,
+    17884,
+    6643,
+    14268,
+    1038,
+    5369,
+    3501,
+    4487,
+    4478,
+    6672,
+    8740,
+    2099,
+    11382,
+    5332,
+    12849,
+    13523,
+    7151,
+    4886,
+    6672,
+    102
+   ],
+   "logits": [
+    0.4217022657394409,
+    8.428799629211426,
+    1.5743645429611206,
+    -2.6974339485168457,
+    -6.254021644592285,
+    -2.729940891265869
+   ],
+   "neural_probs": {
+    "authority": 0.6038905152645855,
+    "coercion": 0.9997815641302816,
+    "urgency": 0.8284049185232956,
+    "financialInstruction": 0.06312494279630676,
+    "secrecy": 0.0019190164214747186,
+    "credentialRequest": 0.06122956033145945
+   },
+   "neural_calibrated": {
+    "authority": 0.7524315720403659,
+    "coercion": 0.9998179701085681,
+    "urgency": 0.8927530740770597,
+    "financialInstruction": 0.08530397675176589,
+    "secrecy": 0.002398770526843398,
+    "credentialRequest": 0.062479143195366786
+   }
+  },
+  {
+   "text": "never share your otp with anyone not even with bank staff",
+   "input_ids": [
+    101,
+    2196,
+    3745,
+    2115,
+    27178,
+    2361,
+    2007,
+    3087,
+    2025,
+    2130,
+    2007,
+    2924,
+    3095,
+    102
+   ],
+   "logits": [
+    -3.579758644104004,
+    -9.357240676879883,
+    -7.125945091247559,
+    -6.430126190185547,
+    -4.170140743255615,
+    7.067461967468262
+   ],
+   "neural_probs": {
+    "authority": 0.02712608592004612,
+    "coercion": 8.633055118074514e-05,
+    "urgency": 0.0008033269702274025,
+    "financialInstruction": 0.0016096522143023491,
+    "secrecy": 0.01521501223599257,
+    "credentialRequest": 0.999148332187127
+   },
+   "neural_calibrated": {
+    "authority": 0.06781521480011529,
+    "coercion": 0.00010791318897593142,
+    "urgency": 0.002008317425568506,
+    "financialInstruction": 0.0021752056950031747,
+    "secrecy": 0.01901876529499071,
+    "credentialRequest": 0.9991650315560068
+   }
+  },
+  {
+   "text": "i am sending the rent of 50000 to the landlord today like every month",
+   "input_ids": [
+    101,
+    1045,
+    2572,
+    6016,
+    1996,
+    9278,
+    1997,
+    13509,
+    2692,
+    2000,
+    1996,
+    18196,
+    2651,
+    2066,
+    2296,
+    3204,
+    102
+   ],
+   "logits": [
+    -7.649899005889893,
+    -4.96999979019165,
+    -3.3392446041107178,
+    9.144903182983398,
+    -5.826902389526367,
+    -6.549272537231445
+   ],
+   "neural_probs": {
+    "authority": 0.00047586565317325795,
+    "coercion": 0.006895274569356873,
+    "urgency": 0.03424913447730947,
+    "financialInstruction": 0.9998932488293728,
+    "secrecy": 0.0029385316911091494,
+    "credentialRequest": 0.0014291110513310332
+   },
+   "neural_calibrated": {
+    "authority": 0.0011896641329331447,
+    "coercion": 0.00861909321169609,
+    "urgency": 0.08562283619327367,
+    "financialInstruction": 0.9999152768487085,
+    "secrecy": 0.0036731646138864365,
+    "credentialRequest": 0.0014582765829908504
+   }
+  },
+  {
+   "text": "the traffic was terrible today it took me a full hour to reach office",
+   "input_ids": [
+    101,
+    1996,
+    4026,
+    2001,
+    6659,
+    2651,
+    2009,
+    2165,
+    2033,
+    1037,
+    2440,
+    3178,
+    2000,
+    3362,
+    2436,
+    102
+   ],
+   "logits": [
+    -4.361637592315674,
+    -3.9444117546081543,
+    -5.079709529876709,
+    -8.910943031311035,
+    -7.938915252685547,
+    -7.0831217765808105
+   ],
+   "neural_probs": {
+    "authority": 0.012596775881142263,
+    "coercion": 0.01899481394120102,
+    "urgency": 0.006183245578303859,
+    "financialInstruction": 0.000134886357980817,
+    "secrecy": 0.0003564659686751155,
+    "credentialRequest": 0.0008384458368220319
+   },
+   "neural_calibrated": {
+    "authority": 0.03149193970285565,
+    "coercion": 0.023743517426501274,
+    "urgency": 0.015458113945759647,
+    "financialInstruction": 0.00018227886213623918,
+    "secrecy": 0.0004455824608438944,
+    "credentialRequest": 0.0008555569763490121
+   }
+  },
+  {
+   "text": "tell me the otp you have just received on your phone right now",
+   "input_ids": [
+    101,
+    2425,
+    2033,
+    1996,
+    27178,
+    2361,
+    2017,
+    2031,
+    2074,
+    2363,
+    2006,
+    2115,
+    3042,
+    2157,
+    2085,
+    102
+   ],
+   "logits": [
+    -3.620544910430908,
+    -5.084532260894775,
+    -5.563149452209473,
+    -8.6624174118042,
+    -8.876004219055176,
+    6.676374912261963
+   ],
+   "neural_probs": {
+    "authority": 0.02607023598154852,
+    "coercion": 0.006153680301601844,
+    "urgency": 0.0038220101217712045,
+    "financialInstruction": 0.00017293575989397672,
+    "secrecy": 0.000139681753736384,
+    "credentialRequest": 0.9987412479146394
+   },
+   "neural_calibrated": {
+    "authority": 0.0651755899538713,
+    "coercion": 0.007692100377002305,
+    "urgency": 0.00955502530442801,
+    "financialInstruction": 0.00023369697282969826,
+    "secrecy": 0.00017460219217048,
+    "credentialRequest": 0.9987659293280777
+   }
+  },
+  {
+   "text": "account number please",
+   "input_ids": [
+    101,
+    4070,
+    2193,
+    3531,
+    102
+   ],
+   "logits": [
+    -7.333262920379639,
+    -7.148685455322266,
+    -9.791707992553711,
+    -1.8787568807601929,
+    -5.660881519317627,
+    -3.1098666191101074
+   ],
+   "neural_probs": {
+    "authority": 0.0006530112863648039,
+    "coercion": 0.0007852793503505511,
+    "urgency": 5.591019001710891e-05,
+    "financialInstruction": 0.1325317260413842,
+    "secrecy": 0.0034673837622919744,
+    "credentialRequest": 0.04270209631344109
+   },
+   "neural_calibrated": {
+    "authority": 0.0016325282159120097,
+    "coercion": 0.0009815991879381888,
+    "urgency": 0.00013977547504277226,
+    "financialInstruction": 0.1790969270829516,
+    "secrecy": 0.004334229702864968,
+    "credentialRequest": 0.04357356766677662
+   }
+  }
+ ]
+}

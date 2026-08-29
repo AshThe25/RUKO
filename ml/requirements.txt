@@ -1,0 +1,8 @@
+# Ruko ML pipeline. Pinned loosely; exact resolved versions are recorded in
+# ml/models/<model>/model_card.json at export time.
+torch>=2.4
+transformers>=4.44
+scikit-learn>=1.5
+numpy>=1.26
+onnx>=1.16
+onnxruntime>=1.19
