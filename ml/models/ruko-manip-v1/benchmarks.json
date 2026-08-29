@@ -1,0 +1,61 @@
+{
+  "host": {
+    "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+    "processor": "arm",
+    "python": "3.13.13",
+    "onnxruntime": "1.29.0",
+    "providers": [
+      "CoreMLExecutionProvider",
+      "AzureExecutionProvider",
+      "CPUExecutionProvider"
+    ]
+  },
+  "disclaimer": "Host CPU only. NOT an iQOO 15 measurement. On-device latency is measured by the app at runtime and shown on the engineering screen.",
+  "results": [
+    {
+      "file": "model_fp32.onnx",
+      "size_mb": 90.39,
+      "cold_start_ms": 52.8,
+      "single_window_ms": {
+        "runs": 200,
+        "p50": 1.439,
+        "p95": 1.885,
+        "p99": 3.619,
+        "mean": 1.497,
+        "stdev": 0.413,
+        "min": 1.01,
+        "max": 4.566
+      },
+      "batch": {
+        "batch_size": 8,
+        "p50_ms": 13.508,
+        "windows_per_second": 571.0
+      },
+      "rss_mb_before": 430.1,
+      "rss_mb_after": 635.6
+    },
+    {
+      "file": "model_int8.onnx",
+      "size_mb": 22.87,
+      "cold_start_ms": 39.7,
+      "single_window_ms": {
+        "runs": 200,
+        "p50": 1.118,
+        "p95": 1.643,
+        "p99": 1.843,
+        "mean": 1.064,
+        "stdev": 0.272,
+        "min": 0.641,
+        "max": 1.907
+      },
+      "batch": {
+        "batch_size": 8,
+        "p50_ms": 16.214,
+        "windows_per_second": 507.9
+      },
+      "rss_mb_before": 653.2,
+      "rss_mb_after": 699.9
+    }
+  ],
+  "measured_at_utc": "2026-08-29T08:57:20Z"
+}
