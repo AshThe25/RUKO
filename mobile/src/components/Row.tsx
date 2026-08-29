@@ -9,25 +9,32 @@ interface RowProps {
   detail?: string;
   valueColor?: string;
   onPress?: () => void;
+  /** For the engineering screen, the one dark ground in the app. */
+  onDark?: boolean;
   testID?: string;
 }
 
 /** Label / value row used by the engineering and guardian screens. */
-export function Row({label, value, detail, valueColor, onPress, testID}: RowProps) {
+export function Row({label, value, detail, valueColor, onPress, onDark, testID}: RowProps) {
   const body = (
-    <View style={styles.row} testID={testID}>
+    <View
+      style={[styles.row, onDark ? {borderBottomColor: colors.darkBorder} : null]}
+      testID={testID}>
       <View style={styles.labelCol}>
-        <Txt variant="body" tone="secondary">
+        <Txt variant="body" color={onDark ? colors.darkTextSecondary : colors.textSecondary}>
           {label}
         </Txt>
         {detail ? (
-          <Txt variant="caption" tone="tertiary" style={styles.detail}>
+          <Txt
+            variant="caption"
+            color={onDark ? colors.darkTextSecondary : colors.textTertiary}
+            style={styles.detail}>
             {detail}
           </Txt>
         ) : null}
       </View>
       {value !== undefined ? (
-        <Txt variant="mono" color={valueColor ?? colors.text}>
+        <Txt variant="mono" color={valueColor ?? (onDark ? colors.darkText : colors.text)}>
           {value}
         </Txt>
       ) : null}

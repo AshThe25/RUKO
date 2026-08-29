@@ -3,6 +3,7 @@ import {Animated, Easing, StyleSheet, View} from 'react-native';
 import type {RiskLevel} from '@contracts';
 import {colors, motion, radius, riskPalette, space} from '@/theme';
 import {Txt} from './Txt';
+import {useReducedMotion} from './useReducedMotion';
 
 interface RiskScoreProps {
   score: number;
@@ -22,15 +23,23 @@ export function RiskScore({score, level, size = 'inline', indeterminate}: RiskSc
   const palette = riskPalette[level];
   const progress = useRef(new Animated.Value(0)).current;
   const clamped = Math.max(0, Math.min(100, score));
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
+    const target = indeterminate ? 0 : clamped / 100;
+    // The meter fills to show the score being arrived at, not for delight.
+    // Under reduce-motion it simply arrives — the information is identical.
+    if (reduceMotion) {
+      progress.setValue(target);
+      return;
+    }
     Animated.timing(progress, {
-      toValue: indeterminate ? 0 : clamped / 100,
+      toValue: target,
       duration: motion.slow,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
     }).start();
-  }, [clamped, indeterminate, progress]);
+  }, [clamped, indeterminate, progress, reduceMotion]);
 
   const width = progress.interpolate({
     inputRange: [0, 1],
@@ -50,9 +59,21 @@ export function RiskScore({score, level, size = 'inline', indeterminate}: RiskSc
           / 100
         </Txt>
       </View>
-      <Txt variant="label" color={palette.fg} uppercase style={styles.level}>
-        {indeterminate ? 'NOT ENOUGH SIGNAL' : palette.label}
-      </Txt>
+      {/* Colour is never the only carrier: the glyph survives greyscale and
+          colour blindness, and the meaning survives both plus a screen reader. */}
+      <View style={styles.levelRow}>
+        <Txt variant="label" color={palette.fg}>
+          {indeterminate ? '—' : palette.glyph}
+        </Txt>
+        <Txt variant="label" color={palette.fg} uppercase style={styles.level}>
+          {indeterminate ? 'NOT ENOUGH SIGNAL' : palette.label}
+        </Txt>
+      </View>
+      {size === 'display' && !indeterminate ? (
+        <Txt variant="caption" tone="secondary" style={styles.meaning}>
+          {palette.meaning}
+        </Txt>
+      ) : null}
       <View style={styles.track}>
         <Animated.View style={[styles.fill, {width, backgroundColor: palette.fg}]} />
         {[30, 60, 80].map(tick => (
@@ -66,7 +87,9 @@ export function RiskScore({score, level, size = 'inline', indeterminate}: RiskSc
 const styles = StyleSheet.create({
   row: {flexDirection: 'row', alignItems: 'flex-end'},
   outOf: {marginLeft: space.sm, marginBottom: 6},
-  level: {marginTop: space.xs},
+  levelRow: {flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.xs},
+  level: {},
+  meaning: {marginTop: space.xs},
   track: {
     height: 6,
     borderRadius: radius.pill,
