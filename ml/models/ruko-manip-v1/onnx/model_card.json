@@ -1,0 +1,74 @@
+{
+  "model_version": "ruko-manip-v1",
+  "labels": [
+    "authority",
+    "coercion",
+    "urgency",
+    "financialInstruction",
+    "secrecy",
+    "credentialRequest"
+  ],
+  "thresholds": {
+    "authority": 0.2,
+    "coercion": 0.5,
+    "urgency": 0.2,
+    "financialInstruction": 0.2,
+    "secrecy": 0.2,
+    "credentialRequest": 0.8
+  },
+  "base_model": "sentence-transformers/all-MiniLM-L6-v2",
+  "max_length": 64,
+  "opset": 17,
+  "artifacts": {
+    "model_fp32.onnx": {
+      "bytes": 90388718,
+      "mb": 90.39,
+      "sha256": "6931a093cdbbc5745eaf68985ba59908ef6aa2daada43f71be74a73c9a7e084e"
+    },
+    "model_int8.onnx": {
+      "bytes": 22872082,
+      "mb": 22.87,
+      "sha256": "d65e7c689d893d0835543f9999724b4f3a4a4b756cd3003185ce69eb78362be1"
+    },
+    "vocab.txt": {
+      "entries": 30522,
+      "sha256": "07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3"
+    }
+  },
+  "parity": {
+    "eval_rows": 107,
+    "fp32_vs_pytorch_max_prob_diff": 3.337860107421875e-06,
+    "int8_vs_pytorch_max_prob_diff": 0.5412339568138123,
+    "int8_vs_pytorch_mean_prob_diff": 0.02806951105594635,
+    "int8_decision_flips": 12,
+    "int8_decision_total": 642,
+    "int8_decision_flip_rate": 0.01869,
+    "max_acceptable_flip_rate": 0.03,
+    "verdict": "PASS",
+    "note": "Acceptance is on decision flips at the calibrated thresholds, not on raw probability drift. The accuracy cost is measured end-to-end in evaluation.json."
+  },
+  "host_cpu_benchmark": {
+    "note": "Host machine, single window, batch 1. NOT a phone number -- on-device latency is measured separately on the iQOO 15 and reported in the engineering screen.",
+    "onnxruntime": "1.29.0",
+    "providers": [
+      "CPUExecutionProvider"
+    ],
+    "fp32": {
+      "runs": 100,
+      "p50_ms": 2.371,
+      "p95_ms": 2.988,
+      "mean_ms": 2.473,
+      "min_ms": 2.186,
+      "max_ms": 3.078
+    },
+    "int8": {
+      "runs": 100,
+      "p50_ms": 2.341,
+      "p95_ms": 3.271,
+      "mean_ms": 2.449,
+      "min_ms": 2.231,
+      "max_ms": 3.307
+    }
+  },
+  "exported_at_utc": "2026-08-29T08:43:34Z"
+}
