@@ -117,17 +117,21 @@
   /* ---------- nav ---------- */
   nav{
     position:sticky;top:0;z-index:50;
-    display:flex;align-items:center;justify-content:space-between;gap:20px;
+    display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:20px;
     padding:16px clamp(20px,5vw,40px);
     background:color-mix(in srgb, var(--ground) 82%, transparent);
     backdrop-filter:blur(14px) saturate(160%);
     -webkit-backdrop-filter:blur(14px) saturate(160%);
   }
-  .brand{font-family:var(--display);font-size:1.42rem;letter-spacing:-.02em}
-  .navlinks{display:flex;gap:30px}
+  .brand{font-family:var(--display);font-size:1.42rem;letter-spacing:-.02em;justify-self:start}
+  .navlinks{display:flex;gap:clamp(22px,2.6vw,40px);justify-self:center}
+  nav > .pill{justify-self:end}
   .navlinks a{font-size:.92rem;font-weight:500;color:var(--ink-2);transition:color .2s}
   .navlinks a:hover{color:var(--ink)}
-  @media(max-width:880px){.navlinks{display:none}}
+  @media(max-width:880px){
+    .navlinks{display:none}
+    nav{grid-template-columns:1fr auto}
+  }
 
   .pill{
     display:inline-flex;align-items:center;gap:8px;
@@ -209,6 +213,11 @@
     max-width:430px;
   }
   .bars i{flex:1;min-width:2px;border-radius:2px;background:linear-gradient(to top,var(--cool),var(--warm));opacity:.85;height:16%}
+  .bars-hero{
+    max-width:min(560px,80vw);margin:clamp(30px,5vw,44px) auto 0;
+    height:clamp(52px,7vw,72px);gap:4px;
+  }
+  .bars-hero i{border-radius:3px;opacity:.9}
 
   /* ---------- score ---------- */
   .score-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(28px,5vw,64px);align-items:start}
@@ -443,6 +452,8 @@
       <button class="pill pill-solid pill-lg" data-open-dl>Download for Android</button>
       <a class="pill pill-ghost pill-lg" href="#how">See how it works</a>
     </div>
+
+    <div class="bars bars-hero" data-bars aria-hidden="true"></div>
 
     <div class="phone-wrap">
       <div class="phone">
@@ -725,25 +736,27 @@
 
   /* Audio-energy bars: two blended sines under an arch envelope. */
   (function () {
-    var panel = document.querySelector('[data-bars]');
-    if (!panel) return;
-    for (var i = 0; i < 34; i++) panel.appendChild(document.createElement('i'));
-    var bars = panel.children;
-    function paint(t) {
-      for (var i = 0; i < bars.length; i++) {
-        var x = i / bars.length;
-        var arch = Math.sin(Math.PI * x);
-        var w = 0.5 + 0.5 * Math.sin(x * 9 + t * 1.6) * Math.cos(x * 3 - t * 0.7);
-        bars[i].style.height = (14 + arch * w * 82) + '%';
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.querySelectorAll('[data-bars]').forEach(function (panel) {
+      var count = panel.classList.contains('bars-hero') ? 44 : 34;
+      for (var i = 0; i < count; i++) panel.appendChild(document.createElement('i'));
+      var bars = panel.children;
+      function paint(t) {
+        for (var i = 0; i < bars.length; i++) {
+          var x = i / bars.length;
+          var arch = Math.sin(Math.PI * x);
+          var w = 0.5 + 0.5 * Math.sin(x * 9 + t * 1.6) * Math.cos(x * 3 - t * 0.7);
+          bars[i].style.height = (14 + arch * w * 82) + '%';
+        }
       }
-    }
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { paint(0.4); return; }
-    var raf = null;
-    function frame(ms) { raf = requestAnimationFrame(frame); paint(ms * 0.0012); }
-    new IntersectionObserver(function (es) {
-      if (es[0].isIntersecting) { if (raf === null) raf = requestAnimationFrame(frame); }
-      else if (raf !== null) { cancelAnimationFrame(raf); raf = null; }
-    }, { threshold: 0 }).observe(panel);
+      if (reduced) { paint(0.4); return; }
+      var raf = null;
+      function frame(ms) { raf = requestAnimationFrame(frame); paint(ms * 0.0012); }
+      new IntersectionObserver(function (es) {
+        if (es[0].isIntersecting) { if (raf === null) raf = requestAnimationFrame(frame); }
+        else if (raf !== null) { cancelAnimationFrame(raf); raf = null; }
+      }, { threshold: 0 }).observe(panel);
+    });
   })();
 
   /* Switch drives the phone screen, so it demos the product not the widget. */
