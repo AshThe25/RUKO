@@ -76,3 +76,4 @@ docs/device-report.md
 
 # Published by ml/ when a model ships; absent means "no model published".
 backend/model_manifest.json
+.vercel
