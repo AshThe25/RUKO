@@ -107,12 +107,19 @@ export async function signInWithGoogle(): Promise<{error: string | null}> {
  */
 export async function completeOAuth(url: string): Promise<AuthResult | null> {
   if (!url.startsWith(REDIRECT_URL)) return null;
+  // Logged on purpose: this is the one hop that cannot be tested off-device,
+  // so it has to be observable in logcat. The code itself is single-use and
+  // already spent by the time this resolves.
+  console.log('[ruko-auth] deep link received, exchanging code');
   const code = new URL(url).searchParams.get('code');
   if (!code) {
     const err = new URL(url).searchParams.get('error_description');
     return {user: null, error: err ?? 'sign-in was cancelled'};
   }
   const {data, error} = await supabase.auth.exchangeCodeForSession(code);
+  console.log(
+    '[ruko-auth] exchange ' + (error ? 'FAILED: ' + error.message : 'ok, session established'),
+  );
   return {user: toUser(data?.user), error: error?.message ?? null};
 }
 
