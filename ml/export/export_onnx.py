@@ -263,7 +263,9 @@ def emit_ts_config(model_dir: Path, card: dict, evaluation: dict | None) -> Path
     evaluated. Regenerated on every export; committed so the app builds without
     running the ML pipeline.
     """
-    out = Path("mobile/src/risk/classifier/modelConfig.generated.ts")
+    # Repo-root anchored: exported from ml/, this must land in the app's source
+    # tree and not in ml/mobile/... where nothing would ever read it.
+    out = resolve("mobile/src/risk/classifier/modelConfig.generated.ts")
     fusion_weight = 0.5
     thresholds = card["thresholds"]
     if evaluation:
