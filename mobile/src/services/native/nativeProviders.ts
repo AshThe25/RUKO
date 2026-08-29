@@ -85,11 +85,15 @@ export function toPaymentEvidence(raw: NativePaymentContext | null): PaymentEvid
     };
   }
 
-  // Android sends rupees as a double; the contracts are integer paise so that
-  // no float rounding can change an amount the user is shown.
+  // The bridge already sends integer paise as `amountMinor` (RukoNativeModule
+  // putDouble("amountMinor", ...)). This previously read a field named `amount`
+  // that the bridge never sends and multiplied it by 100 -- so it was undefined
+  // on every real payment, every amount came back null, and each one was
+  // treated as an unreadable screen. Read the field that exists, and do not
+  // scale a value that is already in the contract's unit.
   const amountMinor =
-    typeof raw.amount === 'number' && Number.isFinite(raw.amount) && raw.amount > 0
-      ? Math.round(raw.amount * 100)
+    typeof raw.amountMinor === 'number' && Number.isFinite(raw.amountMinor) && raw.amountMinor > 0
+      ? Math.round(raw.amountMinor)
       : null;
 
   // An active payment screen we could not read is not a safe payment.
@@ -191,8 +195,18 @@ export function describeBackend(raw: NativeAiBackend | null): {
   };
 }
 
-function parseTimestamp(iso: string | undefined): number {
-  const parsed = iso ? Date.parse(iso) : NaN;
+/**
+ * The bridge sends epoch milliseconds as a number. Date.parse of a number is
+ * NaN, so this used to fall through to `now()` for every real payment -- a
+ * stale reading was indistinguishable from a fresh one, which matters when the
+ * window a payment falls in decides whether it is anomalous. Strings are still
+ * accepted so a mocked provider can hand over an ISO date.
+ */
+function parseTimestamp(value: string | number | undefined): number {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) && value > 0 ? value : now();
+  }
+  const parsed = value ? Date.parse(value) : NaN;
   return Number.isNaN(parsed) ? now() : parsed;
 }
 

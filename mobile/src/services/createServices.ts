@@ -38,7 +38,12 @@ import {
 import {StubGuardianChannel} from './stubs/guardianStub';
 import {cloudConfigured} from './cloud/supabase';
 import {SupabaseGuardianChannel} from './cloud/supabaseGuardian';
-import {evaluateRisk, getRiskEngineConfig} from '../risk/index.ts';
+import {
+  ENGINE_VERSION,
+  POLICY_VERSION,
+  evaluateRisk,
+  getRiskEngineConfig,
+} from '../risk/index.ts';
 import {RukoAgent} from '../agent/rukoAgent.ts';
 import {providersFromRukoServices} from '../tools/fromRukoServices.ts';
 
@@ -128,10 +133,17 @@ export function createServices(options: CreateServicesOptions = {}): RukoRuntime
     ? createNativeConversationProvider(transcript => classifier.classify(transcript))
     : createConversationProvider(bus);
 
-  const risk: RiskEngine = {
-    evaluate: evaluateRisk,
-    getConfig: getRiskEngineConfig,
-  };
+  // The versions are carried on the object because diagnostics reads them from
+  // the engine it was handed and reports 'unknown' otherwise -- which is the
+  // right default, but it was reporting unknown for an engine that does know
+  // its own version.
+  const risk: RiskEngine = Object.assign(
+    {
+      evaluate: evaluateRisk,
+      getConfig: getRiskEngineConfig,
+    },
+    {engineVersion: ENGINE_VERSION, policyVersion: POLICY_VERSION},
+  );
 
   // The agent reads evidence through the providers, never through the agent
   // slot, so building it from a services object that has no agent yet is safe

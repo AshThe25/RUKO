@@ -29,15 +29,22 @@ export interface NativeProtectionState {
 
 export interface NativePaymentContext {
   active: boolean;
-  /** RUPEES, as a double. Converted to paise at the adapter boundary. */
-  amount: number;
+  /**
+   * Integer paise, matching payment.schema.ts. The comment here used to say
+   * rupees and the field was named `amount`; the bridge has always sent
+   * `amountMinor` in paise, so the adapter read a field that did not exist and
+   * then scaled it again. Naming the unit in the field is what stops that
+   * recurring.
+   */
+  amountMinor: number | null;
   currency: string;
   payee: string | null;
   payeeHash: string | null;
   /** PaymentContextSource: ACCESSIBILITY | DEMO | MOCK. */
   source: string;
   packageName: string | null;
-  observedAt: string;
+  /** Epoch milliseconds. The bridge sends a number, not an ISO string. */
+  observedAt: number;
 }
 
 export interface NativeCallContext {
