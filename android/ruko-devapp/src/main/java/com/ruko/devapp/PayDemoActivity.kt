@@ -15,6 +15,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.ruko.core.PayeeHasher
 import com.ruko.devapp.Ui.dp
 import com.ruko.nativemodule.payment.DemoPaymentProvider
+import com.ruko.nativemodule.overlay.RukoInterventionOverlay
 import java.security.SecureRandom
 
 /**
@@ -145,11 +146,30 @@ class PayDemoActivity : AppCompatActivity() {
                 payee = payeeName,
                 payeeHash = PayeeHasher.hash(payeeId, sessionSalt),
             )
-            Toast.makeText(
-                this,
-                "Payment context published. Open Edge Engine to see what Ruko read.",
-                Toast.LENGTH_LONG,
-            ).show()
+            // #10: a real intervention drawn above this payment screen. RukoPay
+            // runs in its own task, so the only way to warn over it is a genuine
+            // system overlay — which is exactly what a real deployment would do.
+            val shown = RukoInterventionOverlay.show(
+                context = this,
+                title = "Slow down — ₹48,000 to a new payee",
+                message = "You are about to send ₹48,000 to \u201C$payeeName\u201D " +
+                    "($payeeId), a payee with no prior history on this device. If someone " +
+                    "on a call told you to pay this, stop and verify first.",
+            )
+            if (shown) {
+                Toast.makeText(
+                    this,
+                    "Ruko raised an intervention over this screen.",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            } else {
+                Toast.makeText(
+                    this,
+                    "Payment published, but ‘Display over other apps’ is off — grant it " +
+                        "in the harness to see the intervention overlay.",
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
         }
 
         setContentView(root)
@@ -157,6 +177,7 @@ class PayDemoActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         DemoPaymentProvider.endPayment()
+        RukoInterventionOverlay.hide(this)
         super.onDestroy()
     }
 

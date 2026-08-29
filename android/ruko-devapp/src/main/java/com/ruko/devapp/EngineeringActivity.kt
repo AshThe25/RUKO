@@ -21,6 +21,7 @@ import com.ruko.devapp.Ui.title
 import com.ruko.nativemodule.accessibility.RukoAccessibilityService
 import com.ruko.nativemodule.ai.DeviceAiDiagnostics
 import com.ruko.nativemodule.audio.AudioSessionManager
+import com.ruko.nativemodule.runtime.RukoProtectionRuntime
 import com.ruko.nativemodule.notifications.RukoNotificationListenerService
 import com.ruko.nativemodule.payment.DemoPaymentProvider
 
@@ -42,6 +43,7 @@ class EngineeringActivity : AppCompatActivity() {
 
     private lateinit var content: LinearLayout
     private var audio: AudioSessionManager? = null
+    private var testStartedAudio = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,7 +58,10 @@ class EngineeringActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        audio?.stop()
+        // Only stop the mic if *this screen* started it for a test. A live
+        // protected session is owned by the runtime and must survive leaving
+        // the engineering screen.
+        if (testStartedAudio) audio?.stop()
         super.onDestroy()
     }
 
@@ -221,12 +226,38 @@ class EngineeringActivity : AppCompatActivity() {
 
         addView(
             button(this@EngineeringActivity, "Test microphone for 5 seconds", primary = false) {
-                val manager = audio ?: AudioSessionManager(this@EngineeringActivity).also { audio = it }
+                // #3: the single, shared microphone owner — the same instance a
+                // protected session uses — not a second AudioRecord competing for
+                // the mic.
+                val manager = RukoProtectionRuntime.audio(this@EngineeringActivity)
+                audio = manager
+
+                // If a real protected session already owns the mic, show its live
+                // levels for 5 s rather than starting a competing capture or, worse,
+                // stopping the session.
+                if (RukoProtectionRuntime.isRunning) {
+                    var liveMax = -80.0
+                    val liveTicker = object : Runnable {
+                        override fun run() {
+                            liveMax = maxOf(liveMax, manager.lastLevelDb)
+                            status.text = ("Live protected session — level %.0f dBFS, " +
+                                "floor %.0f dBFS, peak %.0f dBFS")
+                                .format(manager.lastLevelDb, manager.noiseFloorDb, liveMax)
+                            status.postDelayed(this, 200)
+                        }
+                    }
+                    status.post(liveTicker)
+                    status.postDelayed({ status.removeCallbacks(liveTicker) }, 5_000)
+                    return@button
+                }
+
                 if (manager.isRunning) {
                     manager.stop()
+                    testStartedAudio = false
                     status.text = "Stopped."
                     return@button
                 }
+                testStartedAudio = true
 
                 manager.onError = { code, message ->
                     runOnUiThread { status.text = "$code: $message" }
@@ -260,7 +291,8 @@ class EngineeringActivity : AppCompatActivity() {
                 status.post(ticker)
 
                 status.postDelayed({
-                    manager.stop()
+                    if (testStartedAudio) manager.stop()
+                    testStartedAudio = false
                     if (segments == 0) {
                         status.text = ("No speech detected in 5 s. Peak level was %.0f dBFS " +
                             "against a %.0f dBFS floor — your voice needs to be louder than " +

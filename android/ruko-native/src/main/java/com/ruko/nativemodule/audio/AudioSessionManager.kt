@@ -156,50 +156,82 @@ class AudioSessionManager(
         var silentFrames = 0L
         var reportedSilence = false
 
-        while (running.get()) {
-            currentCoroutineContextEnsureActive()
+        // AudioRecord.read may return fewer samples than asked for; a short read
+        // is not an error and its data must not be thrown away. We fill the frame
+        // across as many reads as it takes before handing a *whole* frame to the
+        // VAD — dropping the tail of a frame skews its energy and its ZCR.
+        var filled = 0
 
-            val read = recorder.read(frame, 0, frame.size)
-            if (read < 0) {
-                onError?.invoke(NativeErrorCode.AUDIO_START_FAILED, "The microphone stopped returning data.")
-                return
-            }
-            if (read < frame.size) continue
+        try {
+            while (running.get()) {
+                currentCoroutineContextEnsureActive()
 
-            framesRead++
-            if (isDigitalSilence(frame)) silentFrames++
+                val read = recorder.read(frame, filled, frame.size - filled)
+                if (read < 0) {
+                    onError?.invoke(
+                        NativeErrorCode.AUDIO_START_FAILED,
+                        "The microphone stopped returning data.",
+                    )
+                    return
+                }
+                filled += read
+                if (filled < frame.size) continue
+                filled = 0
 
-            // A stretch of *perfect* digital silence is not a quiet room — a
-            // quiet room still has dither. It means the platform is handing us
-            // zeros, which is what capture-concurrency denial looks like.
-            if (!reportedSilence && framesRead >= SILENCE_VERDICT_FRAMES &&
-                silentFrames >= framesRead * SILENCE_VERDICT_RATIO
-            ) {
-                reportedSilence = true
-                onAllSilentDuringCall?.invoke()
-            }
+                framesRead++
+                if (isDigitalSilence(frame)) silentFrames++
 
-            lastLevelDb = vad.lastFrameDb
-            noiseFloorDb = vad.noiseFloorDbFs
-
-            when (val event = vad.accept(frame)) {
-                is VoiceActivityDetector.Event.SpeechStart -> {
-                    utterance.clear()
-                    frame.forEach { utterance.add(it) }
+                // A stretch of *perfect* digital silence is not a quiet room — a
+                // quiet room still has dither. It means the platform is handing us
+                // zeros, which is what capture-concurrency denial looks like.
+                if (!reportedSilence && framesRead >= SILENCE_VERDICT_FRAMES &&
+                    silentFrames >= framesRead * SILENCE_VERDICT_RATIO
+                ) {
+                    reportedSilence = true
+                    onAllSilentDuringCall?.invoke()
                 }
 
-                is VoiceActivityDetector.Event.SpeechContinue -> {
-                    if (utterance.size < MAX_UTTERANCE_SAMPLES) frame.forEach { utterance.add(it) }
-                }
+                val event = vad.accept(frame)
+                // Publish diagnostics *after* accept(), so the Engineering screen
+                // shows the level and noise floor for the frame just processed
+                // rather than the previous one.
+                lastLevelDb = vad.lastFrameDb
+                noiseFloorDb = vad.noiseFloorDbFs
 
-                is VoiceActivityDetector.Event.SpeechEnd -> {
-                    if (event.durationMs >= MIN_UTTERANCE_MS && utterance.isNotEmpty()) {
-                        listener.onSpeechSegment(utterance.toShortArray(), event.durationMs)
+                when (event) {
+                    is VoiceActivityDetector.Event.SpeechStart -> {
+                        utterance.clear()
+                        frame.forEach { utterance.add(it) }
                     }
-                    utterance.clear()
-                }
 
-                is VoiceActivityDetector.Event.Silence -> Unit
+                    is VoiceActivityDetector.Event.SpeechContinue -> {
+                        if (utterance.size < MAX_UTTERANCE_SAMPLES) frame.forEach { utterance.add(it) }
+                    }
+
+                    is VoiceActivityDetector.Event.SpeechEnd -> {
+                        if (event.durationMs >= MIN_UTTERANCE_MS && utterance.isNotEmpty()) {
+                            listener.onSpeechSegment(utterance.toShortArray(), event.durationMs)
+                        }
+                        utterance.clear()
+                    }
+
+                    is VoiceActivityDetector.Event.Silence -> Unit
+                }
+            }
+        } finally {
+            // The read loop can leave on three paths: a clean stop() (which has
+            // already flipped `running` to false and will release the recorder
+            // itself), cancellation, or a fatal read error that returns above.
+            // Only on that error path is `running` still true here — in which
+            // case tear the session down so the mic is released and isRunning
+            // reflects reality. The compareAndSet guarantees this never races
+            // stop() into a double release.
+            if (running.compareAndSet(true, false)) {
+                runCatching { recorder.stop() }
+                runCatching { recorder.release() }
+                record = null
+                job = null
+                scope = null
             }
         }
     }

@@ -29,6 +29,14 @@ class VoiceActivityDetector(
         val frameMs: Int = 20,
         /** How far above the noise floor a frame must sit to count as speech. */
         val speechThresholdDb: Double = 9.0,
+        /**
+         * Frames of opening calibration. The noise floor is taken from the
+         * quietest frame in this window rather than from the very first frame,
+         * which might land on speech and deafen the detector for the whole
+         * session. No speech is reported while calibrating (~160 ms at 20 ms).
+         * Zero disables it and restores first-frame initialisation.
+         */
+        val calibrationFrames: Int = 8,
         /** Consecutive speech frames required before we declare an utterance. */
         val onsetFrames: Int = 3,
         /** Frames of silence tolerated inside an utterance before it ends. */
@@ -66,6 +74,8 @@ class VoiceActivityDetector(
 
     private var noiseFloorDb = config.floorDbFs
     private var noiseFloorInitialised = false
+    private var calibrationRemaining = config.calibrationFrames
+    private var calibrationMinDb = Double.MAX_VALUE
     private var consecutiveSpeech = 0
     private var hangoverRemaining = 0
     private var inUtterance = false
@@ -90,6 +100,18 @@ class VoiceActivityDetector(
 
         val db = frameEnergyDb(frame)
         lastFrameDb = db
+
+        // Opening calibration: learn the floor from the quietest frame in the
+        // window, not the first one. Report nothing as speech until it closes.
+        if (calibrationRemaining > 0) {
+            calibrationMinDb = min(calibrationMinDb, db)
+            calibrationRemaining--
+            if (calibrationRemaining == 0) {
+                noiseFloorDb = max(config.floorDbFs, calibrationMinDb)
+                noiseFloorInitialised = true
+            }
+            return Event.Silence
+        }
 
         if (!noiseFloorInitialised) {
             noiseFloorDb = db
@@ -120,6 +142,8 @@ class VoiceActivityDetector(
     fun reset() {
         noiseFloorDb = config.floorDbFs
         noiseFloorInitialised = false
+        calibrationRemaining = config.calibrationFrames
+        calibrationMinDb = Double.MAX_VALUE
         resetUtterance()
     }
 

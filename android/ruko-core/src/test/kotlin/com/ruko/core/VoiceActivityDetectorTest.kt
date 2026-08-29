@@ -121,6 +121,36 @@ class VoiceActivityDetectorTest {
         )
     }
 
+    @Test
+    fun `calibration keeps a floor learned from speech-on-open from deafening the detector`() {
+        // The pathological case the calibration window exists for: the session
+        // opens while someone is already talking. With first-frame init the
+        // floor would latch onto speech level and the following quiet-then-speech
+        // would be misjudged. With calibration, the quietest frame in the window
+        // sets the floor, so speech is still detected afterwards.
+        val vad = VoiceActivityDetector()
+
+        // Open on speech for the whole calibration window plus a little.
+        repeat(config.calibrationFrames + 2) { vad.accept(voiced()) }
+        // A breath of quiet, then a real spoken burst.
+        repeat(20) { vad.accept(quiet()) }
+        repeat(config.onsetFrames - 1) { vad.accept(voiced()) }
+        val onset = vad.accept(voiced())
+
+        assertIs<VoiceActivityDetector.Event.SpeechStart>(
+            onset,
+            "speech after a speech-on-open calibration was not detected",
+        )
+    }
+
+    @Test
+    fun `nothing is reported as speech during the calibration window`() {
+        val vad = VoiceActivityDetector()
+        repeat(config.calibrationFrames) {
+            assertIs<VoiceActivityDetector.Event.Silence>(vad.accept(voiced()))
+        }
+    }
+
     // --- signal helpers -----------------------------------------------------
 
     /** Near-silence with a little dither, as a real mic in a quiet room gives. */

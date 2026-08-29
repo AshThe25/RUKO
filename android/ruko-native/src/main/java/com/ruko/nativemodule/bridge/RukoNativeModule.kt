@@ -23,6 +23,7 @@ import com.ruko.nativemodule.call.CallContextProvider
 import com.ruko.nativemodule.monitoring.RukoForegroundService
 import com.ruko.nativemodule.notifications.RukoNotificationListenerService
 import com.ruko.nativemodule.payment.AccessibilityPaymentProvider
+import com.ruko.nativemodule.runtime.RukoProtectionRuntime
 import com.ruko.nativemodule.payment.DemoPaymentProvider
 import com.ruko.nativemodule.payment.LayeredPaymentContextProvider
 import java.security.SecureRandom
@@ -48,9 +49,12 @@ class RukoNativeModule(
 
     private val payeeSalt: ByteArray by lazy { loadOrCreateSalt() }
 
-    private val accessibilityPayments = AccessibilityPaymentProvider { payeeId ->
-        PayeeHasher.hash(payeeId, payeeSalt)
-    }
+    // One provider for the whole process, shared with the accessibility service
+    // and the harness through [RukoProtectionRuntime]. Before this, the bridge
+    // and the harness each held their own provider and only the last to attach
+    // could ever receive evidence (Puneesh brief §2). Its payee hasher uses the
+    // same per-install salt as beginDemoPayment below, so hashes agree.
+    private val accessibilityPayments = RukoProtectionRuntime.paymentProvider(reactContext)
 
     private val payments = LayeredPaymentContextProvider(
         listOf(accessibilityPayments, DemoPaymentProvider),

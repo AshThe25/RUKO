@@ -109,7 +109,13 @@ class RukoAccessibilityService : AccessibilityService() {
          * list is a deliberate, reviewable change — not a config flag.
          */
         val PAYMENT_PACKAGES = setOf(
+            // RukoPayDemo. Its activity carries taskAffinity="com.ruko.paydemo",
+            // but accessibility events report the *hosting package*, which is the
+            // harness itself — `com.ruko.devapp` in release and `.debug` in a
+            // debug build. Both are listed so the demo is actually read on device.
             "com.ruko.paydemo",
+            "com.ruko.devapp",
+            "com.ruko.devapp.debug",
             "com.google.android.apps.nbu.paisa.user", // Google Pay India
             "com.phonepe.app",
             "net.one97.paytm",

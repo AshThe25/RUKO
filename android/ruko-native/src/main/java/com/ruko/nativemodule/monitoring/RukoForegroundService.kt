@@ -32,6 +32,10 @@ class RukoForegroundService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
+            // The notification's Stop action must end the capture too, not just
+            // dismiss the notification. Tell the shared runtime to release the
+            // microphone; it will not ask us to stop again — we already are.
+            com.ruko.nativemodule.runtime.RukoProtectionRuntime.onForegroundServiceStopped()
             stopSelf()
             return START_NOT_STICKY
         }
