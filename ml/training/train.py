@@ -31,6 +31,8 @@ from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, get_linear_schedule_with_warmup
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # ml/
+from paths import resolve  # noqa: E402
 from data import MAX_LENGTH, ManipulationDataset, load_jsonl, positive_weights  # noqa: E402
 from model import LABELS, RukoManipulationClassifier  # noqa: E402
 
@@ -184,6 +186,10 @@ def main() -> int:
     ap.add_argument("--seed", type=int, default=20260829)
     ap.add_argument("--device", default="auto")
     args = ap.parse_args()
+    # Anchor to the repo root so the cwd cannot change what we read.
+    args.data = resolve(args.data)
+    args.holdout = resolve(args.holdout)
+    args.out = resolve(args.out)
 
     set_seed(args.seed)
     device = pick_device(args.device)

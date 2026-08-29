@@ -14,7 +14,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import rest, ws
+from app.api import proxy, rest, ws
 from app.config import get_settings
 from app.core.sessions import SessionRegistry
 
@@ -51,6 +51,7 @@ def create_app() -> FastAPI:
 
     app.include_router(rest.router, tags=["relay"])
     app.include_router(ws.router, tags=["guardian"])
+    app.include_router(proxy.router)
 
     @app.get("/health", tags=["ops"])
     async def health() -> dict[str, object]:

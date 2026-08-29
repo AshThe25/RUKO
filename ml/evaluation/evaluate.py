@@ -33,6 +33,8 @@ import torch
 from transformers import AutoTokenizer
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "training"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # ml/
+from paths import resolve  # noqa: E402
 from data import MAX_LENGTH, load_jsonl  # noqa: E402
 from model import LABELS, RukoManipulationClassifier  # noqa: E402
 
@@ -166,7 +168,15 @@ def main() -> int:
                     default=Path("ml/datasets/holdout/test_holdout.jsonl"))
     ap.add_argument("--heuristic-scores", type=Path,
                     default=Path("ml/data/derived/heuristic_scores.json"))
+    ap.add_argument("--safeguarding", type=Path,
+                    default=Path("ml/datasets/holdout/safeguarding_holdout.jsonl"))
     args = ap.parse_args()
+    # Anchor to the repo root so the cwd cannot change what we read.
+    args.model_dir = resolve(args.model_dir)
+    args.data = resolve(args.data)
+    args.holdout = resolve(args.holdout)
+    args.safeguarding = resolve(args.safeguarding)
+    args.heuristic_scores = resolve(args.heuristic_scores)
 
     if not args.heuristic_scores.exists():
         print("run `node ml/evaluation/export_heuristic_scores.ts` first", file=sys.stderr)
@@ -191,6 +201,10 @@ def main() -> int:
         "val": load_jsonl(args.data / "val.jsonl"),
         "test": load_jsonl(args.data / "test.jsonl"),
         "holdout": load_jsonl(args.holdout),
+        # Grooming and sextortion, plus the safeguarding copy that uses the
+        # same vocabulary. Scored separately because a false positive on a
+        # child-safety helpline is a worse failure than a missed threat.
+        "safeguarding": load_jsonl(args.safeguarding),
     }
 
     cache: dict[str, dict[str, np.ndarray]] = {}
@@ -244,6 +258,7 @@ def main() -> int:
     for split_name, title in [
         ("test", "GENERATED TEST SPLIT — family-disjoint, but shares style with training"),
         ("holdout", "HAND-AUTHORED HOLDOUT — no template overlap — THE HONEST NUMBER"),
+        ("safeguarding", "GROOMING & SEXTORTION — with safeguarding copy as negatives"),
     ]:
         c = cache[split_name]
         # The lexicon is reported at BOTH operating points. Its weights were

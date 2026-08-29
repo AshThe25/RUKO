@@ -33,9 +33,11 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # ml/
 
 import slots as S  # noqa: E402
 from templates import FAMILIES, LABELS, Family  # noqa: E402
+from paths import resolve  # noqa: E402
 
 DATASET_VERSION = "ruko-manip-ds-v1"
 
@@ -252,12 +254,15 @@ def label_stats(rows: list[dict]) -> dict:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default="data", type=Path)
+    ap.add_argument("--out", default="ml/data", type=Path,
+                    help="Relative paths resolve from the repo root, not the cwd.")
     ap.add_argument("--seed", type=int, default=20260829)
     ap.add_argument("--train", type=int, default=6000)
     ap.add_argument("--val", type=int, default=1200)
     ap.add_argument("--test", type=int, default=1200)
     args = ap.parse_args()
+    # Anchor to the repo root so the cwd cannot silently redirect output.
+    args.out = resolve(args.out)
 
     rng = random.Random(args.seed)
     assignment = split_families(random.Random(args.seed ^ 0xA11CE))
