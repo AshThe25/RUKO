@@ -1,0 +1,39 @@
+# Render deployment for the Ruko relay + API-key proxy.
+#
+# EVERY SECRET IS `sync: false`. That means Render prompts for the value in the
+# dashboard and never stores it in this file — which is the entire point of the
+# proxy. An APK is a zip; a key shipped inside one is public. These live only
+# in Render's environment.
+services:
+  - type: web
+    name: ruko-relay
+    runtime: python
+    plan: starter                      # the $7 plan
+    region: singapore                  # closest to users in India
+    rootDir: backend
+    buildCommand: pip install -e .
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12"
+      - key: RUKO_ENV
+        value: production
+
+      # --- secrets: set in the Render dashboard, never in git ---------- #
+      - key: RUKO_RELAY_SECRET
+        sync: false
+      - key: RUKO_SUPABASE_JWT_SECRET
+        sync: false
+      - key: RUKO_SARVAM_API_KEY
+        sync: false
+      - key: RUKO_ANTHROPIC_API_KEY
+        sync: false
+
+      # --- non-secret configuration ------------------------------------ #
+      - key: RUKO_SUPABASE_PROJECT_URL
+        sync: false
+      - key: RUKO_ALLOWED_ORIGINS
+        sync: false
+      - key: RUKO_ALLOW_INSECURE_TRANSPORT
+        value: "false"

@@ -38,6 +38,31 @@ class Settings(BaseSettings):
     max_sessions: int = Field(default=200, ge=1)
     max_message_bytes: int = Field(default=64 * 1024, ge=1024)
     max_incidents_per_session: int = Field(default=50, ge=1)
+
+    # ---------------------------------------------------------------- #
+    # Upstream API keys.
+    #
+    # These exist ONLY as Render environment variables. They are never in
+    # the repo and never in the APK — an APK is a zip file, and anyone who
+    # downloads it can read a bundled key in about a minute. That is the
+    # whole reason this proxy exists: the phone authenticates as a user,
+    # and the server holds the vendor credentials.
+    # ---------------------------------------------------------------- #
+    sarvam_api_key: str = Field(default="", description="Sarvam Saarika ASR. Render env only.")
+    anthropic_api_key: str = Field(default="", description="Claude. Render env only.")
+
+    # Supabase JWT verification. The project's JWT secret (HS256) is used to
+    # verify the access token the app already holds after Google sign-in.
+    supabase_jwt_secret: str = Field(default="", description="Supabase JWT secret. Render env only.")
+    supabase_project_url: str = Field(default="")
+    # Supabase issues `aud: "authenticated"` for a signed-in user. Anonymous
+    # and service tokens carry a different audience and must be rejected.
+    supabase_expected_audience: str = Field(default="authenticated")
+
+    # Upstream limits. /explain calls a paid model, so it is capped hard.
+    max_audio_bytes: int = Field(default=8 * 1024 * 1024, ge=1024)
+    explain_timeout_seconds: float = Field(default=20.0, gt=0)
+    transcribe_timeout_seconds: float = Field(default=45.0, gt=0)
     heartbeat_interval_seconds: int = Field(default=15, ge=5)
 
     @field_validator("relay_secret")
