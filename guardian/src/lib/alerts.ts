@@ -75,6 +75,8 @@ export function normaliseReasons(reasons: unknown): string[] {
 
 /** Turns AUTHORITY_IMPERSONATION into "Authority impersonation" for display. */
 export function humaniseReason(code: string): string {
+  const spend = SPEND_REASON_TEXT[code];
+  if (spend) return spend;
   if (!/^[A-Z0-9_]+$/.test(code)) return code;
   const words = code.toLowerCase().split('_').filter(Boolean);
   if (words.length === 0) return code;
@@ -119,6 +121,33 @@ export function formatWhen(iso: string | null | undefined, now: Date = new Date(
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
   if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
   return then.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
+
+/**
+ * Spend-oversight alerts arrive as kind='payment' like any other, and are told
+ * apart by their reason codes. They mean something different from the rest of
+ * the feed — nobody is being manipulated, a limit was crossed — so the console
+ * must not dress them in the language of a scam.
+ */
+const SPEND_REASONS = new Set([
+  'SINGLE_LARGE_PAYMENT',
+  'CUMULATIVE_THRESHOLD',
+  'RAPID_REPEAT_PAYMENTS',
+]);
+
+export function isSpendAlert(alert: Pick<Alert, 'reasons'>): boolean {
+  return normaliseReasons(alert.reasons).some((r) => SPEND_REASONS.has(r));
+}
+
+/** Plain-language reason text. Descriptive, never accusatory. */
+const SPEND_REASON_TEXT: Record<string, string> = {
+  SINGLE_LARGE_PAYMENT: 'One large payment',
+  CUMULATIVE_THRESHOLD: 'Small payments adding up',
+  RAPID_REPEAT_PAYMENTS: 'Several payments in quick succession',
+};
+
+export function spendReasonText(code: string): string | null {
+  return SPEND_REASON_TEXT[code] ?? null;
 }
 
 export const KIND_LABEL: Record<Alert['kind'], string> = {
