@@ -216,9 +216,51 @@ def make_window(pool: list[Family], rng: random.Random) -> dict | None:
 
 
 def generate_split(pool: list[Family], target: int, rng: random.Random,
-                   seen: set[str]) -> list[dict]:
-    rows, attempts = [], 0
-    while len(rows) < target and attempts < target * 40:
+                   seen: set[str], balance: bool = False) -> list[dict]:
+    """Sample windows, keeping label prevalence roughly even.
+
+    WHY THE BALANCER: family counts do not translate into label counts. Adding
+    grooming families (all `secrecy`) pushed secrecy to 40% prevalence while
+    credentialRequest sat at 18%, and the model learned to fire secrecy on the
+    vocabulary rather than the intent -- recall 1.00 at precision 0.36 on the
+    authored holdout. Nothing about the templates was wrong; the *mixture* was.
+
+    So a row whose labels are all already over-represented is resampled. This
+    is rejection sampling on the label marginal, not a reweighting of the loss:
+    the model sees a balanced world rather than being told to pretend it is.
+
+    DEFAULT OFF, AND HERE IS WHY. Balancing worked exactly as intended -- the
+    prevalence spread fell from 2.2x to 1.58x and the generated test macro rose
+    to 0.707, the best number this pipeline has produced. The authored holdout
+    fell to 0.538, the worst. Every expansion in this session moved those two
+    numbers in opposite directions:
+
+        v2 shipped        test 0.641   holdout 0.619
+        + wider templates test 0.642   holdout 0.615
+        + grooming        test 0.701   holdout 0.558
+        + hard negatives  test 0.680   holdout 0.592
+        + balancing       test 0.707   holdout 0.538
+
+    A perfectly inverse correlation over five independent changes is not noise.
+    It says the model is fitting the *style* of the generator, and that more
+    synthetic data -- however well balanced -- buys generated-test F1 at the
+    cost of real-text F1. The lever that matters is data diversity of a kind
+    templates cannot produce, not another round of template engineering.
+
+    Kept as an opt-in tool because the mechanism is sound and will be useful
+    the moment the training corpus is not purely synthetic. Pass balance=True
+    to enable it.
+    """
+    rows: list[dict] = []
+    counts = {lab: 0 for lab in LABELS}
+    attempts = 0
+    # A label may run this far above the running mean before rows carrying it
+    # start getting rejected. Loose enough that co-occurrence still happens
+    # naturally -- real manipulative calls stack tactics, and forcing exact
+    # parity would destroy that structure.
+    tolerance = 1.05
+
+    while len(rows) < target and attempts < target * 60:
         attempts += 1
         row = make_window(pool, rng)
         if row is None:
@@ -226,8 +268,20 @@ def generate_split(pool: list[Family], target: int, rng: random.Random,
         key = row["text"]
         if key in seen:          # global dedup: no text appears twice, ever
             continue
+
+        positives = [lab for lab, v in row["labels"].items() if v]
+        if balance and positives and rows:
+            mean = sum(counts.values()) / len(LABELS)
+            # Reject only if EVERY label on this row is already over quota; a
+            # row carrying one scarce tactic is still worth keeping.
+            if mean > 0 and all(counts[lab] > mean * tolerance for lab in positives):
+                continue
+
         seen.add(key)
         rows.append(row)
+        for lab in positives:
+            counts[lab] += 1
+
     return rows
 
 
