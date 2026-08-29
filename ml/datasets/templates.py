@@ -480,6 +480,57 @@ FAMILIES: list = [
         "Block karoge to aur bura hoga.",
     )),
 
+    # --- coercion hard negatives (v4) ---------------------------------- #
+    #
+    # TRIED AND FAILED. The hope was that benign possession/consequence text
+    # would restore coercion precision and let the oblique sextortion families
+    # ship without costing payment. It did neither: payment holdout fell to
+    # 0.528 (main is 0.657) and sextortion recall stayed at 0.29.
+    #
+    # Reading: the hard negatives did not sharpen the coercion boundary, they
+    # blunted it. Benign possession language ("I saved all the photos from the
+    # trip") is lexically almost identical to the threat ("I saved every
+    # picture you sent me") -- the difference is intent, which a 6-layer
+    # encoder over a 64-token window does not have the capacity to represent.
+    #
+    # This is now the second independent attempt to make one `coercion` label
+    # serve both account-freeze threats and sextortion, and both failed in the
+    # same place. The shared-label hypothesis is not a guess any more: it needs
+    # a seventh label.
+    # The oblique sextortion families above lifted coercion recall to 0.88 but
+    # made the label fire loosely, and coercion carries 25 of 100 points in the
+    # risk engine -- so payment holdout fell with it. Same failure the secrecy
+    # label had: the model learned threat-shaped *vocabulary* rather than
+    # threat. The answer there was hard negatives, so it is hard negatives here.
+    #
+    # Possession, consequence and deadline language, all entirely benign.
+    F("safe_possession_benign", (), "en", (
+        "I saved all the photos from the trip, I will send them tonight.",
+        "I have the whole folder backed up if you lost yours.",
+        "I downloaded your contact card so I can add you properly.",
+        "I know where you study, my cousin goes there too.",
+        "Everything you sent is on my laptop, nothing is lost.",
+    ), "safe"),
+    F("safe_consequence_benign", (), "en", (
+        "One click and the whole form gets submitted, so be careful.",
+        "By morning the sale will be over, that is all I meant.",
+        "If you ignore the reminder the subscription just lapses.",
+        "Everyone will find out at the party anyway, it is not a secret.",
+        "Your reputation with the landlord depends on paying on time.",
+    ), "safe"),
+    F("safe_deadline_benign", (), "en", (
+        "Do not block the calendar, I still need that slot.",
+        "Refuse the upgrade and nothing changes, it is optional.",
+        "Every hour we wait the traffic gets worse, that is all.",
+        "Delete me from the group if you are not coming.",
+    ), "safe"),
+    F("safe_possession_hinglish", (), "hinglish", (
+        "Saari photos save kar li hain, bhej dunga raat ko.",
+        "Mere paas backup hai, tension mat lo.",
+        "Pata hai tum kahan padhte ho, mera bhai bhi wahin hai.",
+        "Block mat karna group se, kaam ki baat hai.",
+    ), "safe"),
+
     # ------------------------------------------------------------------ #
     # SAFEGUARDING / AWARENESS COPY -- the false-positive trap.
     #
