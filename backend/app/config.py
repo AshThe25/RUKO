@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     allowed_origins: str = Field(default="http://localhost:3000")
     pairing_ttl_minutes: int = Field(default=10, ge=1, le=60)
     allow_insecure_transport: bool = Field(default=True)
+    model_manifest_path: str = Field(
+        default="model_manifest.json",
+        description="Where ml/ publishes model metadata. Absent means no published model.",
+    )
 
     # Bounds. The relay is a routing surface, not a database — these keep a
     # misbehaving or hostile client from turning it into one.
