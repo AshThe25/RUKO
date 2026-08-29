@@ -68,6 +68,37 @@ between them is the measured cost of training on synthetic data.
 
 Exact per-label counts and the sha256 of every file are in `ml/data/manifest.json`.
 
+## Hard negatives, and why they exist
+
+A tactic label is about *intent directed at the listener*, not about vocabulary.
+Two of the six labels were failing that distinction on the hand-authored
+holdout, and the fix is data rather than thresholds:
+
+| label | holdout before | failure |
+| --- | --- | --- |
+| `urgency` | P 0.281 / R 0.800 | fired on any time word — 41 false positives to 16 true |
+| `financialInstruction` | P 0.550 / R 0.440 | knew "transfer X to account Y" and little else |
+
+Note the existing `hard_*` families are hard **positives**: the tactic genuinely
+is present, in a benign context (a landlord really is asking for rent). They
+teach the model that a tactic is not the same as a scam — but they cannot teach
+it when a tactic is *absent*, because their label is 1.
+
+The `hardneg_*` families added for that are true negatives — every label 0 —
+built from the same vocabulary:
+
+- **urgency**: the speaker's own hurry ("I am running late"), a stated fact
+  about when something happens ("the delivery slot is two to four"), and a rush
+  that already ended ("we finished just in time yesterday"). None of these apply
+  time pressure to the listener, so none of them are `urgency`.
+- **financialInstruction**: naming a price, reporting a payment the speaker has
+  already made, and asking what something cost. Money is discussed; nobody is
+  instructed to move any.
+
+`fin_wide_*` widens the positive side for the same label, since recall of 0.440
+means the instruction was recognised only in the phrasings the templates
+happened to use.
+
 ## Reproducing
 
 ```bash

@@ -9,12 +9,12 @@
     "credentialRequest"
   ],
   "thresholds": {
-    "authority": 0.38,
+    "authority": 0.23,
     "coercion": 0.2,
-    "urgency": 0.2,
-    "financialInstruction": 0.2,
-    "secrecy": 0.61,
-    "credentialRequest": 0.2
+    "urgency": 0.27,
+    "financialInstruction": 0.22,
+    "secrecy": 0.54,
+    "credentialRequest": 0.44
   },
   "base_model": "sentence-transformers/all-MiniLM-L6-v2",
   "max_length": 64,
@@ -23,12 +23,12 @@
     "model_fp32.onnx": {
       "bytes": 90388718,
       "mb": 90.39,
-      "sha256": "15b63dd6c8ee634068cdb15b1b1f53783c69a0e5173119921c1a6668d0bb841a"
+      "sha256": "7bb38758ac3812f634649466130245f53b6ed701a62861604e7444d2c6fd57ad"
     },
     "model_int8.onnx": {
       "bytes": 22872082,
       "mb": 22.87,
-      "sha256": "f3d2bc09063a2628f966e9054c11268a7512cd11745ec593712b32e7ff2afedc"
+      "sha256": "2e30251f4a35460300645d54da7b66875eca0b259c02ba2de199c52d638a13aa"
     },
     "vocab.txt": {
       "entries": 30522,
@@ -37,14 +37,14 @@
   },
   "parity": {
     "eval_rows": 107,
-    "fp32_vs_pytorch_max_prob_diff": 1.3709068298339844e-06,
-    "int8_vs_pytorch_max_prob_diff": 0.30652663111686707,
-    "int8_vs_pytorch_mean_prob_diff": 0.027122296392917633,
-    "int8_decision_flips": 21,
+    "fp32_vs_pytorch_max_prob_diff": 2.473592758178711e-06,
+    "int8_vs_pytorch_max_prob_diff": 0.47866660356521606,
+    "int8_vs_pytorch_mean_prob_diff": 0.027031078934669495,
+    "int8_decision_flips": 15,
     "int8_decision_total": 642,
-    "int8_decision_flip_rate": 0.03271,
+    "int8_decision_flip_rate": 0.02336,
     "max_acceptable_flip_rate": 0.03,
-    "verdict": "REVIEW",
+    "verdict": "PASS",
     "note": "Acceptance is on decision flips at the calibrated thresholds, not on raw probability drift. The accuracy cost is measured end-to-end in evaluation.json."
   },
   "host_cpu_benchmark": {
@@ -55,20 +55,20 @@
     ],
     "fp32": {
       "runs": 100,
-      "p50_ms": 2.193,
-      "p95_ms": 2.872,
-      "mean_ms": 2.278,
-      "min_ms": 2.052,
-      "max_ms": 3.041
+      "p50_ms": 2.383,
+      "p95_ms": 2.993,
+      "mean_ms": 2.443,
+      "min_ms": 2.228,
+      "max_ms": 3.096
     },
     "int8": {
       "runs": 100,
-      "p50_ms": 2.386,
-      "p95_ms": 3.362,
-      "mean_ms": 2.556,
-      "min_ms": 2.069,
-      "max_ms": 3.732
+      "p50_ms": 2.35,
+      "p95_ms": 3.317,
+      "mean_ms": 2.499,
+      "min_ms": 2.25,
+      "max_ms": 3.377
     }
   },
-  "exported_at_utc": "2026-08-29T15:29:13Z"
+  "exported_at_utc": "2026-08-29T18:41:12Z"
 }

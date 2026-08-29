@@ -17,6 +17,10 @@ const SPLITS: Array<[string, string]> = [
   ['val', 'ml/data/processed/val.jsonl'],
   ['test', 'ml/data/processed/test.jsonl'],
   ['holdout', 'ml/datasets/holdout/test_holdout.jsonl'],
+  // Added when the grooming/sextortion set landed; evaluate.py reads this
+  // key and previously died with KeyError: 'safeguarding' because the
+  // exporter was never taught about the split.
+  ['safeguarding', 'ml/datasets/holdout/safeguarding_holdout.jsonl'],
 ];
 
 const out: Record<string, Array<Record<string, number>>> = {};
