@@ -45,6 +45,10 @@ ml/models/**/*.onnx
 ml/models/**/*.pt
 ml/models/**/checkpoints/
 ml/runs/
+# Externally sourced real-data corpora may carry source-specific licence or
+# privacy restrictions. Commit reproducible builders and manifests, never the
+# raw transcript/message rows.
+ml/data/real-*/
 !ml/models/**/model_card.json
 !ml/models/**/metrics.json
 !ml/models/**/.gitkeep

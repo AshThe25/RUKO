@@ -1,0 +1,13 @@
+{
+  "model_version": "ruko-real-multisource-v1",
+  "status": "research_candidate_not_shipped",
+  "task": "binary suspected-fraud/manipulation text versus legitimate communication",
+  "base_model": "sentence-transformers/all-MiniLM-L6-v2",
+  "max_length": 64,
+  "metrics": "metrics.json",
+  "external_stress_test": "external_india_smishing.json",
+  "checkpoint_policy": "Checkpoint intentionally excluded from Git; reproduce locally from the documented source data and training script.",
+  "synthetic_or_llm_generated_training_examples": false,
+  "not_a_six_tactic_model": true,
+  "not_integrated_into_app": true
+}
