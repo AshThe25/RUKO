@@ -25,9 +25,6 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     // exchange is bound to a verifier this device generated.
     flowType: 'pkce',
   },
-  // Everything Ruko owns lives in its own schema, so it shares a project
-  // without touching anything in public.
-  db: {schema: 'ruko'},
 });
 
 /** True when the app was built with real credentials. */

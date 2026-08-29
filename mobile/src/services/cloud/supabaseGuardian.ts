@@ -117,7 +117,7 @@ export class SupabaseGuardianChannel implements GuardianChannel {
           'postgres_changes',
           {
             event: 'UPDATE',
-            schema: 'ruko',
+            schema: 'public',
             table: 'alerts',
             filter: `id=eq.${alertId}`,
           },

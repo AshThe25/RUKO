@@ -19,7 +19,7 @@ export type FeedStatus = 'connecting' | 'live' | 'error';
  * brings a new alert in; UPDATE is what makes an acknowledgement appear on every
  * other open console within the same second.
  *
- * `schema: 'ruko'` has to be repeated here: the client-level `db.schema` option
+ * `schema: 'public'` has to be repeated here: the client-level `db.schema` option
  * only applies to PostgREST queries, and a Realtime filter that omits it will
  * silently listen to `public` and never fire.
  */
@@ -81,12 +81,12 @@ export function useAlerts(userId: string | null) {
       .channel('ruko-alerts')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'ruko', table: 'alerts' },
+        { event: 'INSERT', schema: 'public', table: 'alerts' },
         (payload) => ingest(payload.new),
       )
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'ruko', table: 'alerts' },
+        { event: 'UPDATE', schema: 'public', table: 'alerts' },
         (payload) => ingest(payload.new),
       )
       .subscribe((state) => {

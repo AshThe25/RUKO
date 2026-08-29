@@ -95,7 +95,7 @@ export function subscribeToAlerts(onAlert: (alert: Alert) => void) {
     .channel('ruko-alerts')
     .on(
       'postgres_changes',
-      {event: 'INSERT', schema: 'ruko', table: 'alerts'},
+      {event: 'INSERT', schema: 'public', table: 'alerts'},
       payload => onAlert(payload.new as Alert),
     )
     .subscribe();

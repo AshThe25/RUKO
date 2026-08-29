@@ -10,7 +10,7 @@ import { createClient } from '@supabase/supabase-js';
  *  - `db.schema` must be 'ruko'. Every Ruko table lives in that schema, not in
  *    `public`, so a default client returns PGRST106 on every query. Note that
  *    this option covers PostgREST calls only — Realtime subscriptions take the
- *    schema in their own filter, which is why `schema: 'ruko'` appears again in
+ *    schema in their own filter, which is why `schema: 'public'` appears again in
  *    the channel config in useAlerts.
  *  - PKCE with `detectSessionInUrl` lets the OAuth redirect complete entirely in
  *    the browser, so the console needs no server route and no service-role key.
@@ -25,7 +25,7 @@ export const supabaseConfigured = Boolean(url && publishableKey);
 
 function create() {
   return createClient(url!, publishableKey!, {
-    db: { schema: 'ruko' },
+    db: { schema: 'public' },
     auth: {
       flowType: 'pkce',
       detectSessionInUrl: true,
