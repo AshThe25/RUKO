@@ -83,6 +83,14 @@ interface ProtectionStore {
   revealed: number;
   result: InvestigationResult | null;
   setStatus: (status: AsyncStatus, error?: string | null) => void;
+  /**
+   * Bumped when the neural model finishes loading. The lexicon answers first so
+   * the screen paints immediately, and without this the diagnostics line stayed
+   * on 'heuristic' for the rest of the session -- the app under-reporting its
+   * own capability, which is the opposite of what it promises.
+   */
+  modelNonce: number;
+  noteModelReady: () => void;
   pushTrace: (entry: TraceEntry) => void;
   setRevealed: (n: number) => void;
   setResult: (result: InvestigationResult | null) => void;
@@ -155,6 +163,8 @@ export const useProtectionStore = create<ProtectionStore>()(
   trace: [],
   revealed: 0,
   result: null,
+  modelNonce: 0,
+  noteModelReady: () => set(st => ({modelNonce: st.modelNonce + 1})),
   setStatus: (status, error = null) => set({status, error}),
   pushTrace: entry => set(s => ({trace: [...s.trace, entry]})),
   setRevealed: n => set({revealed: n}),

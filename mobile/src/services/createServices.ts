@@ -78,6 +78,8 @@ export interface RukoRuntime {
 }
 
 export interface CreateServicesOptions {
+  /** Called once the neural model has loaded and replaced the lexicon. */
+  onModelReady?: () => void;
   /** Tests force the stub path regardless of what the build ships. */
   forceStubs?: boolean;
 }
@@ -109,7 +111,12 @@ export function createServices(options: CreateServicesOptions = {}): RukoRuntime
   };
 
   void bringUpClassifier().then(result => {
-    if (result.neural) live = result.classifier;
+    if (!result.neural) return;
+    live = result.classifier;
+    // The screens read diagnostics once at first paint, while the lexicon is
+    // deliberately answering. Without this the label stays on 'heuristic' even
+    // though the model is running.
+    options.onModelReady?.();
   });
 
   const call = native ? createNativeCallProvider() : createCallProvider(bus);

@@ -26,6 +26,10 @@ export function HomeScreen() {
   const setProtectionEnabled = useProtectionStore(s => s.setProtectionEnabled);
   const guardianState = useProtectionStore(s => s.guardianState);
   const history = useProtectionStore(s => s.history);
+  // Re-read once the neural model replaces the lexicon. Without this the line
+  // below keeps saying 'heuristic' for the whole session while the model is
+  // actually running -- the app under-reporting itself.
+  const modelNonce = useProtectionStore(s => s.modelNonce);
   const checks = useCheckedToday();
   const interventions = useInterventionsToday();
 
@@ -42,7 +46,7 @@ export function HomeScreen() {
     return () => {
       cancelled = true;
     };
-  }, [services.diagnostics]);
+  }, [services.diagnostics, modelNonce]);
 
   // Live call state, so the monitoring banner reflects the device rather than
   // a screen-local guess.

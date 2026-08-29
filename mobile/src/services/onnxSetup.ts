@@ -14,6 +14,10 @@
 import {Platform} from 'react-native';
 import type {LocalRiskClassifier} from '@contracts';
 import {createClassifier} from '@/risk/classifier';
+import {
+  EXPECTED_MODEL_SHA256,
+  MODEL_VERSION,
+} from '@/risk/classifier/modelConfig.generated';
 import {createReactNativeAdapter} from '@/risk/classifier/reactNativeRuntime';
 
 const MODEL_ASSET = 'model_int8.onnx';
@@ -30,10 +34,40 @@ export interface ClassifierBringUp {
  * Existing files are left alone — the copy is the slow part of a cold start.
  */
 async function materialise(fs: any, name: string, destDir: string): Promise<string> {
-  const dest = `${destDir}/${name}`;
+  // Content-addressed, not just named. Skipping the copy when a file already
+  // exists meant a reinstall kept the previous model: its hash no longer
+  // matched the one the thresholds were evaluated against, loadModel threw,
+  // and the app fell back to the lexicon while still reporting on-device
+  // analysis. A new model now lands at a new path and cannot be shadowed.
+  const dest = `${destDir}/${STAMP}-${name}`;
   if (await fs.exists(dest)) return dest;
   await fs.copyFileAssets(name, dest);
   return dest;
+}
+
+/** Changes whenever the shipped model changes. */
+const STAMP = `${MODEL_VERSION}-${EXPECTED_MODEL_SHA256.slice(0, 12)}`;
+
+/**
+ * Remove copies made for earlier models, so an upgrade does not leave 22 MB of
+ * dead weight on the phone for every version ever installed.
+ */
+async function pruneOldCopies(fs: any, dir: string): Promise<void> {
+  try {
+    const entries = await fs.readDir(dir);
+    await Promise.all(
+      entries
+        .filter(
+          (e: any) =>
+            typeof e.name === 'string' &&
+            /(model_int8\.onnx|vocab\.txt)$/.test(e.name) &&
+            !e.name.startsWith(STAMP),
+        )
+        .map((e: any) => fs.unlink(e.path).catch(() => undefined)),
+    );
+  } catch {
+    // Housekeeping only: never let it stop the model coming up.
+  }
 }
 
 export async function bringUpClassifier(): Promise<ClassifierBringUp> {
@@ -50,6 +84,7 @@ export async function bringUpClassifier(): Promise<ClassifierBringUp> {
     const RNFS = require('react-native-fs');
 
     const dir = RNFS.DocumentDirectoryPath;
+    await pruneOldCopies(RNFS, dir);
     const modelPath = await materialise(RNFS, MODEL_ASSET, dir);
     const vocabPath = await materialise(RNFS, VOCAB_ASSET, dir);
 
@@ -63,11 +98,11 @@ export async function bringUpClassifier(): Promise<ClassifierBringUp> {
 
     return await createClassifier({adapter, modelPath, vocabPath});
   } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    // Logged: a silent fallback is how a stale model went unnoticed until the
+    // engineering screen was read by eye.
+    console.warn('[ruko-model] neural bring-up failed, using lexicon: ' + reason);
     const classifier = (await createClassifier()).classifier;
-    return {
-      classifier,
-      neural: false,
-      fallbackReason: err instanceof Error ? err.message : String(err),
-    };
+    return {classifier, neural: false, fallbackReason: reason};
   }
 }
