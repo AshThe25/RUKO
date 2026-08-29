@@ -1,56 +1,154 @@
 /**
- * Ruko design tokens.
+ * Ruko design tokens — the app's single source of colour, type and spacing.
  *
- * Ruko is quiet until it matters. The palette is near-black with one
- * restrained accent; risk colours are calm, not alarming — a security product
- * that shouts at the user every day gets uninstalled before the day it
- * actually needs to be believed.
+ * These are the website's exact values (web/index.html), not an approximation.
+ * Ruko is a fraud-intervention product: it interrupts someone at the moment
+ * they are being pressured into paying. That demands calm and trust, not the
+ * dark "cyber-security" register, so the app is light like the site and holds
+ * near-black for one thing only — engineering diagnostics, which are not part
+ * of the customer experience.
  *
- * These are the landing page's values, not an approximation of them. The site
- * renders light, but the phone it shows in the hero is this screen, so the app
- * matches that mock: #0E0F12 ground, coral for risk, indigo for information.
- * A person who installs from the site should recognise what they installed.
+ * The colour language carries meaning, and each hue means exactly one thing:
+ *
+ *   ground   creates calm            — 70-80% of any screen
+ *   ink      creates trust           — every value that matters
+ *   cool     is Ruko itself          — local intelligence, protection, focus
+ *   warm     is pressure             — urgency, manipulation, "pay attention"
+ *   danger   is intervention         — only when a payment must stop
+ *   success  is a verified outcome   — never merely "not bad"
+ *
+ * Never hard-code a colour in a screen. If something is missing, add it here.
  */
 
-export const colors = {
-  /* surfaces */
-  bg: '#0E0F12',            /* site: the phone mock's screen */
-  surface: '#16181D',
-  surfaceRaised: '#1C1F26',
-  surfacePressed: '#232730',
-  border: '#252932',
-  borderStrong: '#333944',
-
-  /* text */
-  text: '#F2F4F7',
-  textSecondary: '#9BA3AF',
-  textTertiary: '#666E7A',
-  textInverse: '#0E0F12',
-
-  /* brand — used sparingly, never as decoration */
-  accent: '#8B93F8',        /* site: --cool */
-  accentPressed: '#727BE8',
-
-  /* risk — calm, desaturated, readable on near-black */
-  safe: '#5FBF87',          /* site: --safe on dark */
-  safeSurface: '#11221B',
-  medium: '#D9A441',
-  mediumSurface: '#241C10',
-  high: '#FF8A3D',          /* site: --warm */
-  highSurface: '#26170E',
-  critical: '#FF6B5A',      /* site: --critical on dark */
-  criticalSurface: '#2A1512',
-
-  /* status */
-  offline: '#666E7A',
-  online: '#5FBF87',
+/** The raw brand values. Nothing outside this file should use them directly. */
+export const palette = {
+  ground: '#FCFCFD',
+  surface: '#FFFFFF',
+  surfaceSoft: '#F6F6F8',
+  ink: '#17171B',
+  inkSecondary: '#43434E',
+  muted: '#767683',
+  warm: '#FF8A3D',
+  cool: '#8B93F8',
+  danger: '#C0392B',
+  success: '#3F8F5F',
+  darkSurface: '#0E0F12',
+  onDark: '#F2F2F2',
 } as const;
 
+export const colors = {
+  /* surfaces — light, borders instead of shadows */
+  bg: palette.ground,
+  surface: palette.surface,
+  /** Secondary information, timelines, quiet regions, grouped settings. */
+  surfaceRaised: palette.surfaceSoft,
+  surfacePressed: 'rgba(23, 23, 27, 0.06)',
+  border: 'rgba(23, 23, 27, 0.10)',
+  borderStrong: 'rgba(23, 23, 27, 0.18)',
+
+  /* text */
+  text: palette.ink,
+  textSecondary: palette.inkSecondary,
+  textTertiary: palette.muted,
+  /** For text sitting on ink or on a saturated fill. */
+  textInverse: palette.surface,
+
+  /* Ruko itself: local intelligence, active protection, focus */
+  accent: palette.cool,
+  accentPressed: '#727BE8',
+  accentSurface: 'rgba(139, 147, 248, 0.10)',
+
+  /* risk — never used alone; always paired with a label and an explanation */
+  safe: palette.success,
+  safeSurface: 'rgba(63, 143, 95, 0.08)',
+  /** "Watching": Ruko is paying attention, nothing is wrong yet. */
+  medium: palette.cool,
+  mediumSurface: 'rgba(139, 147, 248, 0.10)',
+  /** Pressure and urgency. Not danger — the moment Ruko starts caring. */
+  high: palette.warm,
+  highSurface: 'rgba(255, 138, 61, 0.10)',
+  /** Confirmed critical. A payment that must be stopped. */
+  critical: palette.danger,
+  criticalSurface: 'rgba(192, 57, 43, 0.09)',
+
+  /* status */
+  offline: palette.muted,
+  online: palette.success,
+
+  /**
+   * Technical surfaces — engineering mode, runtime logs, device capability.
+   * Deliberately the only dark ground in the app, so a diagnostics screen can
+   * never be mistaken for something a customer is meant to act on.
+   */
+  darkBg: palette.darkSurface,
+  darkSurface: '#16181D',
+  darkBorder: 'rgba(242, 242, 242, 0.12)',
+  darkText: palette.onDark,
+  darkTextSecondary: 'rgba(242, 242, 242, 0.62)',
+} as const;
+
+/**
+ * Risk is never communicated by colour alone.
+ *
+ * Every band carries a label, a glyph and a plain-language meaning, so the
+ * state survives colour blindness, a greyscale screenshot, and a screen reader.
+ */
 export const riskPalette = {
-  LOW: {fg: colors.safe, surface: colors.safeSurface, label: 'SAFE'},
-  MEDIUM: {fg: colors.medium, surface: colors.mediumSurface, label: 'CAUTION'},
-  HIGH: {fg: colors.high, surface: colors.highSurface, label: 'HIGH RISK'},
-  CRITICAL: {fg: colors.critical, surface: colors.criticalSurface, label: 'CRITICAL'},
+  LOW: {
+    fg: colors.safe,
+    surface: colors.safeSurface,
+    label: 'SAFE',
+    glyph: '✓',
+    meaning: 'Ruko checked this and found nothing wrong.',
+  },
+  MEDIUM: {
+    fg: colors.medium,
+    surface: colors.mediumSurface,
+    label: 'WATCHING',
+    glyph: '•',
+    meaning: 'Something is slightly unusual. Ruko is paying attention.',
+  },
+  HIGH: {
+    fg: colors.high,
+    surface: colors.highSurface,
+    label: 'PRESSURE',
+    glyph: '!',
+    meaning: 'Someone appears to be pushing you into this payment.',
+  },
+  CRITICAL: {
+    fg: colors.critical,
+    surface: colors.criticalSurface,
+    label: 'STOP',
+    glyph: '✕',
+    meaning: 'This has the shape of a scam. Ruko is asking you not to pay.',
+  },
+} as const;
+
+/**
+ * The signature gradient: pressure resolving into calm.
+ *
+ * Reserved for the splash, the onboarding hero, the app icon and the
+ * protection animation. Never behind body text, never behind every card.
+ */
+export const glow = {
+  warm: 'rgba(255, 138, 61, 0.35)',
+  cool: 'rgba(139, 147, 248, 0.35)',
+} as const;
+
+/**
+ * Typefaces.
+ *
+ * NOTE: these families only render once the font files are bundled and linked
+ * on the native side — that lives in `mobile/android`, which this workstream
+ * does not own. Until then React Native silently falls back to the system
+ * face, so `undefined` is used rather than a name that would fail quietly and
+ * leave us thinking the serif shipped when it did not.
+ */
+export const fonts = {
+  /** Instrument Serif. Hero statements and onboarding headlines only. */
+  display: undefined as string | undefined,
+  /** Manrope. The entire interface: buttons, body, values, labels. */
+  body: undefined as string | undefined,
 } as const;
 
 /** 4pt base grid. Use these, never raw numbers, in screen layout. */

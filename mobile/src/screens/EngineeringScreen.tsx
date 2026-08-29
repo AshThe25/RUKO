@@ -52,7 +52,7 @@ export function EngineeringScreen() {
 
   if (!diagnostics) {
     return (
-      <Screen scroll={false}>
+      <Screen scroll={false} background={colors.darkBg}>
         <LoadingState label="Reading runtime state" />
       </Screen>
     );
@@ -62,21 +62,22 @@ export function EngineeringScreen() {
 
   return (
     <Screen
+      background={colors.darkBg}
       testID="engineering-screen"
       footer={<Button label="Back" variant="ghost" onPress={() => navigate('home')} />}>
-      <Txt variant="label" tone="tertiary" uppercase>
+      <Txt color={colors.darkTextSecondary} variant="label" uppercase>
         Ruko edge engine
       </Txt>
-      <Txt variant="title" style={styles.headline}>
+      <Txt color={colors.darkText} variant="title" style={styles.headline}>
         What is actually loaded.
       </Txt>
-      <Txt variant="body" tone="secondary" style={styles.sub}>
+      <Txt color={colors.darkTextSecondary} variant="body" style={styles.sub}>
         Read from the runtime. Where something is a stand-in or has not been
         measured, this screen says so rather than showing a green tick.
       </Txt>
 
-      <Card title="Manipulation classifier" style={styles.card}>
-        <Row label="Model" value={classifier.modelVersion} />
+      <Card tone={colors.darkSurface} borderColor={colors.darkBorder} title="Manipulation classifier" style={styles.card}>
+        <Row onDark label="Model" value={classifier.modelVersion} />
         <Row
           label="Loaded"
           value={classifier.loaded ? 'Yes' : 'No'}
@@ -92,14 +93,14 @@ export function EngineeringScreen() {
           }
           valueColor={classifier.backend === 'HEURISTIC' ? colors.medium : colors.safe}
         />
-        <Row label="Quantisation" value={classifier.quantization ?? '—'} />
-        <Row label="Model hash" value={classifier.modelHash} />
+        <Row onDark label="Quantisation" value={classifier.quantization ?? '—'} />
+        <Row onDark label="Model hash" value={classifier.modelHash} />
         <Row
           label="Measured p50"
           value={formatLatency(bench?.p50 ?? classifier.measuredLatencyMsP50)}
           detail={bench ? `${bench.iterations} runs on this device` : 'Not benchmarked yet'}
         />
-        {bench ? <Row label="Measured p95" value={formatLatency(bench.p95)} /> : null}
+        {bench ? <Row onDark label="Measured p95" value={formatLatency(bench.p95)} /> : null}
         <View style={styles.benchAction}>
           <Button
             label={benchRunning ? 'Running…' : 'Run benchmark on this device'}
@@ -111,7 +112,7 @@ export function EngineeringScreen() {
         </View>
       </Card>
 
-      <Card title="Speech recognition" style={styles.card}>
+      <Card tone={colors.darkSurface} borderColor={colors.darkBorder} title="Speech recognition" style={styles.card}>
         <Row
           label="Available"
           value={asr.available ? 'Yes' : 'No'}
@@ -122,18 +123,18 @@ export function EngineeringScreen() {
               : 'On-device ASR is not integrated yet. Demo transcripts are scripted text, not recognised speech.'
           }
         />
-        <Row label="Backend" value={asr.backend} />
-        <Row label="Model" value={asr.modelVersion ?? '—'} />
+        <Row onDark label="Backend" value={asr.backend} />
+        <Row onDark label="Model" value={asr.modelVersion ?? '—'} />
       </Card>
 
-      <Card title="Risk engine" style={styles.card}>
-        <Row label="Engine" value={riskEngine.engineVersion} />
-        <Row label="Weights" value={riskEngine.weightsVersion} />
-        <Row label="Policy" value={riskEngine.policyVersion} />
+      <Card tone={colors.darkSurface} borderColor={colors.darkBorder} title="Risk engine" style={styles.card}>
+        <Row onDark label="Engine" value={riskEngine.engineVersion} />
+        <Row onDark label="Weights" value={riskEngine.weightsVersion} />
+        <Row onDark label="Policy" value={riskEngine.policyVersion} />
         {result ? (
           <>
-            <Row label="Last score" value={`${result.risk.score}/100`} />
-            <Row label="Last compute" value={formatLatency(result.risk.computeMs)} />
+            <Row onDark label="Last score" value={`${result.risk.score}/100`} />
+            <Row onDark label="Last compute" value={formatLatency(result.risk.computeMs)} />
             <Row
               label="Corroborating families"
               value={String(result.risk.corroboratingFamilies.length)}
@@ -143,9 +144,9 @@ export function EngineeringScreen() {
         ) : null}
       </Card>
 
-      <Card title="Device" style={styles.card}>
-        <Row label="Platform" value={`${Platform.OS} ${Platform.Version}`} />
-        <Row label="Model" value={diagnostics.deviceModel ?? 'Not read'} />
+      <Card tone={colors.darkSurface} borderColor={colors.darkBorder} title="Device" style={styles.card}>
+        <Row onDark label="Platform" value={`${Platform.OS} ${Platform.Version}`} />
+        <Row onDark label="Model" value={diagnostics.deviceModel ?? 'Not read'} />
         <Row
           label="Network"
           value={diagnostics.offline ? 'Offline' : 'Online'}
@@ -154,7 +155,7 @@ export function EngineeringScreen() {
       </Card>
 
       {result ? (
-        <Card title="Last evaluation — every term" style={styles.card}>
+        <Card tone={colors.darkSurface} borderColor={colors.darkBorder} title="Last evaluation — every term" style={styles.card}>
           {result.risk.contributions.map(c => (
             <Row
               key={c.code}

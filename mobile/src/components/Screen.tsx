@@ -50,7 +50,10 @@ export function Screen({
       style={[styles.flex, {backgroundColor: background}]}
       accessibilityViewIsModal={modal}
       testID={testID}>
-      <StatusBar barStyle="light-content" backgroundColor={background} />
+      <StatusBar
+        barStyle={background === colors.darkBg ? 'light-content' : 'dark-content'}
+        backgroundColor={background}
+      />
       {body}
       {footer ? (
         <View

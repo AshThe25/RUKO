@@ -58,7 +58,7 @@ export function InterventionScreen() {
         <View>
           <Button
             label="Don't pay"
-            variant="primary"
+            variant="danger"
             onPress={() => endSession('USER_STOPPED')}
             testID="dont-pay"
           />
@@ -68,7 +68,7 @@ export function InterventionScreen() {
               variant="ghost"
               disabled={countdown > 0}
               onPress={() => endSession('USER_CONTINUED')}
-              hint="Ruko will remember that you disagreed."
+              hint="Ruko will step out of the way. It cannot undo a payment once it is sent."
               style={styles.secondary}
               testID="continue-confirm"
             />
@@ -88,12 +88,13 @@ export function InterventionScreen() {
       }>
       <View style={[styles.banner, {backgroundColor: palette.surface}]}>
         <Txt variant="label" color={palette.fg} uppercase>
-          {palette.label} · {risk.score}/100
+          {palette.glyph} {palette.label} · {risk.score}/100
         </Txt>
       </View>
 
       <Txt
         variant="title"
+        color={palette.fg}
         style={styles.headline}
         accessibilityRole="header"
         accessibilityLiveRegion="assertive">
@@ -104,13 +105,22 @@ export function InterventionScreen() {
         has been paid yet.
       </Txt>
 
-      <Card style={styles.payment} tone={colors.surfaceRaised}>
-        <Txt variant="display" color={colors.text}>
+      <Card
+        style={styles.payment}
+        tone={colors.surfaceRaised}
+        borderColor={palette.surface}>
+        <Txt
+          variant="display"
+          color={colors.text}
+          accessibilityLabel={`Payment of ${formatMinor(evidence.payment.amountMinor)}`}>
           {formatMinor(evidence.payment.amountMinor)}
         </Txt>
         <Txt variant="body" tone="secondary" style={styles.payee}>
           to {evidence.payment.payeeDisplayName ?? 'an unnamed recipient'}
         </Txt>
+        <View style={styles.meterInline}>
+          <RiskScore score={risk.score} level={risk.level} />
+        </View>
       </Card>
 
       <Txt variant="label" tone="tertiary" uppercase style={styles.whyLabel}>
@@ -132,10 +142,6 @@ export function InterventionScreen() {
           {risk.degradedReasons.join(' ')}
         </Txt>
       ) : null}
-
-      <Card style={styles.meter}>
-        <RiskScore score={risk.score} level={risk.level} />
-      </Card>
 
       {guardianState !== 'UNPAIRED' ? (
         <Card title="Guardian" style={styles.guardian}>
@@ -174,13 +180,13 @@ const styles = StyleSheet.create({
   sub: {marginTop: space.md},
   payment: {marginTop: space.xl},
   payee: {marginTop: space.xs},
+  meterInline: {marginTop: space.lg},
   whyLabel: {marginTop: space.xl},
   reasons: {marginTop: space.md},
   reason: {flexDirection: 'row', alignItems: 'flex-start', marginBottom: space.md},
   bullet: {width: 5, height: 5, borderRadius: 3, marginTop: 9, marginRight: space.md},
   reasonText: {flex: 1},
   degraded: {marginTop: space.sm},
-  meter: {marginTop: space.md},
   guardian: {marginTop: space.md},
   guardianNote: {marginTop: space.sm},
   secondary: {marginTop: space.sm},

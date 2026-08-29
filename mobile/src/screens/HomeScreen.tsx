@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import {Pressable, StyleSheet, View} from 'react-native';
 import type {CallEvidence, EngineDiagnostics} from '@contracts';
-import {Card, EmptyState, OfflineBanner, Pill, Screen, Txt} from '@/components';
+import {Bloom, Card, EmptyState, OfflineBanner, Pill, Screen, Txt} from '@/components';
 import {colors, radius, riskPalette, space} from '@/theme';
 import {stubbedParts} from '@/services/createServices';
 import {useRuntime, useServices} from '@/services/ServicesContext';
@@ -79,14 +79,30 @@ export function HomeScreen() {
         </View>
       ) : null}
 
-      <Txt variant="title" style={styles.state} accessibilityRole="header">
-        {STATE_COPY[machineState] ?? 'Watching for payment pressure.'}
-      </Txt>
-      <Txt variant="body" tone="secondary" style={styles.stateSub}>
-        {protectionEnabled
-          ? 'Ruko checks a payment when one is about to happen. Nothing runs in between.'
-          : 'Protection is paused. Ruko will not check payments until you turn it back on.'}
-      </Txt>
+      {machineState === 'IDLE' && protectionEnabled ? (
+        <View style={styles.quiet}>
+          <Bloom size={200} tint="duo" />
+          <Txt variant="title" center style={styles.quietTitle} accessibilityRole="header">
+            {STATE_COPY.IDLE}
+          </Txt>
+          <Txt variant="body" tone="secondary" center style={styles.quietSub}>
+            This screen staying quiet is what working looks like. Ruko wakes up
+            when a payment is about to happen, and stays out of the way the rest
+            of the time.
+          </Txt>
+        </View>
+      ) : (
+        <>
+          <Txt variant="title" style={styles.state} accessibilityRole="header">
+            {STATE_COPY[machineState] ?? 'Watching for payment pressure.'}
+          </Txt>
+          <Txt variant="body" tone="secondary" style={styles.stateSub}>
+            {protectionEnabled
+              ? 'Ruko checks a payment when one is about to happen. Nothing runs in between.'
+              : 'Protection is paused. Ruko will not check payments until you turn it back on.'}
+          </Txt>
+        </>
+      )}
 
       <View style={styles.statRow}>
         <Stat label="Checks today" value={String(checks)} />
@@ -149,8 +165,8 @@ export function HomeScreen() {
           ))
         ) : (
           <EmptyState
-            title="Nothing checked yet"
-            message="Ruko has not seen a payment on this device yet."
+            title="No payments checked yet"
+            message="The next time you are about to pay someone, Ruko will check it and the result will show up here — including the ones it decides are fine."
           />
         )}
       </Card>
@@ -249,6 +265,9 @@ const styles = StyleSheet.create({
   },
   state: {marginTop: space.xl},
   stateSub: {marginTop: space.md},
+  quiet: {alignItems: 'center', marginTop: space.xl, marginBottom: space.sm},
+  quietTitle: {marginTop: space.lg},
+  quietSub: {marginTop: space.md},
   statRow: {flexDirection: 'row', marginTop: space.xl, marginBottom: space.lg},
   stat: {flex: 1},
   statLabel: {marginTop: 4},

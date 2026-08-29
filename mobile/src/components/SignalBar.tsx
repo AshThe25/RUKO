@@ -3,6 +3,7 @@ import {Animated, Easing, StyleSheet, View} from 'react-native';
 import {colors, motion, radius, space} from '@/theme';
 import {formatPercent} from '@/utils/format';
 import {Txt} from './Txt';
+import {useReducedMotion} from './useReducedMotion';
 
 interface SignalBarProps {
   label: string;
@@ -17,15 +18,20 @@ export function SignalBar({label, value, threshold = 0.6, color}: SignalBarProps
   const anim = useRef(new Animated.Value(0)).current;
   const clamped = Math.max(0, Math.min(1, value));
   const fg = color ?? (clamped >= threshold ? colors.critical : colors.textSecondary);
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
+    if (reduceMotion) {
+      anim.setValue(clamped);
+      return;
+    }
     Animated.timing(anim, {
       toValue: clamped,
       duration: motion.base,
       easing: Easing.out(Easing.quad),
       useNativeDriver: false,
     }).start();
-  }, [anim, clamped]);
+  }, [anim, clamped, reduceMotion]);
 
   const width = anim.interpolate({inputRange: [0, 1], outputRange: ['0%', '100%']});
 
