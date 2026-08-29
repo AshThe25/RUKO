@@ -57,5 +57,18 @@
       "rss_mb_after": 637.3
     }
   ],
-  "measured_at_utc": "2026-08-29T09:05:31Z"
+  "measured_at_utc": "2026-08-29T09:05:31Z",
+  "iqoo15_device": {
+    "model": "iQOO I2501",
+    "brand": "iQOO",
+    "soc": "Qualcomm SM8850 (Snapdragon 8 Elite)",
+    "android_version": "16",
+    "sdk": 36,
+    "nnapi_feature_level": 8,
+    "abi": "arm64-v8a",
+    "ram_mb": 15230,
+    "gpu": "Adreno (from ro.hardware.egl)",
+    "usb_verified_at_utc": "2026-08-29T09:30:00Z",
+    "on_device_latency": "pending first app run \u2014 engineering screen will self-report from real inferences"
+  }
 }
