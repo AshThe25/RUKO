@@ -6,6 +6,8 @@ import { getSupabase } from './supabase';
 import type { Profile, TrustedLink } from './types';
 
 export interface Invite extends TrustedLink {
+  /** Recorded on the row at invite time; survives a profiles read being denied. */
+  subject_email?: string | null;
   /** Filled in when profiles are readable; otherwise the UI degrades to an id. */
   subject?: Pick<Profile, 'display_name' | 'email'> | null;
 }
@@ -67,7 +69,10 @@ export function useInvites(userId: string | null) {
       );
     }
 
-    const decorated: Invite[] = links.map((l) => ({ ...l, subject: profiles[l.subject_id] ?? null }));
+    const decorated: Invite[] = links.map((l) => ({
+      ...l,
+      subject: profiles[l.subject_id] ?? null,
+    }));
     setInvites(decorated.filter((l) => l.status === 'pending'));
     setAccepted(decorated.filter((l) => l.status === 'accepted'));
     setError(null);

@@ -7,6 +7,7 @@ import {currentUser, signOut, type AuthUser} from '@/services/cloud/auth';
 import {
   acceptInvite,
   inviteGuardian,
+  inviterLabel,
   listLinks,
   type Relationship,
   type TrustedLink,
@@ -138,9 +139,26 @@ export function CircleScreen() {
             {watchingFor.map(l => (
               <View key={l.id} style={styles.row}>
                 <View style={styles.rowMain}>
-                  <Txt variant="bodyStrong">Someone added you as their {l.relationship}</Txt>
+                  {inviterLabel(l) ? (
+                    <Txt variant="bodyStrong">
+                      {inviterLabel(l)} added you as their {l.relationship}
+                    </Txt>
+                  ) : (
+                    // Naming the person is the whole basis for deciding whether
+                    // to accept — you cannot judge an anonymous request to
+                    // become someone's parent. If the account cannot be
+                    // resolved, say so plainly rather than papering over it
+                    // with "Someone".
+                    <Txt variant="bodyStrong">
+                      An account we cannot identify added you as their {l.relationship}
+                    </Txt>
+                  )}
                   <Txt variant="caption" tone="tertiary">
-                    {l.status === 'accepted' ? 'Active — you receive their alerts' : 'Waiting for you'}
+                    {l.status === 'accepted'
+                      ? 'Active — you receive their alerts'
+                      : inviterLabel(l)
+                        ? 'Waiting for you'
+                        : 'Ruko could not confirm who sent this — only accept if you were expecting it'}
                   </Txt>
                 </View>
                 {l.status !== 'accepted' ? (
