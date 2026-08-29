@@ -7,11 +7,13 @@ import { createClient } from '@supabase/supabase-js';
  *
  * Two things here are load-bearing and easy to get wrong:
  *
- *  - `db.schema` must be 'ruko'. Every Ruko table lives in that schema, not in
- *    `public`, so a default client returns PGRST106 on every query. Note that
- *    this option covers PostgREST calls only — Realtime subscriptions take the
- *    schema in their own filter, which is why `schema: 'public'` appears again in
- *    the channel config in useAlerts.
+ *  - `db.schema` is 'public'. Ruko owns this project outright, so the tables
+ *    live in `public` and there is no schema to expose and no grants to
+ *    forget. (They were briefly in a `ruko` schema inside a shared project,
+ *    which cost two debugging rounds — PGRST106, then 42501.) Note that this
+ *    option covers PostgREST calls only — Realtime subscriptions take the
+ *    schema in their own filter, which is why `schema: 'public'` appears again
+ *    in the channel config in useAlerts.
  *  - PKCE with `detectSessionInUrl` lets the OAuth redirect complete entirely in
  *    the browser, so the console needs no server route and no service-role key.
  *    The publishable key is safe in the client precisely because RLS, not the

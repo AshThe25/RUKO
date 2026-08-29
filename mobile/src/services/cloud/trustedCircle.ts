@@ -27,6 +27,15 @@ export interface TrustedLink {
   relationship: Relationship;
   status: LinkStatus;
   created_at: string;
+  /**
+   * Who proposed the link. An invitation reads "X added you as their parent",
+   * and a name is the whole basis for deciding whether to accept it — nobody
+   * can judge "Someone added you as their parent". Populated from the
+   * `subject_email` column when the database has one, otherwise from the
+   * inviter's profile, and left null if neither is readable.
+   */
+  subject_email?: string | null;
+  subject_name?: string | null;
 }
 
 export interface Alert {
@@ -121,9 +130,27 @@ export async function inviteGuardian(
   if (email === (me.email ?? '').toLowerCase()) {
     return {error: 'That is your own address — invite someone else.'};
   }
-  const {error} = await supabase
-    .from('trusted_links')
-    .insert({subject_id: me.id, guardian_email: email, relationship});
+  // Record who is asking, the same way the row already records who is being
+  // asked. Without it the invitee sees an anonymous request to become
+  // someone's parent, and no profile lookup can help while the policy that
+  // would allow one requires the very acceptance being decided.
+  const row = {
+    subject_id: me.id,
+    guardian_email: email,
+    relationship,
+    subject_email: (me.email ?? '').toLowerCase() || null,
+  };
+
+  let {error} = await supabase.from('trusted_links').insert(row);
+
+  // 42703 is "column does not exist": a database that has not had the
+  // subject_email migration applied yet. Fall back rather than making invites
+  // fail on a deployment that is one migration behind.
+  if (error?.code === '42703') {
+    const {subject_email: _omitted, ...withoutEmail} = row;
+    ({error} = await supabase.from('trusted_links').insert(withoutEmail));
+  }
+
   if (error?.code === '23505') {
     return {error: 'You have already invited that address.'};
   }
@@ -150,7 +177,61 @@ export async function acceptLink(linkId: string): Promise<{error: string | null}
   return {error: error?.message ?? null};
 }
 
+/**
+ * Every link this user can see, with the inviter's identity resolved.
+ *
+ * `guardian_email` is stored on the row, so the subject always knows who they
+ * invited. The reverse was not true: nothing on the row said who *sent* an
+ * invitation, so the invitee saw an anonymous request to become someone's
+ * parent. This fills that in, preferring a stored `subject_email` column and
+ * falling back to the inviter's profile row.
+ *
+ * The profile read is best-effort on purpose. Whether one user may read
+ * another's profile is a row-level security question, and if the answer is no
+ * the invitation still renders — without a name — rather than failing.
+ */
 export async function listLinks(): Promise<TrustedLink[]> {
   const {data} = await supabase.from('trusted_links').select('*');
-  return (data as TrustedLink[]) ?? [];
+  const links = (data as TrustedLink[]) ?? [];
+  if (links.length === 0) return links;
+
+  const {data: session} = await supabase.auth.getSession();
+  const meId = session.session?.user?.id;
+
+  // Links where someone else is the subject are invitations *to* this user.
+  const inviterIds = [
+    ...new Set(
+      links
+        .filter(l => l.subject_id !== meId && !l.subject_email)
+        .map(l => l.subject_id),
+    ),
+  ];
+  if (inviterIds.length === 0) return links;
+
+  const {data: profiles} = await supabase
+    .from('profiles')
+    .select('id,email,display_name')
+    .in('id', inviterIds);
+
+  if (!profiles || profiles.length === 0) return links;
+
+  const byId = new Map(
+    (profiles as Array<{id: string; email: string | null; display_name: string | null}>).map(
+      p => [p.id, p],
+    ),
+  );
+  return links.map(l => {
+    const p = byId.get(l.subject_id);
+    if (!p) return l;
+    return {
+      ...l,
+      subject_email: l.subject_email ?? p.email,
+      subject_name: l.subject_name ?? p.display_name,
+    };
+  });
+}
+
+/** How to name whoever proposed a link, for the invitee to read. */
+export function inviterLabel(link: TrustedLink): string | null {
+  return link.subject_name?.trim() || link.subject_email?.trim() || null;
 }

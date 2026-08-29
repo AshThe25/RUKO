@@ -2,10 +2,16 @@
 
 import type { Invite } from '@/lib/useInvites';
 
-function subjectName(invite: Invite): string {
+/**
+ * Who is asking. `subject_email` is recorded on the row at invite time, so it
+ * survives the profiles read being refused — which it is while the policy that
+ * would allow it requires the acceptance being decided.
+ */
+function subjectName(invite: Invite): string | null {
   return invite.subject?.display_name?.trim()
     || invite.subject?.email?.trim()
-    || `Someone (${invite.subject_id.slice(0, 8)}…)`;
+    || invite.subject_email?.trim()
+    || null;
 }
 
 export function InviteList({
@@ -35,7 +41,7 @@ export function InviteList({
                   {/* The subject creates the link; only the guardian may accept
                       it. So the direction of this sentence is a fact of the
                       schema, not a guess. */}
-                  <div style={{ fontWeight: 600 }}>{subjectName(invite)}</div>
+                  <div style={{ fontWeight: 600 }}>{subjectName(invite) ?? "An account we cannot identify"}</div>
                   <div className="small">
                     wants you as their guardian
                     <span className="chip chip-cool" style={{ marginLeft: 8 }}>
@@ -61,7 +67,7 @@ export function InviteList({
             {accepted.map((link) => (
               <div className="row" key={link.id}>
                 <div>
-                  <div style={{ fontWeight: 600 }}>{subjectName(link)}</div>
+                  <div style={{ fontWeight: 600 }}>{subjectName(link) ?? "An account we cannot identify"}</div>
                   <div className="small">
                     <span className="chip chip-muted">{link.relationship}</span>
                   </div>
