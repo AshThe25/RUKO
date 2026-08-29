@@ -1,0 +1,14 @@
+{
+  "extends": "@react-native/typescript-config/tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "strict": true,
+    "noUncheckedIndexedAccess": false,
+    "paths": {
+      "@/*": ["src/*"],
+      "@contracts": ["../docs/contracts/index.ts"],
+      "@contracts/*": ["../docs/contracts/*"]
+    }
+  },
+  "include": ["src", "index.js", "App.tsx", "__tests__", "../docs/contracts"]
+}
