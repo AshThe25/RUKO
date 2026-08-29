@@ -14,3 +14,4 @@ export {ProgressDots} from './ProgressDots';
 export {Disclosure} from './Disclosure';
 export type {DisclosureItem} from './Disclosure';
 export {useReducedMotion} from './useReducedMotion';
+export {MenuSheet, MenuButton, type MenuItem} from './MenuSheet';

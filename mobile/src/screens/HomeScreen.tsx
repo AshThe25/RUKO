@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import {Pressable, StyleSheet, View} from 'react-native';
 import type {CallEvidence, EngineDiagnostics} from '@contracts';
-import {Bloom, Card, EmptyState, OfflineBanner, Pill, Screen, Txt} from '@/components';
+import {Bloom, Card, EmptyState, MenuButton, MenuSheet, OfflineBanner, Pill, Screen, Txt} from '@/components';
 import {colors, radius, riskPalette, space} from '@/theme';
 import {stubbedParts} from '@/services/createServices';
 import {useRuntime, useServices} from '@/services/ServicesContext';
@@ -30,6 +30,7 @@ export function HomeScreen() {
   // below keeps saying 'heuristic' for the whole session while the model is
   // actually running -- the app under-reporting itself.
   const modelNonce = useProtectionStore(s => s.modelNonce);
+  const [menuOpen, setMenuOpen] = useState(false);
   const checks = useCheckedToday();
   const interventions = useInterventionsToday();
 
@@ -59,9 +60,14 @@ export function HomeScreen() {
   return (
     <Screen testID="home-screen">
       <View style={styles.header}>
-        <Txt variant="label" tone="tertiary" uppercase>
-          Ruko
-        </Txt>
+        {/* Menu on the left, protection state on the right: the state is the
+            screen's answer, so it keeps the position the eye lands on. */}
+        <View style={styles.headerLeft}>
+          <MenuButton onPress={() => setMenuOpen(true)} />
+          <Txt variant="label" tone="tertiary" uppercase>
+            Ruko
+          </Txt>
+        </View>
         <Pressable
           accessibilityRole="button"
           onPress={() => setProtectionEnabled(!protectionEnabled)}
@@ -175,27 +181,29 @@ export function HomeScreen() {
         )}
       </Card>
 
-      <View style={styles.actions}>
-        {runtime.demoAvailable ? (
-          <NavTile
-            label="Demo mode"
-            caption="Run a scenario through the real pipeline"
-            onPress={() => navigate('paydemo')}
-          />
-        ) : null}
-        <NavTile label="Guardian" caption="Office Kit link" onPress={() => navigate('guardian')} />
-        <NavTile
-          label="Trusted circle"
-          caption="Who gets told"
-          onPress={() => navigate('circle')}
-        />
-        <NavTile label="History" caption="Every decision Ruko made" onPress={() => navigate('history')} />
-        <NavTile
-          label="Permissions"
-          caption="What Ruko can see, and what it cannot"
-          onPress={() => navigate('permissions')}
-        />
-      </View>
+      <MenuSheet
+        visible={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        items={[
+          ...(runtime.demoAvailable
+            ? [
+                {
+                  label: 'Demo mode',
+                  caption: 'Run a scenario through the real pipeline',
+                  onPress: () => navigate('paydemo'),
+                },
+              ]
+            : []),
+          {label: 'Trusted circle', caption: 'Who gets told', onPress: () => navigate('circle')},
+          {label: 'Guardian', caption: 'Office Kit link', onPress: () => navigate('guardian')},
+          {label: 'History', caption: 'Every decision Ruko made', onPress: () => navigate('history')},
+          {
+            label: 'Permissions',
+            caption: 'What Ruko can see, and what it cannot',
+            onPress: () => navigate('permissions'),
+          },
+        ]}
+      />
 
       {stubs.length > 0 ? (
         <Txt variant="caption" tone="tertiary" style={styles.buildNote}>
@@ -253,6 +261,7 @@ function NavTile({label, caption, onPress}: {label: string; caption: string; onP
 }
 
 const styles = StyleSheet.create({
+  headerLeft: {flexDirection: 'row', alignItems: 'center', gap: space.sm},
   header: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'},
   monitoring: {
     flexDirection: 'row',
