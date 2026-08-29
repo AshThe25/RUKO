@@ -63,3 +63,19 @@ mobile/ios/Pods/
 mobile/ios/build/
 mobile/ios/*.xcworkspace/xcuserdata/
 .metro-health-check*
+
+# --- Guardian / Next.js ---
+guardian/.next/
+
+# --- Android, from feature/puneesh-android-guardian ---
+.gradle/
+local.properties
+captures/
+.cxx/
+*.jks
+
+# --- Python tooling ---
+.ruff_cache/
+
+# Probe output is machine-specific; commit deliberately, not by accident
+docs/device-report.md
