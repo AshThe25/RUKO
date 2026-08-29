@@ -1,0 +1,175 @@
+{
+  "model_version": "ruko-real-multisource-v1",
+  "task": "binary suspected-fraud/manipulation text versus legitimate communication",
+  "base_model": "sentence-transformers/all-MiniLM-L6-v2",
+  "max_length": 64,
+  "training_data": {
+    "dataset_version": "ruko-real-multisource-v1",
+    "seed": 20260830,
+    "task": "binary suspected-fraud/manipulation text versus legitimate communication",
+    "all_examples_human_origin": true,
+    "contains_synthetic_or_llm_generated_examples": false,
+    "sources": {
+      "ftc_robocall": {
+        "label": 1,
+        "kind": "suspected illegal robocall",
+        "url": "https://github.com/wspr-ncsu/robocall-audio-dataset",
+        "licence": "Underlying data public domain; dataset documentation CC BY-ND."
+      },
+      "ncsu_sms_phishing": {
+        "label": 1,
+        "kind": "gateway-observed SMS marked phishing by VirusTotal/APWG",
+        "url": "https://github.com/wspr-ncsu/sms-phishing",
+        "licence": "MIT"
+      },
+      "imc25_non_india_smishing": {
+        "label": 1,
+        "kind": "public user-reported smishing (all India-network rows held out)",
+        "url": "https://github.com/reportsmishing/Smishing-Dataset-IMC25",
+        "licence": "CC-BY-4.0"
+      },
+      "callcenteren": {
+        "label": 0,
+        "kind": "PII-redacted legitimate BPO customer-service call",
+        "url": "https://huggingface.co/datasets/AIxBlock/92k-real-world-call-center-scripts-english",
+        "licence": "CC-BY-NC-4.0; local hackathon/research evaluation only."
+      },
+      "uci_sms_ham": {
+        "label": 0,
+        "kind": "real legitimate SMS",
+        "url": "https://archive.ics.uci.edu/dataset/228/sms+spam+collection",
+        "licence": "CC-BY-4.0"
+      }
+    },
+    "inputs": {
+      "ftc_csv_sha256": "8e253a4a652abfa92ac3766feff8da2bef16f45ab3f0f434f212a7aafc3effe5",
+      "ncsu_sms_csv_sha256": "d125c394af792faeb2b71b3f7100cad3b4cece02aff78cb4ec1fb9e7db90f230",
+      "imc_csv_sha256": "1bbd1e9e82c3ea023112207b80da268a5c4a07d2353c2b0898360ab037fa9a64",
+      "callcenter_files": 1217,
+      "uci_sms_sha256": "7d039a24a6083ed9ef0f806ebad56bbb976e3aeb8de05669173bfdc4996c239d"
+    },
+    "split_policy": "70/15/15 deterministic source-call/message group split before capping; exact conflicting labels excluded; exact window duplicates removed from later splits.",
+    "source_caps_per_split": {
+      "train": 2200,
+      "val": 450,
+      "test": 450
+    },
+    "held_out_external_set": "All IMC'25 rows with original_network_country == IND are excluded before corpus construction.",
+    "preprocessing": "Whitespace normalisation and removal of source PII-redaction placeholders; no generated or translated text.",
+    "split_summary": {
+      "train": {
+        "rows": 9625,
+        "labels": {
+          "0": 4400,
+          "1": 5225
+        },
+        "sources": {
+          "uci_sms_ham": 2200,
+          "imc25_non_india_smishing": 2200,
+          "callcenteren": 2200,
+          "ncsu_sms_phishing": 2200,
+          "ftc_robocall": 825
+        },
+        "unique_groups": 8024
+      },
+      "val": {
+        "rows": 1994,
+        "labels": {
+          "1": 1094,
+          "0": 900
+        },
+        "sources": {
+          "imc25_non_india_smishing": 450,
+          "ncsu_sms_phishing": 450,
+          "callcenteren": 450,
+          "uci_sms_ham": 450,
+          "ftc_robocall": 194
+        },
+        "unique_groups": 1651
+      },
+      "test": {
+        "rows": 1951,
+        "labels": {
+          "0": 886,
+          "1": 1065
+        },
+        "sources": {
+          "callcenteren": 450,
+          "imc25_non_india_smishing": 450,
+          "ftc_robocall": 165,
+          "uci_sms_ham": 436,
+          "ncsu_sms_phishing": 450
+        },
+        "unique_groups": 1614
+      }
+    },
+    "dropped_conflicting_text_hashes": 0,
+    "dropped_exact_cross_split_windows": 77,
+    "limitations": [
+      "This combines real phone-call and SMS text; it is not a pure call-only benchmark.",
+      "Fraud labels retain each source's evidence context and are not individual criminal convictions.",
+      "It is a binary gate, not a gold six-tactic annotation corpus.",
+      "The noncommercial CallCenterEN source makes this a local research/hackathon candidate, not a production distribution artefact."
+    ]
+  },
+  "training": {
+    "epochs": 2,
+    "seconds": 431.2,
+    "initial_checkpoint": "ml/models/ruko-real-binary-v1/pytorch_model.pt",
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 0.107,
+        "precision": 0.9864,
+        "recall": 0.9927,
+        "f1": 0.9895,
+        "accuracy": 0.9885,
+        "threshold": 0.39,
+        "tp": 1086,
+        "fp": 15,
+        "fn": 8,
+        "tn": 885
+      },
+      {
+        "epoch": 2,
+        "loss": 0.0422,
+        "precision": 0.9909,
+        "recall": 0.9927,
+        "f1": 0.9918,
+        "accuracy": 0.991,
+        "threshold": 0.47,
+        "tp": 1086,
+        "fp": 10,
+        "fn": 8,
+        "tn": 890
+      }
+    ]
+  },
+  "validation": {
+    "precision": 0.9909,
+    "recall": 0.9927,
+    "f1": 0.9918,
+    "accuracy": 0.991,
+    "threshold": 0.47,
+    "tp": 1086,
+    "fp": 10,
+    "fn": 8,
+    "tn": 890
+  },
+  "test": {
+    "precision": 0.9905,
+    "recall": 0.9812,
+    "f1": 0.9858,
+    "accuracy": 0.9846,
+    "threshold": 0.47,
+    "tp": 1045,
+    "fp": 10,
+    "fn": 20,
+    "tn": 876
+  },
+  "honesty": [
+    "All fine-tuning examples are human-origin transcripts; no synthetic/LLM-generated rows are included.",
+    "FTC examples are enforcement-context suspected-illegal labels, not individual criminal convictions.",
+    "This binary gate is not evidence of six-tactic classification accuracy or Indian/Hinglish performance."
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "evaluation": "external positives-only sensitivity stress test",
+  "source": {
+    "name": "Smishing Dataset IMC'25",
+    "url": "https://github.com/reportsmishing/Smishing-Dataset-IMC25",
+    "license": "CC-BY-4.0",
+    "file_sha256": "1bbd1e9e82c3ea023112207b80da268a5c4a07d2353c2b0898360ab037fa9a64",
+    "selection": "raw reported messages where original_network_country == IND; no translation field used"
+  },
+  "n_unique_real_india_associated_reports": 2281,
+  "model_threshold_from_validation_only": 0.47,
+  "sensitivity": 0.9961,
+  "median_score": 0.9993,
+  "language_breakdown": {
+    "English": {
+      "n": 2228,
+      "sensitivity": 0.996
+    },
+    "French": {
+      "n": 2,
+      "sensitivity": 1.0
+    },
+    "Hindi": {
+      "n": 45,
+      "sensitivity": 1.0
+    },
+    "Indonesian": {
+      "n": 1,
+      "sensitivity": 1.0
+    },
+    "Kannada": {
+      "n": 2,
+      "sensitivity": 1.0
+    },
+    "Spanish": {
+      "n": 2,
+      "sensitivity": 1.0
+    },
+    "unknown": {
+      "n": 1,
+      "sensitivity": 1.0
+    }
+  },
+  "lure_breakdown": {
+    "authority": {
+      "n": 2064,
+      "sensitivity": 0.9985
+    },
+    "dishonesty": {
+      "n": 8,
+      "sensitivity": 1.0
+    },
+    "distraction": {
+      "n": 497,
+      "sensitivity": 0.998
+    },
+    "herd": {
+      "n": 9,
+      "sensitivity": 1.0
+    },
+    "kindness": {
+      "n": 28,
+      "sensitivity": 1.0
+    },
+    "need and greed": {
+      "n": 373,
+      "sensitivity": 0.9866
+    },
+    "time/urgency": {
+      "n": 2021,
+      "sensitivity": 0.9995
+    }
+  },
+  "limitations": [
+    "This is a real SMS/smishing corpus, not a telephone-call corpus.",
+    "India is network metadata and may not prove recipient geography or Hinglish coverage.",
+    "The set has no legitimate-message controls, so precision, specificity, accuracy, and F1 cannot be calculated.",
+    "This evaluation does not train or calibrate the model and does not establish six-tactic model accuracy."
+  ]
+}
