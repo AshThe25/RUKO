@@ -16,7 +16,7 @@
  * incident past the life of its session.
  */
 
-import type { Timestamp } from './common.schema';
+import type { RiskScore, Timestamp } from './common.schema';
 import type { RiskLevel, RiskReason, RiskResult } from './risk.schema';
 
 export const PROTOCOL_VERSION = '1.0.0' as const;
@@ -128,6 +128,54 @@ export interface ModelMetadata {
 export type ConnectionRole = 'PHONE' | 'GUARDIAN';
 
 export type GuardianConnectionState = 'UNPAIRED' | 'OFFLINE' | 'CONNECTING' | 'ONLINE';
+
+/* -------------------------------------------------------------------------- */
+/* App-facing layer — what mobile/ calls                                      */
+/* -------------------------------------------------------------------------- */
+/*
+ * Two layers, on purpose:
+ *
+ *   mobile/  ->  GuardianChannel.sendAlert(GuardianAlert)   <- app-facing
+ *                          |
+ *                          v  the channel implementation maps it
+ *                GuardianAlertPayload in an Envelope         <- wire
+ *
+ * The app should not have to know about envelopes, message ids or role
+ * enforcement, and the wire should not have to change when a screen does.
+ * These three types are unchanged from Vedant's original stub so Aishwarya's
+ * code keeps compiling.
+ */
+
+/** Phone -> Office Kit. Deliberately minimal: no transcript, no raw audio. */
+export interface GuardianAlert {
+  sessionId: string;
+  deviceLabel: string;
+  timestamp: Timestamp;
+  score: RiskScore;
+  level: RiskLevel;
+  amountMinor: number | null;
+  currency: 'INR';
+  /** Display name only, no account identifiers. */
+  payeeDisplayName: string | null;
+  reasons: RiskReason[];
+  /** Seconds until the phone stops waiting and falls back to its own decision. */
+  expiresInSec: number;
+}
+
+/** Office Kit -> phone. Advisory: it can keep a block, never force a payment. */
+export interface GuardianDecision {
+  sessionId: string;
+  decision: 'KEEP_BLOCKED' | 'ALLOW';
+  decidedAt: Timestamp;
+  guardianLabel: string;
+  note?: string;
+}
+
+export interface GuardianChannel {
+  getState(): GuardianConnectionState;
+  /** Resolves to null on timeout or disconnect — the phone then decides alone. */
+  sendAlert(alert: GuardianAlert): Promise<GuardianDecision | null>;
+}
 
 export interface Envelope<TType extends string, TPayload> {
   protocolVersion: typeof PROTOCOL_VERSION;

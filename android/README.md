@@ -4,7 +4,7 @@
 
 | Module | What it is | Builds without the Android SDK? |
 | --- | --- | --- |
-| `ruko-core` | Pure Kotlin/JVM. Every decision the native layer makes. | **Yes** — 58 unit tests run anywhere. |
+| `ruko-core` | Pure Kotlin/JVM. Every decision the native layer makes. | **Yes** — 59 unit tests run anywhere. |
 | `ruko-native` | Android library: services, runtime shells, the RN bridge. | No — needs the SDK. |
 
 The split is the point. Everything that decides something — when the
@@ -25,7 +25,7 @@ present, so the core tests stay runnable on any machine and in CI.
 As of 2026-08-29 the build machine has no Android SDK (`ANDROID_HOME` unset,
 no `~/Library/Android/sdk`) and no device attached. So:
 
-- ✅ `ruko-core` compiles and its 58 tests pass.
+- ✅ `ruko-core` compiles and its 59 tests pass.
 - ❌ `ruko-native` has **never been compiled**, never run, and never been on a
   device.
 
@@ -120,10 +120,18 @@ These are the ones most likely to be quietly broken under demo pressure:
 3. **NNAPI is reported unavailable on API 35+.** It is deprecated there and can
    fall back to a CPU reference driver that is *slower* than XNNPACK while
    sounding more impressive.
-4. **A demo payment is labelled `DEMO_APP`** everywhere it appears, including
-   the audit trail. It is never presented as an intercepted UPI transaction.
+4. **A demo payment is labelled `DEMO`** (`EvidenceSource.DEMO`) everywhere it
+   appears, including the audit trail. It is never presented as an intercepted
+   UPI transaction.
 5. **Digital silence during a call raises `AUDIO_SILENT_DURING_CALL`.** If the
    platform denies us capture, the UI says so instead of appearing to listen.
+6. **`available = false` is not a measured zero.** An unreadable payment screen
+   must never read as a safe payment. Every evidence block carries
+   `available` + `source` + `unavailableReason`, per `common.schema.ts`.
+7. **Money is integer paise everywhere.** `PaymentScreenParser` splits on the
+   decimal point rather than going via a `Double`, because binary floating
+   point cannot represent 0.10 exactly and a wrong amount on an intervention
+   screen destroys trust in the whole product.
 
 ## Next on this module
 
