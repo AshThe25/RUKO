@@ -1,0 +1,299 @@
+{
+  "model_version": "ruko-manip-v1",
+  "base_model": "sentence-transformers/all-MiniLM-L6-v2",
+  "parameters": 22715526,
+  "trainable_parameters": 3699078,
+  "labels": [
+    "authority",
+    "coercion",
+    "urgency",
+    "financialInstruction",
+    "secrecy",
+    "credentialRequest"
+  ],
+  "thresholds": {
+    "authority": 0.2,
+    "coercion": 0.5,
+    "urgency": 0.2,
+    "financialInstruction": 0.2,
+    "secrecy": 0.2,
+    "credentialRequest": 0.8
+  },
+  "hyperparameters": {
+    "epochs": 6,
+    "best_epoch": 6,
+    "batch_size": 32,
+    "encoder_lr": 2e-05,
+    "head_lr": 0.0005,
+    "warmup_ratio": 0.1,
+    "max_length": 64,
+    "seed": 20260829,
+    "freeze_bottom_layers": 4,
+    "dropout": 0.2,
+    "pos_weight": "(neg/pos) ** 0.5 per label",
+    "threshold_band": [
+      0.2,
+      0.8
+    ],
+    "threshold_precision_floor": 0.7
+  },
+  "training": {
+    "device": "mps",
+    "seconds": 70.1,
+    "history": [
+      {
+        "epoch": 1,
+        "train_loss": 0.6199,
+        "val_macro_f1_at_0.5": 0.6268
+      },
+      {
+        "epoch": 2,
+        "train_loss": 0.1689,
+        "val_macro_f1_at_0.5": 0.6597
+      },
+      {
+        "epoch": 3,
+        "train_loss": 0.0624,
+        "val_macro_f1_at_0.5": 0.6531
+      },
+      {
+        "epoch": 4,
+        "train_loss": 0.0355,
+        "val_macro_f1_at_0.5": 0.6537
+      },
+      {
+        "epoch": 5,
+        "train_loss": 0.0273,
+        "val_macro_f1_at_0.5": 0.6643
+      },
+      {
+        "epoch": 6,
+        "train_loss": 0.0235,
+        "val_macro_f1_at_0.5": 0.6654
+      }
+    ]
+  },
+  "results": {
+    "validation": {
+      "rows": 1200,
+      "macro_f1": 0.7171,
+      "micro_precision": 0.7638,
+      "micro_recall": 0.7503,
+      "micro_f1": 0.757,
+      "exact_match": 0.3458,
+      "per_label": {
+        "authority": {
+          "threshold": 0.2,
+          "precision": 0.9392,
+          "recall": 0.9239,
+          "f1": 0.9315,
+          "tp": 510,
+          "fp": 33,
+          "fn": 42,
+          "tn": 615
+        },
+        "coercion": {
+          "threshold": 0.5,
+          "precision": 0.8852,
+          "recall": 0.9426,
+          "f1": 0.913,
+          "tp": 509,
+          "fp": 66,
+          "fn": 31,
+          "tn": 594
+        },
+        "urgency": {
+          "threshold": 0.2,
+          "precision": 0.7273,
+          "recall": 0.3431,
+          "f1": 0.4662,
+          "tp": 176,
+          "fp": 66,
+          "fn": 337,
+          "tn": 621
+        },
+        "financialInstruction": {
+          "threshold": 0.2,
+          "precision": 0.833,
+          "recall": 0.7949,
+          "f1": 0.8135,
+          "tp": 434,
+          "fp": 87,
+          "fn": 112,
+          "tn": 567
+        },
+        "secrecy": {
+          "threshold": 0.2,
+          "precision": 0.5502,
+          "recall": 0.5977,
+          "f1": 0.573,
+          "tp": 159,
+          "fp": 130,
+          "fn": 107,
+          "tn": 804
+        },
+        "credentialRequest": {
+          "threshold": 0.8,
+          "precision": 0.4683,
+          "recall": 0.8554,
+          "f1": 0.6053,
+          "tp": 207,
+          "fp": 235,
+          "fn": 35,
+          "tn": 723
+        }
+      }
+    },
+    "generated_test": {
+      "rows": 1200,
+      "macro_f1": 0.6395,
+      "micro_precision": 0.7429,
+      "micro_recall": 0.621,
+      "micro_f1": 0.6765,
+      "exact_match": 0.3425,
+      "per_label": {
+        "authority": {
+          "threshold": 0.2,
+          "precision": 0.8869,
+          "recall": 0.8467,
+          "f1": 0.8663,
+          "tp": 392,
+          "fp": 50,
+          "fn": 71,
+          "tn": 687
+        },
+        "coercion": {
+          "threshold": 0.5,
+          "precision": 0.7083,
+          "recall": 0.8908,
+          "f1": 0.7892,
+          "tp": 204,
+          "fp": 84,
+          "fn": 25,
+          "tn": 887
+        },
+        "urgency": {
+          "threshold": 0.2,
+          "precision": 0.2961,
+          "recall": 0.1266,
+          "f1": 0.1773,
+          "tp": 61,
+          "fp": 145,
+          "fn": 421,
+          "tn": 573
+        },
+        "financialInstruction": {
+          "threshold": 0.2,
+          "precision": 0.8142,
+          "recall": 0.8193,
+          "f1": 0.8167,
+          "tp": 517,
+          "fp": 118,
+          "fn": 114,
+          "tn": 451
+        },
+        "secrecy": {
+          "threshold": 0.2,
+          "precision": 0.6282,
+          "recall": 0.4188,
+          "f1": 0.5026,
+          "tp": 98,
+          "fp": 58,
+          "fn": 136,
+          "tn": 908
+        },
+        "credentialRequest": {
+          "threshold": 0.8,
+          "precision": 0.8021,
+          "recall": 0.5976,
+          "f1": 0.6849,
+          "tp": 150,
+          "fp": 37,
+          "fn": 101,
+          "tn": 912
+        }
+      }
+    },
+    "authored_holdout": {
+      "rows": 107,
+      "macro_f1": 0.6274,
+      "micro_precision": 0.6491,
+      "micro_recall": 0.5968,
+      "micro_f1": 0.6218,
+      "exact_match": 0.4299,
+      "per_label": {
+        "authority": {
+          "threshold": 0.2,
+          "precision": 0.7083,
+          "recall": 0.7391,
+          "f1": 0.7234,
+          "tp": 17,
+          "fp": 7,
+          "fn": 6,
+          "tn": 77
+        },
+        "coercion": {
+          "threshold": 0.5,
+          "precision": 0.55,
+          "recall": 0.4783,
+          "f1": 0.5116,
+          "tp": 11,
+          "fp": 9,
+          "fn": 12,
+          "tn": 75
+        },
+        "urgency": {
+          "threshold": 0.2,
+          "precision": 0.3889,
+          "recall": 0.35,
+          "f1": 0.3684,
+          "tp": 7,
+          "fp": 11,
+          "fn": 13,
+          "tn": 76
+        },
+        "financialInstruction": {
+          "threshold": 0.2,
+          "precision": 0.75,
+          "recall": 0.48,
+          "f1": 0.5854,
+          "tp": 12,
+          "fp": 4,
+          "fn": 13,
+          "tn": 78
+        },
+        "secrecy": {
+          "threshold": 0.2,
+          "precision": 0.6,
+          "recall": 0.75,
+          "f1": 0.6667,
+          "tp": 12,
+          "fp": 8,
+          "fn": 4,
+          "tn": 83
+        },
+        "credentialRequest": {
+          "threshold": 0.8,
+          "precision": 0.9375,
+          "recall": 0.8824,
+          "f1": 0.9091,
+          "tp": 15,
+          "fp": 1,
+          "fn": 2,
+          "tn": 89
+        }
+      }
+    }
+  },
+  "provenance": {
+    "git_commit": "0abe9dc",
+    "dataset_manifest": {
+      "processed/train.jsonl": "7886d0e495cd34e1416534ca858e9f9f5220594add8feb2df26ccbfe93a39963",
+      "processed/val.jsonl": "d736abc7bfa97616b98b4474e0092a5e2edbd29e3da5a0eaca0807b65e278ea2",
+      "processed/test.jsonl": "21447c267ed46529471e37ed1b287071558f7b07345b5636564c8df5322c522b",
+      "holdout/test_holdout.jsonl": "e458b9b13d567696b62c12bb2dda3280b98bd3a613b5a921ebde61c3a98010bd"
+    },
+    "torch": "2.13.0",
+    "trained_at_utc": "2026-08-29T08:38:28Z"
+  }
+}
