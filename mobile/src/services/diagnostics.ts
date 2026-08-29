@@ -7,6 +7,7 @@
  * deterministic fallback, it says `HEURISTIC`. The engineering screen prints
  * whatever it finds here, so this is where the app's honesty is enforced.
  */
+import {Platform} from 'react-native';
 import type {
   DiagnosticsProvider,
   EngineDiagnostics,
@@ -15,13 +16,12 @@ import type {
 } from '@contracts';
 import {now} from '@/utils/id';
 import {Emitter} from './stubs/emitter';
-import {getNativeModule, hasNativeModule} from './native/RukoNative';
+import {getNativeModule, hasNativeModule, safeNative, type NativeAiBackend} from './native/RukoNative';
+import {describeBackend} from './native/nativeProviders';
 
 export interface DiagnosticsDeps {
   classifier: LocalRiskClassifier;
   risk: RiskEngine;
-  /** Overridden by tests; the app reads it from the native module. */
-  deviceModel?: string | null;
 }
 
 export function createDiagnosticsProvider(deps: DiagnosticsDeps): DiagnosticsProvider {
@@ -29,15 +29,7 @@ export function createDiagnosticsProvider(deps: DiagnosticsDeps): DiagnosticsPro
 
   const read = async (): Promise<EngineDiagnostics> => {
     const native = getNativeModule();
-    let ai = null;
-    if (native) {
-      try {
-        ai = await native.getDeviceAIBackend();
-      } catch {
-        // A native module that cannot answer is reported as unknown, not as CPU.
-        ai = null;
-      }
-    }
+    const ai = native ? await safeNative(() => native.getDeviceAIBackend()) : null;
     const value = snapshot(deps, ai);
     emitter.emit(value);
     return value;
@@ -46,49 +38,54 @@ export function createDiagnosticsProvider(deps: DiagnosticsDeps): DiagnosticsPro
   return {read, subscribe: l => emitter.subscribe(l)};
 }
 
-function snapshot(
-  deps: DiagnosticsDeps,
-  ai: Awaited<ReturnType<NonNullable<ReturnType<typeof getNativeModule>>['getDeviceAIBackend']>> | null,
-): EngineDiagnostics {
+function snapshot(deps: DiagnosticsDeps, ai: NativeAiBackend | null): EngineDiagnostics {
   const config = deps.risk.getConfig();
-  const classifier = deps.classifier.getModelInfo();
+  const runtime = describeBackend(ai);
 
   return {
-    classifier,
+    classifier: deps.classifier.getModelInfo(),
     asr: {
-      // On-device ASR arrives with the native audio pipeline. Until then this
-      // is `false`, and the engineering screen explains that demo transcripts
-      // are scripted text rather than recognised speech.
-      available: hasNativeModule(),
-      local: hasNativeModule(),
-      modelVersion: ai?.modelVersion ?? null,
-      backend: ai?.backend ?? 'UNAVAILABLE',
-      lastLatencyMs: null,
+      // On-device ASR belongs to the native audio pipeline. `isReady` is the
+      // runtime's own answer; when there is no native module at all this is
+      // false and the engineering screen explains that demo transcripts are
+      // scripted text rather than recognised speech.
+      available: hasNativeModule() && runtime.ready,
+      local: runtime.local,
+      modelVersion: runtime.model,
+      backend: runtime.backend,
+      lastLatencyMs: runtime.lastLatencyMs,
     },
     riskEngine: {
-      engineVersion: engineVersionOf(deps.risk),
+      engineVersion: versionOf(deps.risk, 'engineVersion'),
       weightsVersion: config.weightsVersion,
-      policyVersion: policyVersionOf(deps.risk),
+      policyVersion: versionOf(deps.risk, 'policyVersion'),
     },
-    // The app makes no network calls at all in this build, so "offline" is the
-    // truth rather than an assumption — core protection never needed one.
+    // Reported by the native layer's connectivity check. Without the native
+    // module the app makes no network calls at all, so offline is the truth
+    // rather than an assumption — core protection never needed one.
     offline: !hasNativeModule(),
-    deviceModel: ai?.deviceModel ?? deps.deviceModel ?? null,
+    // A real reading from the platform, not a hardcoded "iQOO 15".
+    deviceModel: deviceModel(),
     lastUpdated: now(),
   };
 }
 
-/**
- * The RiskEngine contract does not carry its own version strings, so they are
- * read off the engine when it exposes them and reported as unknown otherwise —
- * never invented.
- */
-function engineVersionOf(engine: RiskEngine): string {
-  const candidate = (engine as unknown as {engineVersion?: string}).engineVersion;
-  return candidate ?? 'unknown';
+function deviceModel(): string | null {
+  if (Platform.OS !== 'android') {
+    return null;
+  }
+  const constants = Platform.constants as {Model?: string; Brand?: string} | undefined;
+  if (!constants?.Model) {
+    return null;
+  }
+  return constants.Brand ? `${constants.Brand} ${constants.Model}` : constants.Model;
 }
 
-function policyVersionOf(engine: RiskEngine): string {
-  const candidate = (engine as unknown as {policyVersion?: string}).policyVersion;
-  return candidate ?? 'unknown';
+/**
+ * The RiskEngine contract does not carry version strings, so they are read off
+ * the engine when it exposes them and reported as unknown otherwise — never
+ * invented.
+ */
+function versionOf(engine: RiskEngine, key: 'engineVersion' | 'policyVersion'): string {
+  return (engine as unknown as Record<string, string | undefined>)[key] ?? 'unknown';
 }

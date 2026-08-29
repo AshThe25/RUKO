@@ -88,7 +88,7 @@ export function createServices(options: CreateServicesOptions = {}): RukoRuntime
     ? createNativeNotificationProvider()
     : createNotificationProvider(bus);
   const conversation = native
-    ? createNativeConversationProvider(classifier)
+    ? createNativeConversationProvider(transcript => classifier.classify(transcript))
     : createConversationProvider(bus);
 
   const agent = createStubAgent({
