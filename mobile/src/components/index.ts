@@ -15,3 +15,5 @@ export {Disclosure} from './Disclosure';
 export type {DisclosureItem} from './Disclosure';
 export {useReducedMotion} from './useReducedMotion';
 export {MenuSheet, MenuButton, type MenuItem} from './MenuSheet';
+export {AudioMeter} from './AudioMeter';
+export {WatchStrip} from './WatchStrip';

@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import {Pressable, StyleSheet, View} from 'react-native';
 import type {CallEvidence, EngineDiagnostics} from '@contracts';
-import {Bloom, Card, EmptyState, MenuButton, MenuSheet, OfflineBanner, Pill, Screen, Txt} from '@/components';
+import {AudioMeter, Bloom, Card, EmptyState, MenuButton, MenuSheet, OfflineBanner, Pill, Screen, Txt, WatchStrip} from '@/components';
 import {colors, radius, riskPalette, space} from '@/theme';
 import {stubbedParts} from '@/services/createServices';
 import {useRuntime, useServices} from '@/services/ServicesContext';
@@ -114,6 +114,8 @@ export function HomeScreen() {
         </>
       )}
 
+      <AudioMeter active={protectionEnabled && machineState !== 'IDLE'} />
+
       <View style={styles.statRow}>
         <Stat label="Checks today" value={String(checks)} />
         <Stat label="Interventions" value={String(interventions)} />
@@ -180,6 +182,8 @@ export function HomeScreen() {
           />
         )}
       </Card>
+
+      <WatchStrip />
 
       <MenuSheet
         visible={menuOpen}
