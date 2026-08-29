@@ -96,6 +96,62 @@ FAMILIES: list = [
         "This is the power distribution company, official communication.",
     )),
 
+    # --- widened authority surface forms (v2) ------------------------- #
+    # The v1 set was narrow and almost always put the authority claim in
+    # sentence-initial position ("I am calling from X."). Against a 64-token
+    # window that taught position as much as content. These families vary the
+    # institution AND where in the sentence the claim lands.
+    F("auth_branch_manager", ("authority",), "en", (
+        "I am the branch manager at {bank}, {name} speaking.",
+        "Speaking from the {bank} branch, I handle escalations here.",
+        "My name is {name} and I head the verification desk at {bank}.",
+        "You are speaking with the {bank} nodal officer, employee code {emp}.",
+    )),
+    F("auth_trailing_claim", ("authority",), "en", (
+        "Your account has been flagged, this is {agency} calling.",
+        "There is a case registered against you, I am from {agency}.",
+        "A notice has been issued, {agency} is handling the matter.",
+        "The file is with us now, {bank} security department.",
+    )),
+    F("auth_cyber_cell", ("authority",), "en", (
+        "I am an inspector with the cyber cell, badge number {emp}.",
+        "This call is from the cybercrime investigation unit.",
+        "The cyber cell has taken cognisance of activity on your number.",
+    )),
+    F("auth_kyc_aadhaar", ("authority",), "en", (
+        "I am calling from the KYC compliance team at {bank}.",
+        "This is the Aadhaar update helpdesk, official line.",
+        "We are the authorised KYC verification agency for {bank}.",
+        "Your Aadhaar linking is pending, I am from the verification cell.",
+    )),
+    F("auth_insurance", ("authority",), "en", (
+        "I am from the insurance regulatory grievance cell.",
+        "This is {name} from the policy verification department.",
+        "Calling from the claims authority regarding your lapsed policy.",
+    )),
+    F("auth_rbi", ("authority",), "en", (
+        "I am an officer of the Reserve Bank of India, banking ombudsman wing.",
+        "This is an RBI authorised communication regarding your account.",
+        "The Reserve Bank has directed us to contact you directly.",
+    )),
+    F("auth_courier_customs_wide", ("authority",), "en", (
+        "Customs department here, a parcel in your name has been detained.",
+        "I am the customs clearance officer handling your {courier} shipment.",
+        "This is {courier} in coordination with the customs authority.",
+    )),
+    F("auth_mixed_hinglish", ("authority",), "hinglish", (
+        "Main {bank} ke head office se bol raha hoon, {name} naam hai mera.",
+        "Aapke account pe case hai, main {agency} se hoon.",
+        "Cyber cell se baat kar rahe hain hum, samajh rahe hain aap?",
+        "Main branch manager hoon {bank} ka, employee ID {emp}.",
+        "KYC verification department se call kar rahi hoon main.",
+    )),
+    F("auth_trai_telecom_wide", ("authority",), "hinglish", (
+        "TRAI se bol raha hoon, aapka number band hone wala hai.",
+        "Telecom regulatory authority ki taraf se ye official call hai.",
+        "Main department of telecommunications se hoon sir.",
+    )),
+
     # ------------------------------------------------------------------ #
     # COERCION -- threat of loss
     # ------------------------------------------------------------------ #
@@ -165,6 +221,37 @@ FAMILIES: list = [
         "Aaj last date hai, uske baad kuch nahi ho payega.",
     )),
 
+    # --- widened urgency surface forms (v2) --------------------------- #
+    # Urgency was the weakest NEURAL label in v1 (test F1 0.18) and had the
+    # second-fewest families. The v1 phrasings clustered on "immediately" and
+    # "do not disconnect"; these add deadlines, consequences-of-delay, and
+    # trailing time pressure so the label is not carried by two keywords.
+    F("urg_deadline_named", ("urgency",), "en", (
+        "The cut-off is {hours} from now, after that the system locks.",
+        "You have until the end of {hours} and not a minute longer.",
+        "The deadline expires in {minutes} minutes, I am watching the clock.",
+        "Processing stops at midnight tonight, there is no extension.",
+    )),
+    F("urg_consequence_of_delay", ("urgency",), "en", (
+        "Every minute you wait makes this harder to reverse.",
+        "If we delay further the amount doubles, that is the rule.",
+        "Once the window passes I cannot help you at all.",
+        "Waiting even a few minutes will escalate this automatically.",
+    )),
+    F("urg_trailing_pressure", ("urgency",), "en", (
+        "Please open the app, quickly, we are running out of time.",
+        "Do it now itself, do not wait for tomorrow.",
+        "Complete the step while I am still on the line, immediately.",
+        "Finish it fast, I cannot hold this much longer.",
+    )),
+    F("urg_hinglish_wide", ("urgency",), "hinglish", (
+        "Sirf {minutes} minute bacha hai, uske baad system band ho jayega.",
+        "Der karenge to problem badh jayegi, abhi kar lijiye.",
+        "Turant kariye sir, main line pe wait kar raha hoon.",
+        "Aaj raat tak ka time hai, kal kuch nahi hoga.",
+        "Jitni der karenge utna mushkil hoga, jaldi.",
+    )),
+
     # ------------------------------------------------------------------ #
     # FINANCIAL INSTRUCTION
     # ------------------------------------------------------------------ #
@@ -223,6 +310,39 @@ FAMILIES: list = [
         "Ye baat kisi ko mat bataiye, ghar me bhi nahi.",
         "Confidential matter hai, family ko batana mana hai.",
         "Bank branch mat jaiye, wo log is case ko handle nahi karte.",
+    )),
+
+    # --- widened secrecy surface forms (v2) --------------------------- #
+    # Secrecy had the fewest families (5) and became the weakest label once
+    # urgency was fixed. v1 leaned on "do not tell" and "confidential"; these
+    # add isolation framing, plausible cover stories, and trailing placement.
+    F("sec_isolation", ("secrecy",), "en", (
+        "Step into another room where nobody can hear you.",
+        "Are you alone right now? Make sure no one is listening.",
+        "Go somewhere private before we continue with this.",
+        "If someone asks, tell them it is a routine call, nothing more.",
+    )),
+    F("sec_cover_story", ("secrecy",), "en", (
+        "If the bank calls, say you made the transfer yourself.",
+        "Tell them at home it is a normal payment, do not explain further.",
+        "Do not show this message to anyone, delete it after we finish.",
+    )),
+    F("sec_trailing", ("secrecy",), "en", (
+        "Complete the transfer, and keep this between us only.",
+        "Finish the process, nobody else needs to know about it.",
+        "Do the verification quietly, without involving your family.",
+    )),
+    F("sec_hinglish_wide", ("secrecy",), "hinglish", (
+        "Kisi ko mat batana, ye humare beech ki baat hai.",
+        "Akele hain aap? Koi sun to nahi raha?",
+        "Ghar walon ko mat bataiye, warna case aur bigad jayega.",
+        "Doosre room me jaiye, phir baat karte hain.",
+        "Agar koi puche to keh dena normal call thi.",
+    )),
+    F("sec_authority_gag", ("secrecy",), "en", (
+        "Under the official secrets provision you cannot disclose this call.",
+        "Informing a third party will be treated as obstruction of the case.",
+        "Legal instructions prohibit you from sharing this with relatives.",
     )),
 
     # ------------------------------------------------------------------ #
