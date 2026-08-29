@@ -19,7 +19,8 @@ def envelope(message_type: str, session_id: str, payload: dict[str, Any]) -> dic
         "type": message_type,
         "messageId": new_id("msg"),
         "sessionId": session_id,
-        "sentAt": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        # Epoch ms, matching every other timestamp on the wire.
+        "sentAt": int(datetime.now(timezone.utc).timestamp() * 1000),
         "payload": payload,
     }
 

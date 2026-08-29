@@ -53,6 +53,10 @@ def post(path: str, body: dict, token: str | None = None) -> dict:
         return json.loads(response.read())
 
 
+def now_ms() -> int:
+    return int(datetime.now(timezone.utc).timestamp() * 1000)
+
+
 def envelope(message_type: str, session_id: str, payload: dict) -> str:
     return json.dumps(
         {
@@ -60,7 +64,7 @@ def envelope(message_type: str, session_id: str, payload: dict) -> str:
             "type": message_type,
             "messageId": f"msg_{message_type.lower()}",
             "sessionId": session_id,
-            "sentAt": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "sentAt": now_ms(),
             "payload": payload,
         }
     )
@@ -69,33 +73,60 @@ def envelope(message_type: str, session_id: str, payload: dict) -> str:
 ALERT = {
     "incidentId": "inc_e2e_0001",
     "payment": {
-        "amountRupees": 48000,
+        # 4_800_000 paise == the Rs 48,000 in the pitch. Integer money only.
+        "amountMinor": 4_800_000,
+        "currency": "INR",
         "payeeDisplayName": "Ravi Verify",
         "firstPayment": True,
     },
     "assessment": {
+        "sessionId": "rk_e2e",
         "score": 91,
         "level": "CRITICAL",
-        "reasons": ["Caller used authority pressure"],
-        "policyAction": "BLOCK_WARNING_WITH_GUARDIAN",
-        "lowConfidence": False,
+        "policyAction": "BLOCK_WARNING",
+        "reasons": [
+            {
+                "code": "COERCION",
+                "label": "The caller pressed you to move money immediately",
+                "points": 22.5,
+                "family": "CONVERSATION",
+            },
+            {
+                "code": "NEW_PAYEE",
+                "label": "This is your first payment to this recipient",
+                "points": 10.0,
+                "family": "PAYEE_BEHAVIOUR",
+            },
+            {
+                "code": "AMOUNT_ANOMALY",
+                "label": "The amount is far above your normal range",
+                "points": 9.1,
+                "family": "PAYEE_BEHAVIOUR",
+            },
+        ],
+        "contributions": [],
+        "corroboratingFamilies": ["CONVERSATION", "PAYEE_BEHAVIOUR"],
+        "degraded": False,
+        "degradedReasons": [],
+        "escalateToGuardian": True,
         "modelVersion": "ruko-risk-v1",
+        "weightsVersion": "weights-v1",
         "policyVersion": "policy-v1",
-        "evaluatedAt": "2026-08-29T07:01:59Z",
+        "engineVersion": "engine-v1",
+        "timestamp": 1787990000000,
+        "computeMs": 12.4,
     },
-    "topReasons": [
-        "The caller pressed you to move money immediately",
-        "This is your first payment to this recipient",
-        "The amount is far above your normal range",
-    ],
     "runtime": {
         "engine": "onnxruntime-android",
         "model": "ruko-risk-v1",
         "backend": "CPU",
         "isLocal": True,
+        "isReady": True,
         "lastLatencyMs": 41,
+        "degradedReason": None,
     },
     "phoneState": "PAYMENT_PAUSED",
+    "expiresInSec": 120,
 }
 
 
@@ -129,12 +160,12 @@ async def main() -> int:
     check("phone gets a six-digit pairing code", len(code) == 6 and code.isdigit())
 
     # 2. The trusted person redeems it on the Office Kit.
-    claim = post("/guardian/pair/claim", {"pairingCode": code, "guardianDisplayName": "Priya"})
+    claim = post("/guardian/pair/claim", {"pairingCode": code, "guardianLabel": "Priya"})
     check("guardian claims the code", claim["sessionId"] == session_id)
     check("guardian sees the phone's name", claim["phoneDisplayName"] == "Ruko on iQOO 15")
 
     try:
-        post("/guardian/pair/claim", {"pairingCode": code, "guardianDisplayName": "Mallory"})
+        post("/guardian/pair/claim", {"pairingCode": code, "guardianLabel": "Mallory"})
         check("a claimed code cannot be reused", False, "second claim succeeded")
     except urllib.error.HTTPError as exc:
         check("a claimed code cannot be reused", exc.code == 404)
@@ -148,7 +179,7 @@ async def main() -> int:
         check("phone sees no guardian yet", ack["payload"]["guardianConnected"] is False)
 
         # 3. A critical alert with nobody watching: the phone must not be stuck.
-        await phone.send(envelope("RISK_ALERT", session_id, ALERT))
+        await phone.send(envelope("GUARDIAN_ALERT", session_id, ALERT))
         lone = await read_until(phone, "PRESENCE")
         check("alert with no guardian is not an error", lone["type"] != "ERROR")
 
@@ -158,13 +189,13 @@ async def main() -> int:
             check("phone learns the guardian arrived", presence["payload"]["guardianConnected"])
 
             # 4. The real alert.
-            await phone.send(envelope("RISK_ALERT", session_id, {**ALERT, "incidentId": "inc_e2e_0002"}))
-            received = await read_until(guardian, "RISK_ALERT")
+            await phone.send(envelope("GUARDIAN_ALERT", session_id, {**ALERT, "incidentId": "inc_e2e_0002"}))
+            received = await read_until(guardian, "GUARDIAN_ALERT")
             payload = received["payload"]
             check("guardian receives the alert", payload["incidentId"] == "inc_e2e_0002")
-            check("amount survives intact", payload["payment"]["amountRupees"] == 48000)
+            check("amount survives intact", payload["payment"]["amountMinor"] == 4_800_000)
             check("score is not recomputed by the relay", payload["assessment"]["score"] == 91)
-            check("exactly three reasons arrive", len(payload["topReasons"]) == 3)
+            check("the engine reasons arrive intact", len(payload["assessment"]["reasons"]) == 3)
             check(
                 "no payee identifier crossed the network",
                 "payeeId" not in payload["payment"] and "payeeHash" not in payload["payment"],
@@ -173,32 +204,34 @@ async def main() -> int:
             # 5. The guardian decides.
             await guardian.send(
                 envelope(
-                    "GUARDIAN_ACTION",
+                    "GUARDIAN_DECISION",
                     session_id,
                     {
                         "incidentId": "inc_e2e_0002",
-                        "action": "KEEP_BLOCKED",
-                        "guardianDisplayName": "Priya",
+                        "decision": "KEEP_BLOCKED",
+                        "decidedAt": now_ms(),
+                        "guardianLabel": "Priya",
                         "note": "I called the bank myself",
                     },
                 )
             )
-            decision = await read_until(phone, "GUARDIAN_ACTION")
-            check("decision reaches the phone", decision["payload"]["action"] == "KEEP_BLOCKED")
+            decision = await read_until(phone, "GUARDIAN_DECISION")
+            check("decision reaches the phone", decision["payload"]["decision"] == "KEEP_BLOCKED")
             check("the note comes with it", decision["payload"]["note"] == "I called the bank myself")
 
-            confirmation = await read_until(guardian, "GUARDIAN_ACTION_ACK")
+            confirmation = await read_until(guardian, "GUARDIAN_DECISION_ACK")
             check("guardian is acknowledged", confirmation["payload"]["accepted"] is True)
 
             # 6. A second decision on the same incident must not land.
             await guardian.send(
                 envelope(
-                    "GUARDIAN_ACTION",
+                    "GUARDIAN_DECISION",
                     session_id,
                     {
                         "incidentId": "inc_e2e_0002",
-                        "action": "ALLOW",
-                        "guardianDisplayName": "Priya",
+                        "decision": "ALLOW",
+                        "decidedAt": now_ms(),
+                        "guardianLabel": "Priya",
                         "note": None,
                     },
                 )
@@ -207,7 +240,7 @@ async def main() -> int:
             check("one decision per incident", refusal["payload"]["code"] == "ACTION_ALREADY_TAKEN")
 
             # 7. Role enforcement.
-            await guardian.send(envelope("RISK_ALERT", session_id, ALERT))
+            await guardian.send(envelope("GUARDIAN_ALERT", session_id, ALERT))
             forged = await read_until(guardian, "ERROR")
             check("guardian cannot forge an alert", forged["payload"]["code"] == "ROLE_NOT_PERMITTED")
 

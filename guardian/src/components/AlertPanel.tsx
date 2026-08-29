@@ -3,17 +3,18 @@
 import { useState } from 'react';
 
 import {
+  DISPLAYED_REASON_COUNT,
   type GuardianAction,
-  type GuardianActionAck,
-  type RiskAlert,
+  type GuardianAlert,
+  type GuardianDecisionAck,
   backendLabel,
   formatLatency,
   formatRupees,
 } from '@/lib/protocol';
 
 type Props = {
-  alert: RiskAlert;
-  ack: GuardianActionAck | null;
+  alert: GuardianAlert;
+  ack: GuardianDecisionAck | null;
   canAct: boolean;
   onDecide: (action: GuardianAction, note: string | null) => void;
   onDismiss: () => void;
@@ -23,7 +24,10 @@ export function AlertPanel({ alert, ack, canAct, onDecide, onDismiss }: Props) {
   const [confirmingAllow, setConfirmingAllow] = useState(false);
   const [note, setNote] = useState('');
 
-  const { payment, assessment, topReasons, runtime } = alert;
+  const { payment, assessment, runtime } = alert;
+  // The engine already ordered these by points, descending. The console shows
+  // the top few rather than keeping a second list that could disagree.
+  const reasons = assessment.reasons.slice(0, DISPLAYED_REASON_COUNT);
   const decided = ack !== null && ack.accepted;
 
   if (decided) {
@@ -35,7 +39,7 @@ export function AlertPanel({ alert, ack, canAct, onDecide, onDismiss }: Props) {
       <div className="alert__banner">Payment paused · needs your decision</div>
 
       <div className="alert__body">
-        <p className="amount">{formatRupees(payment.amountRupees)}</p>
+        <p className="amount">{formatRupees(payment.amountMinor)}</p>
         <p className="payee">
           to {payment.payeeDisplayName}
           {payment.firstPayment ? <em> · first payment to this person</em> : null}
@@ -58,15 +62,15 @@ export function AlertPanel({ alert, ack, canAct, onDecide, onDismiss }: Props) {
         </div>
 
         <ul className="reasons">
-          {topReasons.map((reason) => (
-            <li key={reason}>{reason}</li>
+          {reasons.map((reason) => (
+            <li key={reason.code}>{reason.label}</li>
           ))}
         </ul>
 
-        {assessment.lowConfidence ? (
+        {assessment.degraded ? (
           <p className="note">
-            Ruko could not assess this conversation confidently. Treat the reasons above as a
-            prompt to check, not as a conclusion.
+            Ruko could not assess this confidently — some evidence was missing. Treat the
+            reasons above as a prompt to check, not as a conclusion.
           </p>
         ) : null}
 
@@ -96,7 +100,7 @@ export function AlertPanel({ alert, ack, canAct, onDecide, onDismiss }: Props) {
 
         {confirmingAllow ? (
           <div className="confirm">
-            <h3>Release {formatRupees(payment.amountRupees)} to {payment.payeeDisplayName}?</h3>
+            <h3>Release {formatRupees(payment.amountMinor)} to {payment.payeeDisplayName}?</h3>
             <p>
               Only do this if you have checked by some other route — a number you already had, or
               in person. Do not rely on anything the caller told you, including a number they
@@ -164,7 +168,7 @@ export function AlertPanel({ alert, ack, canAct, onDecide, onDismiss }: Props) {
   );
 }
 
-function DecisionMade({ ack, onDismiss }: { ack: GuardianActionAck; onDismiss: () => void }) {
+function DecisionMade({ ack, onDismiss }: { ack: GuardianDecisionAck; onDismiss: () => void }) {
   return (
     <div className="card quiet">
       <span className="dot dot--live" aria-hidden />

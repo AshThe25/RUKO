@@ -20,16 +20,20 @@ from app.models.contracts import (
     AlertPayment,
     AlertRuntime,
     DeviceRegisterRequest,
-    GuardianActionPayload,
+    GuardianDecisionPayload,
     GuardianClaimRequest,
     GuardianPairRequest,
-    RiskAlertPayload,
+    GuardianAlertPayload,
     RiskEventReport,
 )
 
 CONTRACT = Path(__file__).resolve().parents[2] / "docs" / "contracts" / "guardian.schema.ts"
 
-_TYPE_BLOCK = re.compile(r"export type (\w+)\s*=\s*\{(.*?)\n\};", re.DOTALL)
+# The contract uses `export interface X { ... }` for object shapes and
+# `export type X = { ... }` for a few aliases. Parse both.
+_TYPE_BLOCK = re.compile(
+    r"export (?:interface (\w+)\s*\{|type (\w+)\s*=\s*\{)(.*?)\n\}", re.DOTALL
+)
 _FIELD = re.compile(r"^\s{2}(\w+)\??\s*:", re.MULTILINE)
 
 
@@ -38,10 +42,10 @@ def parse_typescript_types(source: str) -> dict[str, set[str]]:
     without_comments = re.sub(r"/\*.*?\*/", "", source, flags=re.DOTALL)
     without_comments = re.sub(r"//.*$", "", without_comments, flags=re.MULTILINE)
 
-    return {
-        name: set(_FIELD.findall(body))
-        for name, body in _TYPE_BLOCK.findall(without_comments)
-    }
+    parsed: dict[str, set[str]] = {}
+    for interface_name, type_name, body in _TYPE_BLOCK.findall(without_comments):
+        parsed[interface_name or type_name] = set(_FIELD.findall(body))
+    return parsed
 
 
 @pytest.fixture(scope="module")
@@ -67,7 +71,7 @@ def pydantic_field_names(model) -> set[str]:
         ("GuardianPairRequest", GuardianPairRequest),
         ("GuardianClaimRequest", GuardianClaimRequest),
         ("RiskEventReport", RiskEventReport),
-        ("GuardianActionPayload", GuardianActionPayload),
+        ("GuardianDecisionPayload", GuardianDecisionPayload),
     ],
 )
 def test_python_mirror_matches_the_canonical_contract(ts_types, ts_name, model):
@@ -78,10 +82,11 @@ def test_python_mirror_matches_the_canonical_contract(ts_types, ts_name, model):
 
 
 def test_risk_alert_payload_matches(ts_types):
-    """RiskAlertPayload nests inline objects, so its parts are checked directly."""
-    assert pydantic_field_names(RiskAlertPayload) == ts_types["RiskAlertPayload"]
+    """GuardianAlertPayload nests inline objects, so its parts are checked directly."""
+    assert pydantic_field_names(GuardianAlertPayload) == ts_types["GuardianAlertPayload"]
     assert pydantic_field_names(AlertPayment) == {
-        "amountRupees",
+        "amountMinor",
+        "currency",
         "payeeDisplayName",
         "firstPayment",
     }
@@ -90,14 +95,16 @@ def test_risk_alert_payload_matches(ts_types):
         "model",
         "backend",
         "isLocal",
+        "isReady",
         "lastLatencyMs",
+        "degradedReason",
     }
 
 
 def test_the_alert_carries_no_identifier_that_could_deanonymise_the_payee():
     """A standing guard against someone helpfully adding `payeeId` later."""
     forbidden = {"payeeId", "payeeHash", "accountNumber", "vpa", "transcript", "audio"}
-    leaked = forbidden & (pydantic_field_names(AlertPayment) | pydantic_field_names(RiskAlertPayload))
+    leaked = forbidden & (pydantic_field_names(AlertPayment) | pydantic_field_names(GuardianAlertPayload))
     assert not leaked, f"these must never cross the network: {leaked}"
 
 
@@ -105,7 +112,7 @@ def test_originator_map_covers_every_message_type():
     from app.models.contracts import ORIGINATOR
 
     source = re.sub(r"/\*.*?\*/", "", CONTRACT.read_text(), flags=re.DOTALL)
-    declared = set(re.findall(r"Envelope<'(\w+)',", source))
+    declared = set(re.findall(r"Envelope<\s*'(\w+)'\s*,", source))
     assert declared, "no envelope types found — the contract file has drifted"
     assert declared <= set(ORIGINATOR), (
         f"message types with no originator rule: {declared - set(ORIGINATOR)}"

@@ -18,8 +18,8 @@ object PaymentScreenParser {
 
     data class PaymentScreenReading(
         val isPaymentScreen: Boolean,
-        /** Integer rupees, or null when no amount could be read. */
-        val amount: Long?,
+        /** Integer paise, or null when no amount could be read. */
+        val amountMinor: Long?,
         /** Display name, bounded to 64 chars. Null when not found. */
         val payee: String?,
         /** Raw VPA if one was visible. Never leaves the device un-hashed. */
@@ -30,7 +30,7 @@ object PaymentScreenParser {
         val signals: List<String>,
     ) {
         val isUsable: Boolean
-            get() = isPaymentScreen && amount != null && confidence >= MIN_USABLE_CONFIDENCE
+            get() = isPaymentScreen && amountMinor != null && confidence >= MIN_USABLE_CONFIDENCE
     }
 
     const val MIN_USABLE_CONFIDENCE = 0.5
@@ -87,7 +87,7 @@ object PaymentScreenParser {
         val currencyAmount = findCurrencyAmount(cleaned)
         if (currencyAmount != null) signals += "currency-marked amount"
 
-        val amount = currencyAmount ?: findBareAmountNearKeyword(cleaned)?.also {
+        val amountMinor = currencyAmount ?: findBareAmountNearKeyword(cleaned)?.also {
             signals += "amount near 'amount' label (weaker)"
         }
 
@@ -99,7 +99,7 @@ object PaymentScreenParser {
 
         val confidence = scoreConfidence(
             hasCurrencyAmount = currencyAmount != null,
-            hasAnyAmount = amount != null,
+            hasAnyAmount = amountMinor != null,
             hasVpa = vpa != null,
             hasPayee = payee != null,
             keywordHits = keywordHits.size,
@@ -107,7 +107,7 @@ object PaymentScreenParser {
 
         return PaymentScreenReading(
             isPaymentScreen = true,
-            amount = amount,
+            amountMinor = amountMinor,
             payee = payee,
             payeeId = vpa,
             confidence = confidence,
@@ -117,7 +117,7 @@ object PaymentScreenParser {
 
     private fun notPayment(reason: String) = PaymentScreenReading(
         isPaymentScreen = false,
-        amount = null,
+        amountMinor = null,
         payee = null,
         payeeId = null,
         confidence = 0.0,
@@ -145,12 +145,36 @@ object PaymentScreenParser {
             .maxOrNull()
     }
 
-    /** Handles Indian grouping (1,00,000) as well as western (100,000). */
+    /**
+     * Rupee string to integer paise.
+     *
+     * Handles Indian grouping (1,00,000) as well as western (100,000), and
+     * splits on the decimal point rather than going through a Double. Binary
+     * floating point cannot represent 0.10 exactly, and money that is a little
+     * bit wrong is worse than money that is missing — a wrong amount on an
+     * intervention screen destroys the user's trust in the whole product.
+     */
     private fun normaliseAmount(raw: String): Long? {
-        val digits = raw.replace(",", "")
-        val value = digits.toDoubleOrNull() ?: return null
-        if (value <= 0 || value > MAX_PLAUSIBLE_AMOUNT) return null
-        return value.toLong()
+        val cleaned = raw.replace(",", "")
+        val rupeePart: String
+        val paisePart: String
+
+        val dot = cleaned.indexOf('.')
+        if (dot < 0) {
+            rupeePart = cleaned
+            paisePart = "00"
+        } else {
+            rupeePart = cleaned.substring(0, dot)
+            // "5" means 50 paise, "50" means 50 paise, "" means 0.
+            paisePart = cleaned.substring(dot + 1).padEnd(2, '0').take(2)
+        }
+
+        val rupees = rupeePart.toLongOrNull() ?: return null
+        val paise = if (paisePart.isEmpty()) 0L else paisePart.toLongOrNull() ?: return null
+
+        val total = rupees * 100 + paise
+        if (total <= 0 || total > MAX_PLAUSIBLE_AMOUNT_MINOR) return null
+        return total
     }
 
     private fun findPayee(texts: List<String>, vpa: String?): String? {
@@ -199,6 +223,6 @@ object PaymentScreenParser {
         return minOf(1.0, score)
     }
 
-    /** ₹10 crore. Anything above this is a parse error, not a payment. */
-    private const val MAX_PLAUSIBLE_AMOUNT = 100_000_000.0
+    /** ₹10 crore, in paise. Anything above this is a parse error, not a payment. */
+    private const val MAX_PLAUSIBLE_AMOUNT_MINOR = 10_000_000_000L
 }

@@ -5,10 +5,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { WS_BASE } from './relayClient';
 import {
   type GuardianAction,
-  type GuardianActionAck,
+  type GuardianDecisionAck,
   type Presence,
   type RelayError,
-  type RiskAlert,
+  type GuardianAlert,
   envelope,
   parseFrame,
 } from './protocol';
@@ -24,8 +24,8 @@ export type GuardianSession = {
 export type SocketView = {
   connection: ConnectionState;
   presence: Presence | null;
-  alert: RiskAlert | null;
-  ack: GuardianActionAck | null;
+  alert: GuardianAlert | null;
+  ack: GuardianDecisionAck | null;
   lastError: RelayError | null;
   /** Frames the console refused to render because they failed validation. */
   rejectedFrames: number;
@@ -39,8 +39,8 @@ const MAX_BACKOFF_MS = 15_000;
 export function useGuardianSocket(session: GuardianSession | null): SocketView {
   const [connection, setConnection] = useState<ConnectionState>('closed');
   const [presence, setPresence] = useState<Presence | null>(null);
-  const [alert, setAlert] = useState<RiskAlert | null>(null);
-  const [ack, setAck] = useState<GuardianActionAck | null>(null);
+  const [alert, setAlert] = useState<GuardianAlert | null>(null);
+  const [ack, setAck] = useState<GuardianDecisionAck | null>(null);
   const [lastError, setLastError] = useState<RelayError | null>(null);
   const [rejectedFrames, setRejectedFrames] = useState(0);
 
@@ -81,11 +81,11 @@ export function useGuardianSocket(session: GuardianSession | null): SocketView {
           case 'PRESENCE':
             setPresence(frame.payload);
             break;
-          case 'RISK_ALERT':
+          case 'GUARDIAN_ALERT':
             setAck(null);
             setAlert(frame.payload);
             break;
-          case 'GUARDIAN_ACTION_ACK':
+          case 'GUARDIAN_DECISION_ACK':
             setAck(frame.payload);
             break;
           case 'ERROR':
@@ -141,11 +141,12 @@ export function useGuardianSocket(session: GuardianSession | null): SocketView {
 
       socket.send(
         JSON.stringify(
-          envelope('GUARDIAN_ACTION', session.sessionId, {
+          envelope('GUARDIAN_DECISION', session.sessionId, {
             incidentId: alert.incidentId,
-            action,
-            guardianDisplayName: presence?.guardianDisplayName ?? 'Guardian',
+            decision: action,
+            guardianLabel: presence?.guardianLabel ?? 'Guardian',
             note: note && note.trim().length > 0 ? note.trim().slice(0, 160) : null,
+            decidedAt: Date.now(),
           }),
         ),
       );

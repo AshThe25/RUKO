@@ -16,14 +16,14 @@ export class ClaimError extends Error {}
 
 export async function claimPairingCode(
   pairingCode: string,
-  guardianDisplayName: string,
+  guardianLabel: string,
 ): Promise<ClaimResult> {
   let response: Response;
   try {
     response = await fetch(`${HTTP_BASE}/guardian/pair/claim`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pairingCode, guardianDisplayName }),
+      body: JSON.stringify({ pairingCode, guardianLabel }),
     });
   } catch {
     throw new ClaimError("Can't reach the Ruko relay. Check that it is running.");

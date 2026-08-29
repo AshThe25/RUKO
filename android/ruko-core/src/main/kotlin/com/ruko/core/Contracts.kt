@@ -17,9 +17,54 @@ const val PROTOCOL_VERSION = "1.0.0"
 /** A confidence in [0, 1]. */
 typealias Confidence = Double
 
-enum class ConversationSource { LOCAL_MODEL, RULES, DEMO }
+/**
+ * Where a piece of evidence came from. Mirrors `EvidenceSource` in
+ * common.schema.ts.
+ *
+ * This exists for honesty: the UI and the audit trail must always be able to
+ * say "this came from a demo provider", and must never present a mocked signal
+ * as if it were measured from the device.
+ */
+enum class EvidenceSource {
+    /** A real local model produced this. */
+    ON_DEVICE_MODEL,
+
+    /** Deterministic on-device rules, no model. */
+    ON_DEVICE_HEURISTIC,
+
+    /** Read from a real Android API (call state, notifications). */
+    ANDROID_API,
+
+    /** Parsed from a real accessibility node tree. */
+    ACCESSIBILITY,
+
+    /** Read from the local behaviour / payee store. */
+    LOCAL_STORE,
+
+    /** Ruko's own controlled demo app: real pipeline, scripted input. */
+    DEMO,
+
+    /** Test fixture only. Must never appear in a shipped build. */
+    MOCK,
+}
+
+/**
+ * Every evidence block carries these. `available = false` means "we could not
+ * measure this", which is emphatically NOT the same as a measured zero — an
+ * unreadable payment screen must not read as a safe payment.
+ */
+interface EvidenceBase {
+    val available: Boolean
+    val source: EvidenceSource
+
+    /** Why it is unavailable, when it is. Surfaced in the audit trail. */
+    val unavailableReason: String?
+}
 
 data class ConversationEvidence(
+    override val available: Boolean,
+    override val source: EvidenceSource,
+    override val unavailableReason: String? = null,
     val authority: Confidence,
     val coercion: Confidence,
     val urgency: Confidence,
@@ -27,39 +72,38 @@ data class ConversationEvidence(
     val secrecy: Confidence,
     val credentialRequest: Confidence,
     val confidence: Confidence,
-    val source: ConversationSource,
     /** Measured. Null when no inference has run. Never estimated. */
     val latencyMs: Long?,
     val modelVersion: String,
-    val capturedAt: String,
-)
-
-/** How a payment became visible to Ruko. Carried all the way to the audit trail. */
-enum class PaymentContextSource {
-    /** Parsed from AccessibilityService nodes on a real payment screen. */
-    ACCESSIBILITY,
-
-    /** The bundled RukoPayDemo app. Never presented as an interception. */
-    DEMO_APP,
-
-    /** Test injection. */
-    MOCK,
-}
+    /** Epoch milliseconds. */
+    val timestamp: Long,
+) : EvidenceBase
 
 data class PaymentEvidence(
+    override val available: Boolean,
+    override val source: EvidenceSource,
+    override val unavailableReason: String? = null,
+    /** Is the user currently on a payment confirmation surface? */
     val active: Boolean,
-    /** Integer rupees. */
-    val amount: Long,
+    /**
+     * Integer paise. Never rupees, never a float — rupee-only truncates
+     * silently and the bug stays invisible until a demo.
+     */
+    val amountMinor: Long?,
     val currency: String = "INR",
-    val payee: String,
+    /** Display name as shown on screen. In memory only; never persisted raw. */
+    val payeeDisplayName: String?,
     /** Salted SHA-256. The raw VPA never leaves the device. */
-    val payeeHash: String,
-    val source: PaymentContextSource,
-    val packageName: String?,
-    val observedAt: String,
-)
+    val payeeHash: String?,
+    val appPackage: String?,
+    /** Epoch milliseconds. */
+    val timestamp: Long,
+) : EvidenceBase
 
 data class CallEvidence(
+    override val available: Boolean,
+    override val source: EvidenceSource = EvidenceSource.ANDROID_API,
+    override val unavailableReason: String? = null,
     val active: Boolean,
     val callerKnown: Boolean,
     val durationSeconds: Long,
@@ -68,35 +112,63 @@ data class CallEvidence(
      * microphone; it cannot access the protected call stream.
      */
     val audioFromMicrophone: Boolean = true,
-)
+) : EvidenceBase
 
 data class NotificationEvidence(
+    override val available: Boolean = true,
+    override val source: EvidenceSource = EvidenceSource.ANDROID_API,
+    override val unavailableReason: String? = null,
     val suspicion: Confidence,
     val matchCount: Int,
     /** Bounded, redacted. See [NotificationRelevanceFilter]. */
     val excerpts: List<String>,
     val lookbackMinutes: Int,
-)
+) : EvidenceBase
 
 enum class RiskLevel { LOW, MEDIUM, HIGH, CRITICAL }
 
 enum class PolicyAction {
+    /** Stay quiet. */
     NONE,
+
+    /** A passive banner, no interruption. */
     SUBTLE_WARNING,
+
+    /** Full-screen warning, deliberate confirmation to continue. */
+    STRONG_WARNING,
+
+    /** Full-screen intervention, "DON'T PAY" is the primary CTA. */
     BLOCK_WARNING,
-    BLOCK_WARNING_WITH_GUARDIAN,
 }
 
-/** Transport holder only. Produced elsewhere; never computed in this module. */
+/** One line of the "why". Mirrors `RiskReason` in risk.schema.ts. */
+data class RiskReason(
+    val code: String,
+    val label: String,
+    val points: Double,
+    val family: String,
+)
+
+/**
+ * Transport holder only. Produced by the engine in ml/; never computed here.
+ * Mirrors `RiskResult` in risk.schema.ts.
+ */
 data class RiskResult(
+    val sessionId: String,
     val score: Int,
     val level: RiskLevel,
-    val reasons: List<String>,
     val policyAction: PolicyAction,
-    val lowConfidence: Boolean,
+    val reasons: List<RiskReason>,
+    val degraded: Boolean,
+    val degradedReasons: List<String> = emptyList(),
+    val escalateToGuardian: Boolean,
     val modelVersion: String,
+    val weightsVersion: String,
     val policyVersion: String,
-    val evaluatedAt: String,
+    val engineVersion: String,
+    /** Epoch milliseconds. */
+    val timestamp: Long,
+    val computeMs: Double,
 )
 
 /** Which compute unit the local runtime actually initialised on. */

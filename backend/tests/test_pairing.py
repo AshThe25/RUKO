@@ -80,14 +80,14 @@ def test_a_pairing_code_can_only_be_claimed_once(client, phone):
 
     first = client.post(
         "/guardian/pair/claim",
-        json={"pairingCode": pair["pairingCode"], "guardianDisplayName": "Priya"},
+        json={"pairingCode": pair["pairingCode"], "guardianLabel": "Priya"},
     )
     assert first.status_code == 200
     assert first.json()["phoneDisplayName"] == "Ruko"
 
     second = client.post(
         "/guardian/pair/claim",
-        json={"pairingCode": pair["pairingCode"], "guardianDisplayName": "Mallory"},
+        json={"pairingCode": pair["pairingCode"], "guardianLabel": "Mallory"},
     )
     assert second.status_code == 404, "a burned code must not be reusable"
 
@@ -95,7 +95,7 @@ def test_a_pairing_code_can_only_be_claimed_once(client, phone):
 def test_an_unknown_code_is_indistinguishable_from_an_expired_one(client):
     response = client.post(
         "/guardian/pair/claim",
-        json={"pairingCode": "000000", "guardianDisplayName": "Mallory"},
+        json={"pairingCode": "000000", "guardianLabel": "Mallory"},
     )
     assert response.status_code == 404
     assert "not valid" in response.json()["detail"]
@@ -104,7 +104,7 @@ def test_an_unknown_code_is_indistinguishable_from_an_expired_one(client):
 def test_claim_rejects_a_malformed_code(client):
     response = client.post(
         "/guardian/pair/claim",
-        json={"pairingCode": "12ab", "guardianDisplayName": "Priya"},
+        json={"pairingCode": "12ab", "guardianLabel": "Priya"},
     )
     assert response.status_code == 422
 
@@ -116,7 +116,7 @@ def test_requesting_a_new_code_invalidates_the_previous_one(client, phone):
 
     stale = client.post(
         "/guardian/pair/claim",
-        json={"pairingCode": first["pairingCode"], "guardianDisplayName": "Priya"},
+        json={"pairingCode": first["pairingCode"], "guardianLabel": "Priya"},
     )
     assert stale.status_code == 404, "an abandoned code must not stay claimable"
 
@@ -129,11 +129,11 @@ def test_telemetry_is_accepted_and_carries_no_payment_detail(client, phone):
             "eventId": "evt_abcdef12",
             "level": "CRITICAL",
             "score": 91,
-            "policyAction": "BLOCK_WARNING_WITH_GUARDIAN",
+            "policyAction": "BLOCK_WARNING",
             "overridden": False,
             "modelVersion": "ruko-risk-v1",
             "policyVersion": "policy-v1",
-            "occurredAt": "2026-08-29T07:02:00Z",
+            "occurredAt": 1787990000000,
         },
     )
     assert response.status_code == 202
@@ -151,8 +151,8 @@ def test_telemetry_refuses_to_carry_an_amount(client, phone):
             "overridden": False,
             "modelVersion": "ruko-risk-v1",
             "policyVersion": "policy-v1",
-            "occurredAt": "2026-08-29T07:02:00Z",
-            "amountRupees": 48000,
+            "occurredAt": 1787990000000,
+            "amountMinor": 48000,
         },
     )
     assert response.status_code == 422, "telemetry must never become a privacy regression"

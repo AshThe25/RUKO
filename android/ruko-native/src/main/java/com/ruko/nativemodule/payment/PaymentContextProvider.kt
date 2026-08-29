@@ -1,6 +1,6 @@
 package com.ruko.nativemodule.payment
 
-import com.ruko.core.PaymentContextSource
+import com.ruko.core.EvidenceSource
 import com.ruko.core.PaymentEvidence
 
 /**
@@ -12,7 +12,7 @@ import com.ruko.core.PaymentEvidence
  * intercepted real UPI transaction (build prompt §12, §37).
  */
 interface PaymentContextProvider {
-    val source: PaymentContextSource
+    val source: EvidenceSource
 
     /** True when this provider can currently produce anything at all. */
     fun isAvailable(): Boolean
@@ -32,8 +32,8 @@ class LayeredPaymentContextProvider(
     private val providers: List<PaymentContextProvider>,
 ) : PaymentContextProvider {
 
-    override val source: PaymentContextSource
-        get() = activeProvider()?.source ?: PaymentContextSource.MOCK
+    override val source: EvidenceSource
+        get() = activeProvider()?.source ?: EvidenceSource.MOCK
 
     override fun isAvailable(): Boolean = providers.any { it.isAvailable() }
 

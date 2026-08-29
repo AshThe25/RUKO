@@ -1,9 +1,8 @@
 package com.ruko.nativemodule.payment
 
-import com.ruko.core.PaymentContextSource
+import com.ruko.core.EvidenceSource
 import com.ruko.core.PaymentEvidence
 import com.ruko.core.PaymentScreenParser
-import java.time.Instant
 
 /**
  * Reads the payment from whatever is on screen, via the accessibility service.
@@ -20,7 +19,7 @@ class AccessibilityPaymentProvider(
     private val payeeHasher: (String) -> String,
 ) : PaymentContextProvider {
 
-    override val source = PaymentContextSource.ACCESSIBILITY
+    override val source = EvidenceSource.ACCESSIBILITY
 
     @Volatile
     private var latest: Reading? = null
@@ -50,17 +49,18 @@ class AccessibilityPaymentProvider(
 
     override fun current(): PaymentEvidence? {
         val reading = freshReading() ?: return null
-        val amount = reading.parsed.amount ?: return null
+        val amountMinor = reading.parsed.amountMinor ?: return null
 
         return PaymentEvidence(
+            available = true,
+            source = EvidenceSource.ACCESSIBILITY,
             active = true,
-            amount = amount,
-            payee = reading.parsed.payee ?: UNKNOWN_PAYEE,
+            amountMinor = amountMinor,
+            payeeDisplayName = reading.parsed.payee ?: UNKNOWN_PAYEE,
             // The raw VPA is hashed here and never stored or transmitted.
             payeeHash = payeeHasher(reading.parsed.payeeId ?: reading.parsed.payee ?: UNKNOWN_PAYEE),
-            source = PaymentContextSource.ACCESSIBILITY,
-            packageName = reading.packageName,
-            observedAt = Instant.ofEpochMilli(reading.observedAtEpochMs).toString(),
+            appPackage = reading.packageName,
+            timestamp = reading.observedAtEpochMs,
         )
     }
 

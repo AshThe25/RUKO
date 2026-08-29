@@ -1,4 +1,7 @@
-"""Pydantic mirror of `docs/contracts/guardian.schema.ts`.
+"""Pydantic mirror of the guardian transport contract.
+
+Mirrors `docs/contracts/guardian.schema.ts`, which in turn sits on Vedant's
+domain types in `risk.schema.ts` and `payment.schema.ts`.
 
 Every model forbids unknown fields. That is the single most important line in
 this file: the relay is the only place a hostile or buggy client meets the
@@ -19,6 +22,31 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 PROTOCOL_VERSION = "1.0.0"
 
 Confidence = Annotated[float, Field(ge=0.0, le=1.0)]
+
+#: Epoch milliseconds. One time convention end to end — see the reconciliation
+#: note at the top of docs/contracts/guardian.schema.ts for why the wire does
+#: not use ISO strings.
+EpochMs = Annotated[int, Field(ge=0)]
+
+RiskLevel = Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"]
+PolicyAction = Literal["NONE", "SUBTLE_WARNING", "STRONG_WARNING", "BLOCK_WARNING"]
+EvidenceFamily = Literal["CONVERSATION", "PAYEE_BEHAVIOUR", "CALL_CONTEXT", "NOTIFICATION"]
+RiskReasonCode = Literal[
+    "COERCION",
+    "AUTHORITY_IMPERSONATION",
+    "FINANCIAL_INSTRUCTION",
+    "URGENCY",
+    "SECRECY",
+    "CREDENTIAL_REQUEST",
+    "NEW_PAYEE",
+    "AMOUNT_ANOMALY",
+    "FREQUENCY_ANOMALY",
+    "TIME_ANOMALY",
+    "UNKNOWN_CALLER",
+    "CALL_DURING_PAYMENT",
+    "SUSPICIOUS_NOTIFICATION",
+]
+
 _PAIRING_CODE = re.compile(r"^\d{6}$")
 
 
@@ -45,7 +73,7 @@ class DeviceRegisterRequest(Strict):
 class DeviceRegisterResponse(Strict):
     device_id: str = Field(serialization_alias="deviceId")
     device_token: str = Field(serialization_alias="deviceToken")
-    issued_at: datetime = Field(serialization_alias="issuedAt")
+    issued_at: EpochMs = Field(serialization_alias="issuedAt")
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
@@ -59,14 +87,14 @@ class GuardianPairRequest(Strict):
 class GuardianPairResponse(Strict):
     session_id: str = Field(serialization_alias="sessionId")
     pairing_code: str = Field(serialization_alias="pairingCode")
-    expires_at: datetime = Field(serialization_alias="expiresAt")
+    expires_at: EpochMs = Field(serialization_alias="expiresAt")
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
 
 class GuardianClaimRequest(Strict):
     pairing_code: str = Field(alias="pairingCode")
-    guardian_display_name: str = Field(min_length=1, max_length=80, alias="guardianDisplayName")
+    guardian_label: str = Field(min_length=1, max_length=80, alias="guardianLabel")
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
@@ -94,15 +122,13 @@ class RiskEventReport(Strict):
     """
 
     event_id: str = Field(min_length=8, max_length=64, alias="eventId")
-    level: Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"]
+    level: RiskLevel
     score: int = Field(ge=0, le=100)
-    policy_action: Literal[
-        "NONE", "SUBTLE_WARNING", "BLOCK_WARNING", "BLOCK_WARNING_WITH_GUARDIAN"
-    ] = Field(alias="policyAction")
+    policy_action: PolicyAction = Field(alias="policyAction")
     overridden: bool
     model_version: str = Field(max_length=64, alias="modelVersion")
     policy_version: str = Field(max_length=64, alias="policyVersion")
-    occurred_at: datetime = Field(alias="occurredAt")
+    occurred_at: EpochMs = Field(alias="occurredAt")
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
@@ -114,7 +140,7 @@ class ModelMetadata(Strict):
     size_bytes: int = Field(ge=0, serialization_alias="sizeBytes")
     # Null until a model is genuinely published. Never a placeholder URL.
     download_url: str | None = Field(default=None, serialization_alias="downloadUrl")
-    released_at: datetime = Field(serialization_alias="releasedAt")
+    released_at: EpochMs = Field(serialization_alias="releasedAt")
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
@@ -124,33 +150,68 @@ class ModelMetadata(Strict):
 # --------------------------------------------------------------------------- #
 
 
-class RiskAssessment(Strict):
-    """Carried, never computed here. Produced by the deterministic engine on the phone."""
+class RiskReason(Strict):
+    """One line of the "why". Mirrors risk.schema.ts."""
 
-    score: int = Field(ge=0, le=100)
-    level: Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"]
-    reasons: list[str] = Field(max_length=8)
-    policy_action: Literal[
-        "NONE", "SUBTLE_WARNING", "BLOCK_WARNING", "BLOCK_WARNING_WITH_GUARDIAN"
-    ] = Field(alias="policyAction")
-    low_confidence: bool = Field(alias="lowConfidence")
-    model_version: str = Field(max_length=64, alias="modelVersion")
-    policy_version: str = Field(max_length=64, alias="policyVersion")
-    evaluated_at: datetime = Field(alias="evaluatedAt")
+    code: RiskReasonCode
+    label: str = Field(min_length=1, max_length=140)
+    points: float = Field(ge=0)
+    family: EvidenceFamily
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
-    @field_validator("reasons")
-    @classmethod
-    def _bounded_reasons(cls, value: list[str]) -> list[str]:
-        for reason in value:
-            if not reason.strip() or len(reason) > 140:
-                raise ValueError("each reason must be non-empty and at most 140 characters")
-        return value
+
+class RiskContribution(Strict):
+    """Every weight term, including zero ones. For the engineering view."""
+
+    code: RiskReasonCode
+    family: EvidenceFamily
+    signal: float = Field(ge=0.0, le=1.0)
+    weight: float = Field(ge=0)
+    gate: float = Field(ge=0)
+    points: float = Field(ge=0)
+    gate_reason: str | None = Field(default=None, max_length=200, alias="gateReason")
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+
+class RiskResult(Strict):
+    """The engine's output, carried verbatim.
+
+    The relay validates its shape and forwards it untouched. It does not
+    recompute the score, reorder the reasons, or "correct" an inconsistency —
+    doing any of that would quietly make the relay a second decision-maker.
+    """
+
+    session_id: str = Field(min_length=4, max_length=80, alias="sessionId")
+    score: int = Field(ge=0, le=100)
+    level: RiskLevel
+    policy_action: PolicyAction = Field(alias="policyAction")
+    reasons: list[RiskReason] = Field(min_length=1, max_length=16)
+    contributions: list[RiskContribution] = Field(default_factory=list, max_length=32)
+    corroborating_families: list[EvidenceFamily] = Field(
+        default_factory=list, alias="corroboratingFamilies"
+    )
+    degraded: bool
+    degraded_reasons: list[str] = Field(default_factory=list, alias="degradedReasons")
+    escalate_to_guardian: bool = Field(alias="escalateToGuardian")
+
+    # Audit trail: everything needed to reproduce this decision.
+    model_version: str = Field(max_length=64, alias="modelVersion")
+    weights_version: str = Field(max_length=64, alias="weightsVersion")
+    policy_version: str = Field(max_length=64, alias="policyVersion")
+    engine_version: str = Field(max_length=64, alias="engineVersion")
+    timestamp: EpochMs
+    compute_ms: float = Field(ge=0, alias="computeMs")
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
 
 class AlertPayment(Strict):
-    amount_rupees: int = Field(ge=0, le=100_000_000, alias="amountRupees")
+    # Integer paise, matching payment.schema.ts. Rupee-only silently truncates
+    # and the bug stays invisible until a demo.
+    amount_minor: int = Field(ge=0, le=10_000_000_000, alias="amountMinor")
+    currency: Literal["INR"] = "INR"
     # Display name only. The raw VPA never reaches the relay.
     payee_display_name: str = Field(min_length=1, max_length=64, alias="payeeDisplayName")
     first_payment: bool = Field(alias="firstPayment")
@@ -163,41 +224,40 @@ class AlertRuntime(Strict):
     model: str = Field(max_length=64)
     backend: Literal["CPU", "NNAPI", "QUALCOMM", "RULES", "UNKNOWN"]
     is_local: bool = Field(alias="isLocal")
-    # Null means "not measured". The console renders that as an em dash.
+    is_ready: bool = Field(alias="isReady")
+    # Null means NOT MEASURED. The console renders it as an em dash.
     last_latency_ms: int | None = Field(default=None, ge=0, alias="lastLatencyMs")
+    degraded_reason: str | None = Field(default=None, max_length=200, alias="degradedReason")
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
 
-class RiskAlertPayload(Strict):
+class GuardianAlertPayload(Strict):
+    """Phone -> Guardian. The most important message in the system."""
+
     incident_id: str = Field(min_length=4, max_length=64, alias="incidentId")
     payment: AlertPayment
-    assessment: RiskAssessment
-    top_reasons: list[str] = Field(min_length=3, max_length=3, alias="topReasons")
+    assessment: RiskResult
     runtime: AlertRuntime
     phone_state: Literal["PAYMENT_PAUSED"] = Field(alias="phoneState")
+    expires_in_sec: int = Field(ge=0, le=3600, alias="expiresInSec")
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
-    @field_validator("top_reasons")
-    @classmethod
-    def _three_real_reasons(cls, value: list[str]) -> list[str]:
-        for reason in value:
-            if not reason.strip() or len(reason) > 140:
-                raise ValueError("each top reason must be non-empty and at most 140 characters")
-        return value
 
+class GuardianDecisionPayload(Strict):
+    """Guardian -> phone. Advisory: it can keep a block, never force a payment."""
 
-class GuardianActionPayload(Strict):
     incident_id: str = Field(min_length=4, max_length=64, alias="incidentId")
-    action: Literal["KEEP_BLOCKED", "ALLOW"]
-    guardian_display_name: str = Field(min_length=1, max_length=80, alias="guardianDisplayName")
+    decision: Literal["KEEP_BLOCKED", "ALLOW"]
+    guardian_label: str = Field(min_length=1, max_length=80, alias="guardianLabel")
     note: str | None = Field(default=None, max_length=160)
+    decided_at: EpochMs = Field(alias="decidedAt")
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
 
-class GuardianActionAckPayload(Strict):
+class GuardianDecisionAckPayload(Strict):
     incident_id: str = Field(alias="incidentId")
     accepted: bool
     reason: str | None = None
@@ -209,9 +269,7 @@ class PresencePayload(Strict):
     phone_connected: bool = Field(serialization_alias="phoneConnected")
     guardian_connected: bool = Field(serialization_alias="guardianConnected")
     phone_display_name: str = Field(serialization_alias="phoneDisplayName")
-    guardian_display_name: str | None = Field(
-        default=None, serialization_alias="guardianDisplayName"
-    )
+    guardian_label: str | None = Field(default=None, serialization_alias="guardianLabel")
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
@@ -233,9 +291,9 @@ class RelayErrorPayload(Strict):
 MessageType = Literal[
     "PAIR_ACK",
     "PRESENCE",
-    "RISK_ALERT",
-    "GUARDIAN_ACTION",
-    "GUARDIAN_ACTION_ACK",
+    "GUARDIAN_ALERT",
+    "GUARDIAN_DECISION",
+    "GUARDIAN_DECISION_ACK",
     "PING",
     "PONG",
     "ERROR",
@@ -247,9 +305,9 @@ MessageType = Literal[
 ORIGINATOR: dict[str, str] = {
     "PAIR_ACK": "RELAY",
     "PRESENCE": "RELAY",
-    "RISK_ALERT": "PHONE",
-    "GUARDIAN_ACTION": "GUARDIAN",
-    "GUARDIAN_ACTION_ACK": "RELAY",
+    "GUARDIAN_ALERT": "PHONE",
+    "GUARDIAN_DECISION": "GUARDIAN",
+    "GUARDIAN_DECISION_ACK": "RELAY",
     "PING": "RELAY",
     "PONG": "PHONE",
     "ERROR": "RELAY",
@@ -263,7 +321,7 @@ class InboundEnvelope(Strict):
     type: MessageType
     message_id: str = Field(min_length=4, max_length=64, alias="messageId")
     session_id: str = Field(min_length=4, max_length=80, alias="sessionId")
-    sent_at: datetime = Field(alias="sentAt")
+    sent_at: EpochMs = Field(alias="sentAt")
     payload: dict
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True)

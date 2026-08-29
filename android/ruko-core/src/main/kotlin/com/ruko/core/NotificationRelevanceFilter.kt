@@ -124,6 +124,8 @@ object NotificationRelevanceFilter {
         val inWindow = relevant.filter { it.postedAtEpochMs >= cutoff }
 
         return NotificationEvidence(
+            available = true,
+            source = EvidenceSource.ANDROID_API,
             suspicion = inWindow.maxOfOrNull { it.suspicion } ?: 0.0,
             matchCount = inWindow.size,
             excerpts = inWindow.sortedByDescending { it.suspicion }

@@ -1,8 +1,7 @@
 package com.ruko.nativemodule.payment
 
-import com.ruko.core.PaymentContextSource
+import com.ruko.core.EvidenceSource
 import com.ruko.core.PaymentEvidence
-import java.time.Instant
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -17,7 +16,7 @@ import java.util.concurrent.atomic.AtomicReference
  */
 object DemoPaymentProvider : PaymentContextProvider {
 
-    override val source = PaymentContextSource.DEMO_APP
+    override val source = EvidenceSource.DEMO
 
     private val active = AtomicReference<PaymentEvidence?>(null)
 
@@ -25,20 +24,25 @@ object DemoPaymentProvider : PaymentContextProvider {
 
     override fun current(): PaymentEvidence? = active.get()
 
-    /** Called by RukoPayDemo when the user reaches a confirmation screen. */
-    fun beginPayment(amountRupees: Long, payee: String, payeeHash: String) {
-        require(amountRupees > 0) { "amount must be positive" }
+    /**
+     * Called by RukoPayDemo when the user reaches a confirmation screen.
+     *
+     * @param amountMinor integer paise, matching payment.schema.ts.
+     */
+    fun beginPayment(amountMinor: Long, payee: String, payeeHash: String) {
+        require(amountMinor > 0) { "amount must be positive" }
         require(payee.isNotBlank()) { "payee must not be blank" }
 
         active.set(
             PaymentEvidence(
+                available = true,
+                source = EvidenceSource.DEMO,
                 active = true,
-                amount = amountRupees,
-                payee = payee.take(MAX_PAYEE_LENGTH),
+                amountMinor = amountMinor,
+                payeeDisplayName = payee.take(MAX_PAYEE_LENGTH),
                 payeeHash = payeeHash,
-                source = PaymentContextSource.DEMO_APP,
-                packageName = DEMO_PACKAGE,
-                observedAt = Instant.now().toString(),
+                appPackage = DEMO_PACKAGE,
+                timestamp = System.currentTimeMillis(),
             ),
         )
     }

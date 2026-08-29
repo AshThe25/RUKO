@@ -4,8 +4,8 @@ Routing rules, all enforced here:
 
   - A connection proves its role with a token. The phone's token is bound to
     its device id, the Guardian's to this session.
-  - Only a phone may originate `RISK_ALERT`; only a Guardian may originate
-    `GUARDIAN_ACTION`. The `ORIGINATOR` map is the single source of truth.
+  - Only a phone may originate `GUARDIAN_ALERT`; only a Guardian may originate
+    `GUARDIAN_DECISION`. The `ORIGINATOR` map is the single source of truth.
   - A Guardian may act once per incident. The check and the write happen under
     one lock, so two rapid clicks cannot both win.
   - The relay never inspects evidence, never recomputes a score, and never
@@ -31,9 +31,9 @@ from app.core.security import ROLE_GUARDIAN, ROLE_PHONE, TokenError, new_id, ver
 from app.core.sessions import PairingError, Session, SessionRegistry
 from app.models.contracts import (
     ORIGINATOR,
-    GuardianActionPayload,
+    GuardianDecisionPayload,
     InboundEnvelope,
-    RiskAlertPayload,
+    GuardianAlertPayload,
 )
 
 logger = logging.getLogger("ruko.relay")
@@ -181,26 +181,26 @@ async def _receive_loop(
             await websocket.close(code=WS_UNAUTHORIZED, reason="session ended")
             return
 
-        if inbound.type == "RISK_ALERT":
-            await _handle_risk_alert(websocket, store, session, inbound)
-        elif inbound.type == "GUARDIAN_ACTION":
-            await _handle_guardian_action(websocket, store, session, inbound)
+        if inbound.type == "GUARDIAN_ALERT":
+            await _handle_guardian_alert(websocket, store, session, inbound)
+        elif inbound.type == "GUARDIAN_DECISION":
+            await _handle_guardian_decision(websocket, store, session, inbound)
         elif inbound.type == "PONG":
             continue  # Liveness is proven by the frame arriving at all.
 
 
-async def _handle_risk_alert(
+async def _handle_guardian_alert(
     websocket: WebSocket,
     store: SessionRegistry,
     session: Session,
     inbound: InboundEnvelope,
 ) -> None:
     try:
-        alert = RiskAlertPayload.model_validate(inbound.payload)
+        alert = GuardianAlertPayload.model_validate(inbound.payload)
     except ValidationError:
         await _send(
             websocket,
-            error(session.session_id, "INVALID_MESSAGE", "malformed risk alert", recoverable=True),
+            error(session.session_id, "INVALID_MESSAGE", "malformed guardian alert", recoverable=True),
         )
         return
 
@@ -215,22 +215,22 @@ async def _handle_risk_alert(
     # Forward the payload untouched — by alias, exactly as the phone sent it.
     await _send(
         session.guardian,
-        envelope("RISK_ALERT", session.session_id, alert.model_dump(by_alias=True, mode="json")),
+        envelope("GUARDIAN_ALERT", session.session_id, alert.model_dump(by_alias=True, mode="json")),
     )
 
 
-async def _handle_guardian_action(
+async def _handle_guardian_decision(
     websocket: WebSocket,
     store: SessionRegistry,
     session: Session,
     inbound: InboundEnvelope,
 ) -> None:
     try:
-        action = GuardianActionPayload.model_validate(inbound.payload)
+        action = GuardianDecisionPayload.model_validate(inbound.payload)
     except ValidationError:
         await _send(
             websocket,
-            error(session.session_id, "INVALID_MESSAGE", "malformed action", recoverable=True),
+            error(session.session_id, "INVALID_MESSAGE", "malformed decision", recoverable=True),
         )
         return
 
@@ -238,15 +238,15 @@ async def _handle_guardian_action(
         await store.claim_incident_action(
             session.session_id,
             action.incident_id,
-            action.action,
-            action.guardian_display_name,
+            action.decision,
+            action.guardian_label,
         )
     except PairingError as exc:
         await _send(websocket, error(session.session_id, exc.code, str(exc), recoverable=False))
         await _send(
             websocket,
             envelope(
-                "GUARDIAN_ACTION_ACK",
+                "GUARDIAN_DECISION_ACK",
                 session.session_id,
                 {"incidentId": action.incident_id, "accepted": False, "reason": str(exc)},
             ),
@@ -257,7 +257,7 @@ async def _handle_guardian_action(
         await _send(
             session.phone,
             envelope(
-                "GUARDIAN_ACTION",
+                "GUARDIAN_DECISION",
                 session.session_id,
                 action.model_dump(by_alias=True, mode="json"),
             ),
@@ -266,7 +266,7 @@ async def _handle_guardian_action(
     await _send(
         websocket,
         envelope(
-            "GUARDIAN_ACTION_ACK",
+            "GUARDIAN_DECISION_ACK",
             session.session_id,
             {
                 "incidentId": action.incident_id,

@@ -33,8 +33,9 @@ from app.models.contracts import (
 router = APIRouter()
 
 
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
+def _now_ms() -> int:
+    """Epoch milliseconds. One time convention across the whole wire."""
+    return int(datetime.now(timezone.utc).timestamp() * 1000)
 
 
 @router.post("/devices/register", response_model=DeviceRegisterResponse, response_model_by_alias=True)
@@ -52,7 +53,7 @@ async def register_device(
     return DeviceRegisterResponse(
         device_id=device_id,
         device_token=mint_token(config.relay_secret, ROLE_PHONE, device_id),
-        issued_at=_now(),
+        issued_at=_now_ms(),
     )
 
 
@@ -70,7 +71,7 @@ async def start_pairing(
     return GuardianPairResponse(
         session_id=session.session_id,
         pairing_code=session.pairing_code or "",
-        expires_at=datetime.fromtimestamp(session.pairing_expires_at, tz=timezone.utc),
+        expires_at=int(session.pairing_expires_at * 1000),
     )
 
 
@@ -81,7 +82,7 @@ async def claim_pairing(
     config: Settings = Depends(settings),
 ) -> GuardianClaimResponse:
     try:
-        session = await store.claim(body.pairing_code, body.guardian_display_name)
+        session = await store.claim(body.pairing_code, body.guardian_label)
     except PairingError as exc:
         # 404 for every failure mode: a wrong code and an expired code must be
         # indistinguishable, or this endpoint becomes a code oracle.
