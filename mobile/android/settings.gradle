@@ -3,4 +3,13 @@ plugins { id("com.facebook.react.settings") }
 extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autolinkLibrariesFromCommand() }
 rootProject.name = 'RukoMobile'
 include ':app'
+
+// Puneesh's device layer lives in the sibling android/ project. It was always
+// built to be consumed here -- ruko-native declares React Native as compileOnly
+// precisely so this app owns the RN version -- but nothing had wired it in, so
+// the app ran on stubs with no mic, accessibility or on-device model.
+include ':ruko-core'
+project(':ruko-core').projectDir = new File(rootDir, '../../android/ruko-core')
+include ':ruko-native'
+project(':ruko-native').projectDir = new File(rootDir, '../../android/ruko-native')
 includeBuild('../node_modules/@react-native/gradle-plugin')

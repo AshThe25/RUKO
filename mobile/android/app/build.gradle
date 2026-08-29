@@ -108,6 +108,10 @@ android {
 }
 
 dependencies {
+    // The native bridge: audio session, accessibility payment reader, call and
+    // notification providers, and the on-device ONNX runtime.
+    implementation project(':ruko-native')
+
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
 

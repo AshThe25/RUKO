@@ -2,6 +2,14 @@ plugins {
     id("com.android.library")
 }
 
+// AGP 9 (the standalone android/ build) bundles Kotlin support and fails if the
+// Kotlin plugin is also applied. AGP 8.6 -- which mobile/ is pinned to, because
+// React Native 0.76 does not support AGP 9 -- has no built-in Kotlin at all and
+// silently skips .kt sources without it. So it is applied only in that build.
+if (rootProject.name == "RukoMobile") {
+    apply(plugin = "org.jetbrains.kotlin.android")
+}
+
 android {
     namespace = "com.ruko.nativemodule"
 

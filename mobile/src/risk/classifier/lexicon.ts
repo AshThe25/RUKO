@@ -37,6 +37,12 @@ export const BENIGN_CONTEXT: RegExp[] = [
   /\bstay alert\b/,
   /\bit'?s a surprise\b/,
   /\bsurprise (for|party)\b/,
+  // Awareness and safeguarding copy uses the same words as the threat it warns
+  // about; without these, an anti-sextortion poster scores as sextortion.
+  /\b(report|reporting) (it|this|them|abuse)\b/,
+  /\btell (a trusted|your) (adult|parent|teacher)\b/,
+  /\bif (someone|anyone) (asks|threatens|sends)\b/,
+  /\bchildline\b|\bcyber ?tipline\b|\bhelpline\b/,
 ];
 
 export const LEXICON: Record<ManipulationLabel, Pattern[]> = {
@@ -58,6 +64,15 @@ export const LEXICON: Record<ManipulationLabel, Pattern[]> = {
     { re: /\bagar\b.{0,40}\b(nahi|mat)\b.{0,24}\b(to|toh)\b.{0,24}\b(action|case|block|freeze|arrest)\b/, w: 0.7 },
     { re: /\byou will (lose|be (arrested|liable|charged))\b/, w: 0.8 },
     { re: /\bho jayega\b.{0,12}\b(block|freeze|band|seal)\b|\b(block|freeze|band|seal)\b.{0,12}\bho jayega\b/, w: 0.8 },
+
+    // Sextortion. The threat is to publish intimate images rather than to
+    // freeze an account, but the tactic is identical coercion, so it scores on
+    // the same label instead of needing a seventh one.
+    { re: /\b(send|post|upload|leak|share|viral)\b.{0,30}\b(photo|photos|pic|pics|picture|video|screenshot|screen ?record)\b.{0,30}\b(friend|friends|family|school|class|everyone|instagram|whatsapp|facebook|contacts?)\b/, w: 0.9 },
+    { re: /\bi (have|got|saved|recorded)\b.{0,24}\b(your )?(screenshot|screen ?record|photo|photos|pic|pics|video)\b/, w: 0.75 },
+    { re: /\b(sab|sabko|tere|tumhare)\b.{0,20}\b(dost|friends?|ghar|family|school)\b.{0,20}\b(bhej|dikha|send)\b/, w: 0.85 },
+    { re: /\byour (parents|mom|dad|family|school)\b.{0,24}\b(will see|find out|know)\b/, w: 0.8 },
+    { re: /\b(ruin|destroy|barbaad)\b.{0,20}\b(your|teri|tumhari)\b.{0,16}\b(life|reputation|career|izzat)\b/, w: 0.8 },
   ],
   urgency: [
     { re: /\b(immediately|right now|at once|straight ?away|without delay)\b/, w: 0.75 },
@@ -89,6 +104,14 @@ export const LEXICON: Record<ManipulationLabel, Pattern[]> = {
     { re: /\bdo not (go to|visit|call)\b.{0,24}\b(branch|customer care|bank)\b/, w: 0.85 },
     { re: /\b(kisi ko|ghar ?me|family ko)\b.{0,20}\bmat (bata|batana|bataiye|batao)\b/, w: 0.9 },
     { re: /\bdigital arrest\b/, w: 0.9 },
+
+    // Grooming. Isolating a child from the adults around them is the same
+    // secrecy tactic a scammer uses to keep a victim off the phone to the bank.
+    { re: /\b(don'?t|do not|mat)\b.{0,20}\b(tell|batana|bata|show|dikhana)\b.{0,20}\b(your |apne )?(mom|mum|mummy|dad|papa|parents|teacher|didi|bhaiya)\b/, w: 0.9 },
+    { re: /\b(this|it|ye|yeh)\b.{0,16}\bour (little )?secret\b/, w: 0.9 },
+    { re: /\b(delete|clear)\b.{0,20}\b(the |our |ye )?(chat|chats|messages?|history)\b/, w: 0.8 },
+    { re: /\b(are you|r u)\b.{0,16}\b(alone|home alone|akele?)\b/, w: 0.7 },
+    { re: /\bmove (to|on)\b.{0,20}\b(telegram|snap(chat)?|whats ?app|dm|private)\b/, w: 0.6 },
   ],
   credentialRequest: [
     { re: /\b(tell|give|share|read out|dictate|bata)\b.{0,30}\b(otp|o t p|one time (code|password)|six digit|verification code)\b/, w: 0.95 },
