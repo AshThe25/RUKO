@@ -22,6 +22,13 @@ function setupHint(message: string | null): string | null {
       'API → Exposed schemas → add "ruko", then reload.'
     );
   }
+  if (/42501|permission denied/i.test(message)) {
+    return (
+      'Signed in, but the database refused the read. The `authenticated` role needs ' +
+      'USAGE on the ruko schema and SELECT on the table. (`anon` is meant to have ' +
+      'nothing — that part is by design.)'
+    );
+  }
   if (/provider is not enabled|validation_failed/i.test(message)) {
     return (
       'Google sign-in is not enabled on this Supabase project. In Supabase: ' +
