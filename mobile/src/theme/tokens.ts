@@ -136,19 +136,28 @@ export const glow = {
 } as const;
 
 /**
- * Typefaces.
+ * Typefaces — the landing page's two faces, now actually bundled.
  *
- * NOTE: these families only render once the font files are bundled and linked
- * on the native side — that lives in `mobile/android`, which this workstream
- * does not own. Until then React Native silently falls back to the system
- * face, so `undefined` is used rather than a name that would fail quietly and
- * leave us thinking the serif shipped when it did not.
+ * These were left `undefined` on purpose while the files were not linked,
+ * rather than naming a family that would fall back to the system face and let
+ * us believe the serif had shipped when it had not. The files now live in
+ * `mobile/assets/fonts` and are linked by `react-native.config.js`, so the
+ * names are real.
+ *
+ * On Android a fontFamily names the *file*, not a family plus a weight, so each
+ * weight is its own entry. Any style naming a face omits fontWeight: leaving it
+ * in makes Android synthesise a fake bold over a face that already is one,
+ * which is what smeared letterforms look like.
  */
 export const fonts = {
-  /** Instrument Serif. Hero statements and onboarding headlines only. */
-  display: undefined as string | undefined,
+  /** Instrument Serif. Display sizes only, where its contrast reads as intent. */
+  display: 'InstrumentSerif-Regular',
+  serif: 'InstrumentSerif-Regular',
   /** Manrope. The entire interface: buttons, body, values, labels. */
-  body: undefined as string | undefined,
+  body: 'Manrope-Regular',
+  medium: 'Manrope-Medium',
+  semibold: 'Manrope-SemiBold',
+  bold: 'Manrope-Bold',
 } as const;
 
 /** 4pt base grid. Use these, never raw numbers, in screen layout. */
@@ -163,24 +172,34 @@ export const space = {
 } as const;
 
 export const radius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 22,
+  // Opened up across the board. The reference this was reframed against gets
+  // its calm from generous corners on large surfaces rather than from colour,
+  // and Ruko needs calm more than most apps: this is a screen someone reads
+  // while a stranger is pressuring them. Small elements stay near their old
+  // values, because rounding a chip as hard as a card makes it read as a
+  // bubble.
+  sm: 10,
+  md: 14,
+  lg: 20,
+  xl: 28,
   pill: 999,
 } as const;
 
 export const type = {
-  display: {fontSize: 44, lineHeight: 48, fontWeight: '700' as const, letterSpacing: -1.2},
-  title: {fontSize: 28, lineHeight: 34, fontWeight: '700' as const, letterSpacing: -0.6},
-  heading: {fontSize: 20, lineHeight: 26, fontWeight: '600' as const, letterSpacing: -0.3},
-  body: {fontSize: 15, lineHeight: 22, fontWeight: '400' as const, letterSpacing: 0},
-  bodyStrong: {fontSize: 15, lineHeight: 22, fontWeight: '600' as const, letterSpacing: 0},
-  caption: {fontSize: 13, lineHeight: 18, fontWeight: '400' as const, letterSpacing: 0},
+  // Sizes, line heights and tracking are Puneesh's, unchanged. The only edit is
+  // naming the face he already specified in `fonts` — fontWeight drops out
+  // wherever a face is named, because on Android that would synthesise a fake
+  // bold on top of a face that already carries the weight.
+  display: {fontSize: 44, lineHeight: 48, fontFamily: fonts.display, letterSpacing: -0.8},
+  title: {fontSize: 28, lineHeight: 34, fontFamily: fonts.display, letterSpacing: -0.4},
+  heading: {fontSize: 20, lineHeight: 26, fontFamily: fonts.semibold, letterSpacing: -0.3},
+  body: {fontSize: 15, lineHeight: 22, fontFamily: fonts.body, letterSpacing: 0},
+  bodyStrong: {fontSize: 15, lineHeight: 22, fontFamily: fonts.semibold, letterSpacing: 0},
+  caption: {fontSize: 13, lineHeight: 18, fontFamily: fonts.body, letterSpacing: 0},
   /** All-caps micro labels. Always paired with letterSpacing. */
-  label: {fontSize: 11, lineHeight: 14, fontWeight: '600' as const, letterSpacing: 1.1},
+  label: {fontSize: 11, lineHeight: 14, fontFamily: fonts.semibold, letterSpacing: 1.1},
   /** Tabular numerals for money and scores. */
-  mono: {fontSize: 15, lineHeight: 20, fontWeight: '500' as const, letterSpacing: 0.2},
+  mono: {fontSize: 15, lineHeight: 20, fontFamily: fonts.medium, letterSpacing: 0.2},
 } as const;
 
 export const motion = {
