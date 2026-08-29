@@ -60,3 +60,32 @@ Puneesh's `android/ruko-core` is a pure-JVM Kotlin module at the repo root and
 the React Native Android project is at `mobile/android/` — React Native
 requires the latter to sit inside the JS project. These do not collide: the RN
 app's Gradle build can depend on `ruko-core` as a module when the bridge lands.
+
+## 5. Response to `docs/contracts/RECONCILIATION.md` (Vedant, `feature/vedant-ml`)
+
+From the mobile side, all eight proposed resolutions work — the app is already
+built against that shape and 51 tests pass on it:
+
+- **nested `scores`** — the investigation screen iterates the six labels as a
+  unit; flat fields would mean six hardcoded reads.
+- **`available` + `unavailableReason`** — load-bearing in the UI too. "Ruko
+  could not read this payment screen" and "this payment is fine" are different
+  screens, and `available` is the only thing that distinguishes them.
+- **paise** — the app carries `amountMinor` everywhere; rupees exist only
+  inside `utils/format.ts` at the point of display.
+- **epoch ms internally, ISO at the wire** — agreed, that is what the store and
+  the audit log use.
+- **contributions, not a re-derived weight table** — the engineering screen
+  already renders `RiskResult.contributions` term by term, including the gates.
+  Same argument applies to the Guardian.
+- **`RiskReason.explanation`** — yes please. The intervention screen currently
+  renders `label`; it will render `explanation` when the field lands, and the
+  copy stops living in two places.
+
+One thing to add to the table: **`providers.schema.ts`** (contracts-v1.1, on my
+branch) is not in either parallel v1. It is additive, it is what the UI is wired
+to, and Puneesh's speech-provider types should probably fold into it rather than
+sit beside it.
+
+The history fix for `feature/aishwarya-ui` in that document has been run — this
+branch is rebased onto `95c0d0f` and its two commits replayed cleanly.
