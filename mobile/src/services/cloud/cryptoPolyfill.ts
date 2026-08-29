@@ -1,5 +1,16 @@
 /**
- * Enough WebCrypto for PKCE S256.
+ * Enough WebCrypto for PKCE S256 -- digest only, in pure JS.
+ *
+ * react-native-get-random-values was tried here and removed: it never got
+ * autolinked into the native build, so `crypto.getRandomValues` threw
+ * 'RNGetRandomValues could not be found' the moment sign-in started, and the
+ * whole flow died before opening a browser. A polyfill that breaks the feature
+ * it was meant to harden is worse than the weakness it fixes.
+ *
+ * supabase-js falls back to a `plain` code challenge if it cannot produce an
+ * S256 one. That is weaker than S256 and worth fixing properly later by
+ * getting a real CSPRNG into the build -- but it is over TLS to Google and
+ * Supabase, and a working sign-in beats a broken one.
  *
  * React Native ships no WebCrypto, so supabase-js silently downgrades the PKCE
  * code challenge from S256 to `plain` -- which sends the verifier in the clear
@@ -12,7 +23,6 @@
  * undefined rather than stubbed, so a future caller fails loudly instead of
  * getting a fake answer from a hand-rolled crypto shim.
  */
-import 'react-native-get-random-values';
 import {sha256} from 'js-sha256';
 
 type SubtleHost = {subtle?: unknown; getRandomValues?: unknown};

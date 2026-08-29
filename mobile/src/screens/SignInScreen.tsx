@@ -46,24 +46,41 @@ export function SignInScreen() {
   async function google() {
     setBusy(true);
     setMessage(null);
-    const {error} = await signInWithGoogle();
-    if (error) {
-      setMessage(
-        error.includes('not enabled')
-          ? 'Google sign-in is not switched on for this project yet.'
-          : error,
-      );
+    try {
+      const {error} = await signInWithGoogle();
+      if (error) {
+        setMessage(
+          error.includes('not enabled')
+            ? 'Google sign-in is not switched on for this project yet.'
+            : error,
+        );
+      }
+    } catch (err) {
+      // Without this the throw escaped and setBusy(false) never ran, so the
+      // button stayed disabled for the rest of the session and every later tap
+      // was silently ignored -- a dead button with no error on screen.
+      const detail = err instanceof Error ? err.message : String(err);
+      console.warn('[ruko-auth] sign-in threw: ' + detail);
+      setMessage(detail);
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }
 
   async function submit() {
     setBusy(true);
     setMessage(null);
-    const result =
-      mode === 'in'
-        ? await signInWithEmail(email.trim(), password)
-        : await signUpWithEmail(email.trim(), password);
+    let result;
+    try {
+      result =
+        mode === 'in'
+          ? await signInWithEmail(email.trim(), password)
+          : await signUpWithEmail(email.trim(), password);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : String(err));
+      setBusy(false);
+      return;
+    }
 
     if (result.error) {
       setMessage(result.error);
