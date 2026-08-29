@@ -45,6 +45,11 @@ dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
+    // On-device inference for the manipulation classifier (ml/ ships the model).
+    // The full android package carries the NNAPI execution provider; the backend
+    // is requested but only *reported* active if the runtime initialised on it.
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.20.0")
+
     // compileOnly: mobile/ owns the React Native version. Declaring it as a
     // hard dependency here would let this module drag a second, conflicting
     // copy of RN into the app.

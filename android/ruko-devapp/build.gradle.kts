@@ -16,12 +16,25 @@ android {
     namespace = "com.ruko.devapp"
     compileSdk = 35
 
+    // The 22 MB int8 model is already compressed; storing it uncompressed keeps
+    // asset load fast and lets onnxruntime read it without a decompress step.
+    androidResources {
+        noCompress += "onnx"
+    }
+
     defaultConfig {
         applicationId = "com.ruko.devapp"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
         versionName = "1.0.0-harness"
+
+        // The iQOO 15 (and every device in this market) is arm64. Shipping only
+        // this ABI keeps the harness APK to the model + one onnxruntime library
+        // instead of four, which matters when it is a downloadable release asset.
+        ndk {
+            abiFilters += "arm64-v8a"
+        }
     }
 
     buildTypes {

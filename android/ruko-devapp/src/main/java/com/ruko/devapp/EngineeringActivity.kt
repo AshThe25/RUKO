@@ -22,6 +22,8 @@ import com.ruko.nativemodule.accessibility.RukoAccessibilityService
 import com.ruko.nativemodule.ai.DeviceAiDiagnostics
 import com.ruko.nativemodule.audio.AudioSessionManager
 import com.ruko.nativemodule.runtime.RukoProtectionRuntime
+import com.ruko.nativemodule.ai.OnnxManipulationClassifier
+import com.ruko.core.ManipulationScoring
 import com.ruko.nativemodule.notifications.RukoNotificationListenerService
 import com.ruko.nativemodule.payment.DemoPaymentProvider
 
@@ -44,6 +46,8 @@ class EngineeringActivity : AppCompatActivity() {
     private lateinit var content: LinearLayout
     private var audio: AudioSessionManager? = null
     private var testStartedAudio = false
+    private var classifier: OnnxManipulationClassifier? = null
+    private var classifierLoadAttempted = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,6 +66,7 @@ class EngineeringActivity : AppCompatActivity() {
         // protected session is owned by the runtime and must survive leaving
         // the engineering screen.
         if (testStartedAudio) audio?.stop()
+        classifier?.close()
         super.onDestroy()
     }
 
@@ -75,9 +80,94 @@ class EngineeringActivity : AppCompatActivity() {
 
         content.addView(deviceCard())
         content.addView(backendCard())
+        content.addView(classifierCard())
         content.addView(permissionCard())
         content.addView(paymentCard())
         content.addView(microphoneCard())
+    }
+
+    /**
+     * The real on-device manipulation classifier: ml/'s int8 MiniLM run through
+     * onnxruntime, with the tokenizer and calibration parity-checked against the
+     * TypeScript pipeline. Loading and inference happen off the UI thread; every
+     * value shown is measured on this device.
+     */
+    private fun classifierCard() = card(this).apply {
+        addView(eyebrow(this@EngineeringActivity, "Manipulation classifier"))
+        addView(
+            body(
+                this@EngineeringActivity,
+                "ml/ ships ruko-manip-v1. Tap to load it and score a sample on this " +
+                    "device — the six manipulation tactics, the calibrated scores, the " +
+                    "measured latency and the backend the runtime actually used.",
+            ),
+        )
+        val status = body(this@EngineeringActivity, "Not loaded.", muted = false)
+        addView(status)
+
+        val scores = body(this@EngineeringActivity, "", muted = true)
+        addView(scores)
+
+        fun run(sampleLabel: String, text: String) {
+            status.text = "Loading model and scoring…"
+            scores.text = ""
+            Thread {
+                if (!classifierLoadAttempted) {
+                    classifierLoadAttempted = true
+                    classifier = OnnxManipulationClassifier.load(this@EngineeringActivity)
+                }
+                val c = classifier
+                if (c == null) {
+                    runOnUiThread {
+                        status.text = "Model could not be loaded (missing asset or hash mismatch). " +
+                            "Rules-only fallback would run in the product."
+                    }
+                    return@Thread
+                }
+                val result = c.classify(text)
+                runOnUiThread {
+                    val hash = if (c.modelHashVerified) "verified" else "UNVERIFIED"
+                    val present = if (result.present.isEmpty()) {
+                        "none over 0.5"
+                    } else {
+                        result.present.joinToString(", ") { it.name.lowercase() }
+                    }
+                    status.text = ("%s → backend %s · %d ms · hash %s\n" +
+                        "Tactics present: %s\n" +
+                        "Conversation risk: %.0f / %.0f points")
+                        .format(
+                            sampleLabel,
+                            result.backend.name,
+                            result.latencyMs,
+                            hash,
+                            present,
+                            result.conversationRiskPoints,
+                            ManipulationScoring.CONVERSATION_MAX_POINTS,
+                        )
+                    scores.text = ManipulationScoring.Label.entries.joinToString("\n") { label ->
+                        "  %-22s %.3f".format(label.name.lowercase(), result.calibrated[label] ?: 0.0)
+                    }
+                }
+            }.start()
+        }
+
+        addView(
+            button(this@EngineeringActivity, "Score a scam sample", primary = true) {
+                run(
+                    "scam sample",
+                    "hello sir i am calling from your bank your account will be frozen you " +
+                        "must transfer 48000 immediately and do not tell anyone about this call",
+                )
+            },
+        )
+        addView(
+            button(this@EngineeringActivity, "Score a benign sample", primary = false) {
+                run(
+                    "benign sample",
+                    "hey can you send me 200 for the pizza we split last night thanks",
+                )
+            },
+        )
     }
 
     private fun deviceCard() = card(this).apply {
@@ -120,7 +210,7 @@ class EngineeringActivity : AppCompatActivity() {
                 ContextCompat.getColor(this@EngineeringActivity, R.color.amber),
             ),
         )
-        addView(row(this@EngineeringActivity, "Model loaded", if (runtime.isReady) "yes" else "no — ml/ has not shipped one"))
+        addView(row(this@EngineeringActivity, "Model", "ruko-manip-v1 (int8, bundled) — see Manipulation classifier below"))
         addView(
             row(
                 this@EngineeringActivity,
