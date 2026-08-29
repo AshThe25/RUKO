@@ -214,7 +214,9 @@ function pollingProvider<T, E>(
 ) {
   const emitter = new Emitter<E>(initial);
   const refresh = async () => emitter.emit(map(await read()));
-  events.forEach(event => onNativeEvent(event as never, () => void refresh()));
+  // A refresh that fails leaves the last known value in place; the next event
+  // or read will correct it.
+  events.forEach(event => onNativeEvent(event as never, () => refresh().catch(() => {})));
   return {
     source,
     read: async (): Promise<E> => {
