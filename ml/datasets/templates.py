@@ -345,6 +345,155 @@ FAMILIES: list = [
         "Legal instructions prohibit you from sharing this with relatives.",
     )),
 
+    # --- secrecy: everyday concealment, not just legal framing (v3) ---- #
+    # v2 secrecy still leaned on institutional language ("confidential
+    # investigation", "official secrets"). Real concealment pressure is
+    # usually plainer than that, which is why the label kept underperforming
+    # on the authored holdout.
+    F("sec_plain_conceal", ("secrecy",), "en", (
+        "Let us keep this between the two of us for now.",
+        "There is no need to involve anyone else in this.",
+        "Better if nobody else knows what we discussed today.",
+        "Handle it yourself, do not loop in anyone.",
+    )),
+    F("sec_delete_traces", ("secrecy",), "en", (
+        "Clear the call log once we are finished here.",
+        "Delete these messages after you have read them.",
+        "Do not keep a record of this conversation anywhere.",
+    )),
+    F("sec_hinglish_plain", ("secrecy",), "hinglish", (
+        "Apne aap tak rakhiye ye baat, kisi aur ko involve mat kariye.",
+        "Baaki logon ko batane ki koi zaroorat nahi hai.",
+        "Message padh ke delete kar dena.",
+        "Ye humare beech hi rahega, theek hai na?",
+    )),
+
+    # ------------------------------------------------------------------ #
+    # GROOMING -- isolation of a child from trusted adults.
+    #
+    # This is the SAME secrecy tactic a scammer uses to keep a victim off the
+    # phone to their bank, so it scores on the existing `secrecy` label. No
+    # seventh label, no contract change. The lexicon already covers these
+    # patterns (mobile/src/risk/classifier/lexicon.ts); this gives the neural
+    # model the coverage it did not have.
+    # ------------------------------------------------------------------ #
+    F("groom_secret", ("secrecy",), "en", (
+        "This is our little secret, okay?",
+        "Do not tell your mum or dad about our chats.",
+        "If your parents ask, just say we talk about games.",
+        "Promise me you will not show this to your teacher.",
+    )),
+    F("groom_isolate", ("secrecy",), "en", (
+        "Are you home alone right now?",
+        "Message me when nobody is around you.",
+        "Is anyone else looking at your screen?",
+        "Wait until your parents are asleep, then reply.",
+    )),
+    F("groom_platform_move", ("secrecy",), "en", (
+        "Let us move this chat to Telegram, it is more private.",
+        "Add me on Snapchat instead, the messages disappear there.",
+        "Delete the chat history once you have replied.",
+    )),
+    F("groom_hinglish", ("secrecy",), "hinglish", (
+        "Ye apna secret hai, kisi ko mat batana.",
+        "Mummy papa ko mat dikhana ye chat.",
+        "Akele ho abhi? Koi aas paas to nahi hai?",
+        "Chat delete kar dena baad me.",
+    )),
+
+    # ------------------------------------------------------------------ #
+    # SEXTORTION -- threat to publish intimate images.
+    #
+    # Different content from an account-freeze threat, identical coercion
+    # structure: comply or you lose something you cannot get back. Scores on
+    # `coercion`, and usually co-occurs with secrecy and urgency.
+    # ------------------------------------------------------------------ #
+    F("sext_threat_publish", ("coercion",), "en", (
+        "I have screenshots and I will send them to your friends.",
+        "Do as I say or these pictures go to your whole contact list.",
+        "I will post the video on your school group if you ignore me.",
+        "Your parents will see everything unless you cooperate.",
+    )),
+    F("sext_reputation", ("coercion",), "en", (
+        "I can ruin your reputation in one minute, think about it.",
+        "Everyone at your college will know by tomorrow morning.",
+        "Your life will be finished once this goes out.",
+    )),
+    F("sext_hinglish", ("coercion",), "hinglish", (
+        "Tumhare saare dosto ko bhej dunga ye photos.",
+        "Ghar walo ko dikha dunga, phir dekhna kya hota hai.",
+        "Teri izzat barbaad kar dunga agar tune mana kiya.",
+        "School group me daal dunga video, samjhe?",
+    )),
+
+    # ------------------------------------------------------------------ #
+    # SAFEGUARDING / AWARENESS COPY -- the false-positive trap.
+    #
+    # This text uses the exact vocabulary of the abuse it warns about. An
+    # anti-sextortion poster says "if someone threatens to share your photos".
+    # Without these as explicit negatives the model learns the vocabulary
+    # rather than the intent, and a helpline advert scores as an attack.
+    # Labelled all-zero on purpose.
+    # ------------------------------------------------------------------ #
+    F("safe_awareness_sextortion", (), "en", (
+        "If someone threatens to share your photos, report it and tell a trusted adult.",
+        "No one has the right to blackmail you with pictures. Help is available.",
+        "Sharing intimate images without consent is a crime. You can report it.",
+        "If you are being blackmailed online, contact the cyber tipline immediately.",
+    ), "safe"),
+    F("safe_awareness_grooming", (), "en", (
+        "If an adult asks you to keep a secret from your parents, tell someone you trust.",
+        "A safe adult will never ask you to delete your chats.",
+        "Talk to a teacher or a parent if someone online makes you uncomfortable.",
+        "Childline is free and confidential if you need to talk to someone.",
+    ), "safe"),
+    F("safe_awareness_hinglish", (), "hinglish", (
+        "Agar koi aapko photos ke naam pe dhamka raha hai, turant report kijiye.",
+        "Kisi bhi ajnabi ko apni personal photos mat bhejiye.",
+        "Bacchon ko sikhaiye ki secret rakhne ko kaha jaye to bade ko batayein.",
+    ), "safe"),
+
+    # ------------------------------------------------------------------ #
+    # BENIGN USES OF SECRECY VOCABULARY -- hard negatives.
+    #
+    # Adding grooming families pushed `secrecy` to the most prevalent label in
+    # the training set, and the model started firing on the *words* rather
+    # than the intent: on the authored holdout secrecy recall hit 1.00 with
+    # precision 0.28. "Don't tell mum, it's a surprise" is not concealment
+    # pressure, and neither is deleting photos to free up storage.
+    #
+    # These carry the vocabulary with none of the intent, and are labelled
+    # all-zero so the model has to learn the difference.
+    # ------------------------------------------------------------------ #
+    F("safe_surprise_secret", (), "en", (
+        "Do not tell papa, the cake is meant to be a surprise.",
+        "Keep it secret until the party, she has no idea yet.",
+        "Shh, do not mention the gift in front of her.",
+        "It is a surprise for mummy, so no telling anyone at home.",
+    ), "safe"),
+    F("safe_ordinary_privacy", (), "en", (
+        "This is a private family matter, we will discuss it at home.",
+        "I would rather not talk about my salary with the whole office.",
+        "Let us keep the discussion in this group only, it gets confusing otherwise.",
+        "Between us, I think the new manager is doing a good job.",
+    ), "safe"),
+    F("safe_delete_mundane", (), "en", (
+        "Delete those old screenshots, the phone storage is full.",
+        "Clear the chat, it has three hundred forwards in it.",
+        "I deleted the messages by mistake, can you send them again?",
+    ), "safe"),
+    F("safe_alone_mundane", (), "en", (
+        "Are you home? I am outside with the parcel.",
+        "Are you alone or is the whole family there for dinner?",
+        "I am home alone today, come over if you are free.",
+    ), "safe"),
+    F("safe_secret_hinglish", (), "hinglish", (
+        "Mummy ko mat batana, surprise hai unke liye.",
+        "Ye baat abhi kisi ko mat bolna, plan final nahi hua hai.",
+        "Chat delete kar diya galti se, dobara bhej do.",
+        "Ghar pe akele ho? Main aa raha hoon.",
+    ), "safe"),
+
     # ------------------------------------------------------------------ #
     # CREDENTIAL REQUEST
     # ------------------------------------------------------------------ #
