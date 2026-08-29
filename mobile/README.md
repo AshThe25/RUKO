@@ -1,0 +1,111 @@
+# mobile/ — the Ruko app
+
+React Native + TypeScript. Owned by Aishwarya.
+
+```bash
+npm install
+npm start          # metro
+npm run android    # build + install on the connected iQOO 15
+npm test           # 66 tests
+npx tsc --noEmit
+npm run lint
+
+# proves the whole tree resolves and bundles for the device, no phone needed
+npx react-native bundle --platform android --dev false \
+  --entry-file index.js --bundle-output /tmp/ruko.bundle
+```
+
+### Before `npm run android` will work
+
+Not yet set up on this machine — these are needed on whichever machine drives
+the demo:
+
+- **Android SDK + platform-tools** (Android Studio, or `brew install --cask android-commandlinetools`),
+  with `ANDROID_HOME` exported and `adb` on the PATH.
+- **JDK 17.** This machine has JDK 24, which React Native 0.76's Gradle build
+  does not support. `brew install --cask zulu@17` and point `JAVA_HOME` at it.
+- The iQOO 15 in developer mode with USB debugging on, showing up in
+  `adb devices`.
+
+Everything above the line has been verified. The on-device build has **not** —
+no SDK and no device have been available, so nothing in this repo claims it has
+run on the phone yet.
+
+## Layout
+
+```
+src/
+  theme/         design tokens — colours, spacing, type, motion
+  components/    primitives: Txt, Screen, Card, Button, Pill, Row,
+                 RiskScore, SignalBar, InvestigationStep, state views
+  screens/       onboarding, permissions, home, investigation,
+                 intervention, guardian, history, engineering, RukoPayDemo
+  navigation/    state-driven router
+  store/         protection state machine + orchestration controller
+  services/      the service container, native adapters, diagnostics,
+                 and (for now) the stubs
+  utils/         formatting (money is paise everywhere), ids
+android/         native project — Puneesh's lane
+```
+
+React Native keeps `android/` inside the JS project, so native services live at
+`mobile/android/app/src/main/java/com/ruko/` rather than at the repo root.
+
+## How it is wired
+
+Every screen reads services from React context. The container is built once in
+[`src/services/createServices.ts`](src/services/createServices.ts) — that is the
+only file that knows whether it is talking to a stub or the real thing, and the
+only file that changes when the ML and Android layers land.
+
+```
+providers  →  investigation agent  →  risk engine  →  policy  →  screen
+  ↑                                                                
+native adapters when RukoNative is installed, stubs when it is not
+```
+
+`runtime.origins` records which half of every seam is live, and the home screen
+prints the stand-ins by name. There is no build in which the app looks like it
+has device access it does not have.
+
+The stubs are documented in
+[`src/services/stubs/README.md`](src/services/stubs/README.md). They report
+themselves honestly — `stub-lexicon-v0`, `HEURISTIC`, `source: 'DEMO'` — and the
+engineering screen prints those values verbatim.
+
+## Things that are deliberate
+
+- **Money is paise (`amountMinor`) everywhere.** Rupees exist only in
+  `utils/format.ts`, at the point of display.
+- **No live "current risk" number on the home screen.** With no payment in
+  progress there is nothing to score, so a number there would be invented.
+  The last real check is shown instead.
+- **The investigation screen paces its reveal.** The analysis finishes in
+  milliseconds; the feed reveals it a line at a time so a person can follow,
+  and prints the real compute time so the pacing cannot be mistaken for the
+  analysis.
+- **The back button cannot dismiss an intervention.** It is dismissed by making
+  a decision.
+- **Continuing past a critical warning takes a second, deliberate action** with
+  a short delay — long enough to think, not so long it feels like a punishment.
+- **The audit trail is persisted; the session is not.** Onboarding state,
+  permissions and the risk-event log survive a restart, because a log that
+  vanishes when the app closes is not a log. The current investigation, its
+  trace and any guardian alert are dropped — none of it should outlive the
+  payment it was about, and none of it contains a transcript. The user can
+  delete the log from the history screen.
+
+## Tests
+
+```
+riskEngine   scoring, corroboration, degraded evidence, the false-positive cases
+pipeline     scripted speech → classifier → agent → engine → policy, end to end
+classifier   pressure tactics detected, friendly requests not
+behaviour    the amount-anomaly curve and cold-start behaviour
+store        navigation stack and the audit log
+screens      every screen mounts, including empty, error and no-result states
+native       payload adapters and the stub fallback when there is no module
+persistence  what survives a restart, and what deliberately does not
+```
+
+66 tests.
