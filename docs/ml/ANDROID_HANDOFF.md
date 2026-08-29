@@ -126,14 +126,37 @@ whenever it suits you — no rush, and nothing else needs to change.
 
 | Component | Verified how |
 |---|---|
-| Risk engine, behaviour, payee, policy | 159 passing unit tests |
+| Risk engine, behaviour, payee, policy | 173 passing unit tests |
 | Agent + tools + full demo scenarios | end-to-end tests, real pipeline |
+| Cross-workstream seam | 7 tests driving my engine through contracts-v1.1 |
 | Lexical classifier | evaluated on 1,200 generated + 107 authored rows |
 | Tokenizer | exact token-id match with HuggingFace, 14 cases |
 | ONNX export and int8 quantisation | parity + benchmarks measured on host CPU |
+| **`OnnxClassifier` with a real ONNX session** | **7 tests running the real 22.9 MB model** |
 | **`reactNativeRuntime.ts`** | **NOT RUN ON A DEVICE YET** |
 
-That last row is the one piece I cannot test from here. It is deliberately thin
-for that reason. Until it runs on the iQOO 15, **nobody should claim NNAPI
-acceleration in the pitch** — once it does, the engineering screen will report
-the truth on its own, whatever that turns out to be.
+### What the real-inference run proved
+
+`OnnxClassifier` has now been executed against the actual exported model on a
+development machine (`onnxruntime-node`, see `realInference.test.ts`). That
+covers the wiring the fake-runtime tests structurally could not reach — int64
+tensor dtypes, `[1, seq]` dimensions, output-name lookup — which is the class of
+mistake that passes every unit test and then fails on a device. Measured through
+the complete TypeScript path (tokenize -> infer -> calibrate): **~2 ms per
+window on host CPU**, model hash verified, output matching Python to 1e-4.
+
+It also exercised the anti-overclaiming mechanism against a *real* runtime, not
+a fake: NNAPI was requested, CPU was granted, and the classifier reported `CPU`.
+
+### What is still unproven
+
+`reactNativeRuntime.ts` — the ~100 lines binding to `onnxruntime-react-native`.
+Different native bindings from the Node ones, so the run above does not transfer.
+It is deliberately thin for exactly this reason, and the classifier's side of the
+contract is now verified, so the remaining risk is confined to session creation
+and tensor marshalling in that one file.
+
+Until it runs on the iQOO 15, **nobody should claim NNAPI acceleration in the
+pitch** — once it does, the engineering screen will report the truth on its own,
+whatever that turns out to be. Note the Node run got CPU, and at ~2 ms that is
+already comfortably fast enough; NNAPI would be a bonus, not a requirement.

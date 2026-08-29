@@ -156,7 +156,13 @@ anywhere until it has been taken on the device.
    size budget — deferred to a Sarvam-backed path.
 3. **Windows, not dialogue.** No speaker diarisation, so the classifier cannot
    tell who said what.
-4. **The RN ONNX adapter has not run on a device yet.** See
-   `docs/ml/ANDROID_HANDOFF.md`. Until it has, no NNAPI claim should be made.
+4. **The RN ONNX adapter has not run on a device yet.** The classifier itself
+   *has* been run against the real exported model on a development machine
+   (`realInference.test.ts`, ~2 ms per window on host CPU, output matching
+   Python to 1e-4), which covers tensor marshalling and session wiring. What
+   remains unproven is the `onnxruntime-react-native` binding specifically. See
+   `docs/ml/ANDROID_HANDOFF.md`. Until it runs on hardware, no NNAPI claim
+   should be made — and note the Node run was granted CPU, which at ~2 ms is
+   already fast enough.
 5. **The behaviour profile needs 8+ transactions.** A brand-new install is
    deliberately conservative and says so in the UI rather than guessing.
