@@ -79,6 +79,11 @@ android {
 
     namespace "com.rukomobile"
     defaultConfig {
+        // reactNativeArchitectures only filters React Native's own libraries;
+        // a third-party AAR like onnxruntime still ships every ABI it has, and
+        // 65 MB of x86/x86_64/armeabi-v7a rode along in a build that only ever
+        // runs on arm64 phones -- pushing the APK past GitHub's 100 MB limit.
+        ndk { abiFilters 'arm64-v8a' }
         applicationId "com.rukomobile"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion

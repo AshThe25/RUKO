@@ -98,10 +98,15 @@ export function createServices(options: CreateServicesOptions = {}): RukoRuntime
   // be felt, and the lexicon is a genuine classifier in the meantime -- not a
   // placeholder.
   let live: LocalRiskClassifier = bus.getClassifier();
+  // Delegate every method, not a chosen few. An earlier version forwarded only
+  // classify and loadModel and silenced the mismatch with a cast, so
+  // getModelInfo() was undefined and the app died on its first render.
   const classifier: LocalRiskClassifier = {
-    classify: (...args) => live.classify(...args),
-    loadModel: () => live.loadModel?.() ?? Promise.resolve(),
-  } as LocalRiskClassifier;
+    loadModel: () => live.loadModel(),
+    classify: transcript => live.classify(transcript),
+    getModelInfo: () => live.getModelInfo(),
+    dispose: () => live.dispose(),
+  };
 
   void bringUpClassifier().then(result => {
     if (result.neural) live = result.classifier;

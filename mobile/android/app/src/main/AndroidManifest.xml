@@ -1,5 +1,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Android 11+ hides installed packages from apps unless they declare what
+         they need to see. Without this, Linking.canOpenURL('https://...')
+         answers false on a phone with a browser installed, and Google sign-in
+         refuses to start. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+    </queries>
+
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application

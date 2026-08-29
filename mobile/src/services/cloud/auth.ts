@@ -89,10 +89,16 @@ export async function signInWithGoogle(): Promise<{error: string | null}> {
   if (error) return {error: error.message};
   if (!data?.url) return {error: 'no authorisation url returned'};
 
-  const can = await Linking.canOpenURL(data.url);
-  if (!can) return {error: 'no browser available to complete sign-in'};
-  await Linking.openURL(data.url);
-  return {error: null};
+  // Deliberately not gated on canOpenURL: on Android 11+ it reports false for
+  // https unless the manifest declares a <queries> block, so a phone with three
+  // browsers installed still answers "no". openURL throws if it genuinely
+  // cannot resolve, which is the honest signal.
+  try {
+    await Linking.openURL(data.url);
+    return {error: null};
+  } catch {
+    return {error: 'could not open a browser to finish sign-in'};
+  }
 }
 
 /**

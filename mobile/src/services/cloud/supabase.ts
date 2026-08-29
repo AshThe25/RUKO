@@ -7,6 +7,8 @@
  * The `ruko` schema has nowhere to put those, so that limit is enforced by the
  * database rather than by remembering it at every call site.
  */
+// Before supabase-js: it decides at import time whether S256 is available.
+import './cryptoPolyfill';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {createClient} from '@supabase/supabase-js';
 import {SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL} from './config';
