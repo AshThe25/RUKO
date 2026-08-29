@@ -1,0 +1,838 @@
+<meta charset="utf-8">
+<title>Ruko</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700&display=swap">
+
+<style>
+  /*
+    Ruko — quiet register.
+    The ambient bloom runs warm amber into calm indigo on purpose: that is the
+    product's whole arc, alarm resolving into calm. Everything else stays out
+    of the way — hairline borders, one accent, a lot of air.
+  */
+  :root{
+    --ground:#FCFCFD;
+    --raised:#FFFFFF;
+    --sunk:#F6F6F8;
+    --ink:#17171B;
+    --ink-2:#43434E;
+    --muted:#767683;
+    --line:rgba(23,23,27,.10);
+    --line-2:rgba(23,23,27,.06);
+
+    --warm:#FF8A3D;
+    --cool:#8B93F8;
+    --critical:#C0392B;
+    --critical-soft:rgba(192,57,43,.09);
+    --safe:#3F8F5F;
+
+    --display:"Instrument Serif", Georgia, "Times New Roman", serif;
+    --body:"Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --ease:cubic-bezier(.16,1,.3,1);
+
+    --screen:#0E0F12;
+    --screen-ink:#F2F2F2;
+  }
+
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#0B0B0E;
+      --raised:#141419;
+      --sunk:#101014;
+      --ink:#F4F4F6;
+      --ink-2:#C3C3CC;
+      --muted:#8C8C99;
+      --line:rgba(255,255,255,.13);
+      --line-2:rgba(255,255,255,.07);
+      --critical:#FF6B5A;
+      --critical-soft:rgba(255,107,90,.14);
+      --safe:#5FBF87;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0B0B0E;
+    --raised:#141419;
+    --sunk:#101014;
+    --ink:#F4F4F6;
+    --ink-2:#C3C3CC;
+    --muted:#8C8C99;
+    --line:rgba(255,255,255,.13);
+    --line-2:rgba(255,255,255,.07);
+    --critical:#FF6B5A;
+    --critical-soft:rgba(255,107,90,.14);
+    --safe:#5FBF87;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+  body{
+    background:var(--ground);color:var(--ink);
+    font-family:var(--body);font-size:16.5px;line-height:1.6;
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  ::selection{background:var(--ink);color:var(--ground)}
+  a{color:inherit;text-decoration:none}
+
+  .shell{padding-inline:clamp(20px,5vw,40px)}
+  .inner{max-width:1120px;margin-inline:auto;width:100%}
+  .narrow{max-width:720px;margin-inline:auto}
+  section{position:relative}
+
+  /* ---------- type ---------- */
+  .eyebrow{
+    font-size:12px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;
+    color:var(--muted);
+  }
+  h1,h2,h3{font-family:var(--display);font-weight:400;letter-spacing:-.015em;text-wrap:balance}
+  h1{font-size:clamp(2.7rem,6.4vw,4.9rem);line-height:1.03}
+  h2{font-size:clamp(2rem,4.2vw,3.1rem);line-height:1.08}
+  h3{font-size:1.32rem;line-height:1.25}
+  .lede{font-size:clamp(1.02rem,1.5vw,1.17rem);line-height:1.62;color:var(--ink-2)}
+  .small{font-size:.92rem;line-height:1.62;color:var(--muted)}
+  .num{font-variant-numeric:tabular-nums}
+  .ital{font-style:italic}
+
+  /* ---------- bloom ---------- */
+  .bloom{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+  .bloom i{position:absolute;display:block;border-radius:50%;filter:blur(90px);opacity:.55}
+  .bloom .warm{
+    width:min(760px,88vw);height:340px;top:-150px;left:50%;transform:translateX(-50%);
+    background:radial-gradient(closest-side,var(--warm),transparent);
+    opacity:.72;
+  }
+  .bloom .cool-l{
+    width:min(620px,76vw);height:440px;top:-40px;left:-8%;
+    background:radial-gradient(closest-side,var(--cool),transparent);
+  }
+  .bloom .cool-r{
+    width:min(620px,76vw);height:440px;top:-40px;right:-8%;
+    background:radial-gradient(closest-side,var(--cool),transparent);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]) .bloom i{opacity:.4;filter:blur(110px)}
+  }
+  :root[data-theme="dark"] .bloom i{opacity:.4;filter:blur(110px)}
+
+  /* ---------- nav ---------- */
+  nav{
+    position:sticky;top:0;z-index:50;
+    display:flex;align-items:center;justify-content:space-between;gap:20px;
+    padding:16px clamp(20px,5vw,40px);
+    background:color-mix(in srgb, var(--ground) 82%, transparent);
+    backdrop-filter:blur(14px) saturate(160%);
+    -webkit-backdrop-filter:blur(14px) saturate(160%);
+  }
+  .brand{font-family:var(--display);font-size:1.42rem;letter-spacing:-.02em}
+  .navlinks{display:flex;gap:30px}
+  .navlinks a{font-size:.92rem;font-weight:500;color:var(--ink-2);transition:color .2s}
+  .navlinks a:hover{color:var(--ink)}
+  @media(max-width:880px){.navlinks{display:none}}
+
+  .pill{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:11px 22px;border-radius:99px;
+    font-family:var(--body);font-size:.92rem;font-weight:600;
+    border:1px solid transparent;cursor:pointer;
+    transition:transform .18s var(--ease),background .2s,border-color .2s,opacity .2s;
+  }
+  .pill:active{transform:scale(.97)}
+  .pill:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+  .pill-solid{background:var(--ink);color:var(--ground)}
+  .pill-solid:hover{opacity:.86}
+  .pill-ghost{background:var(--raised);color:var(--ink);border-color:var(--line)}
+  .pill-ghost:hover{background:var(--sunk)}
+  .pill-lg{padding:15px 30px;font-size:1rem}
+
+  /* ---------- hero ---------- */
+  .hero{padding:clamp(56px,9vw,104px) 0 clamp(40px,6vw,64px);text-align:center}
+  .hero .inner{position:relative;z-index:1}
+  .flourish{display:block;margin:0 auto 26px;opacity:.5}
+  .hero .eyebrow{color:var(--cool);font-weight:700}
+  :root[data-theme="dark"] .hero .eyebrow{color:#A8AEFF}
+  .hero h1{margin-top:18px}
+  .hero .lede{margin:22px auto 0;max-width:36rem}
+  .hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:34px}
+
+  /* ---------- watch strip ---------- */
+  .strip{padding:clamp(40px,6vw,72px) 0 clamp(20px,3vw,32px);text-align:center}
+  .strip .eyebrow{display:block;margin-bottom:26px}
+  .dock{
+    display:flex;justify-content:center;align-items:flex-end;gap:clamp(16px,4vw,54px);
+    flex-wrap:wrap;
+  }
+  .dock-item{
+    display:flex;flex-direction:column;align-items:center;gap:9px;
+    transform-origin:bottom center;transition:transform .14s linear;
+    color:var(--muted);
+  }
+  .dock-icon{
+    width:34px;height:34px;display:grid;place-items:center;
+    opacity:.5;transition:opacity .2s;
+  }
+  .dock-item:hover .dock-icon{opacity:1}
+  .dock-item span{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;white-space:nowrap}
+
+  /* ---------- generic block ---------- */
+  .block{padding:clamp(60px,9vw,120px) 0}
+  .block-head{max-width:640px}
+  .block-head.center{margin-inline:auto;text-align:center}
+  .block-head .eyebrow{display:block;margin-bottom:16px}
+  .block-head p{margin-top:18px}
+
+  .rule{height:1px;background:var(--line-2);border:0}
+
+  /* ---------- cards ---------- */
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:44px}
+  @media(max-width:880px){.cards{grid-template-columns:1fr}}
+  .card{
+    background:var(--raised);border:1px solid var(--line);border-radius:18px;
+    padding:28px;display:flex;flex-direction:column;gap:12px;
+    transition:border-color .25s,transform .25s var(--ease);
+  }
+  .card:hover{border-color:color-mix(in srgb,var(--ink) 22%,transparent);transform:translateY(-2px)}
+  .card .k{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .card p{font-size:.96rem;line-height:1.58;color:var(--ink-2)}
+
+  /* ---------- steps ---------- */
+  .steps{margin-top:48px;display:flex;flex-direction:column}
+  .step{
+    display:grid;grid-template-columns:52px 1fr;gap:26px;
+    padding:30px 0;border-top:1px solid var(--line-2);align-items:start;
+  }
+  .steps .step:last-child{border-bottom:1px solid var(--line-2)}
+  .step .n{font-family:var(--display);font-size:1.5rem;color:var(--muted);line-height:1}
+  .step p{margin-top:9px;font-size:.97rem;line-height:1.62;color:var(--ink-2);max-width:64ch}
+
+  .bars{
+    margin-top:18px;height:52px;display:flex;align-items:flex-end;gap:3px;
+    max-width:430px;
+  }
+  .bars i{flex:1;min-width:2px;border-radius:2px;background:linear-gradient(to top,var(--cool),var(--warm));opacity:.85;height:16%}
+
+  /* ---------- score ---------- */
+  .score-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(28px,5vw,64px);align-items:start}
+  @media(max-width:880px){.score-grid{grid-template-columns:1fr}}
+  .ledger{display:flex;flex-direction:column}
+  .lrow{
+    display:flex;justify-content:space-between;align-items:center;gap:16px;
+    padding:15px 0;border-top:1px solid var(--line-2);font-size:.95rem;
+  }
+  .lrow:last-of-type{border-bottom:1px solid var(--line-2)}
+  .lrow .v{font-weight:700;color:var(--critical)}
+  .lrow.local .k{color:var(--ink-2)}
+  .lrow.local .v{color:var(--cool)}
+  :root[data-theme="dark"] .lrow.local .v{color:#A8AEFF}
+  .ltotal{
+    display:flex;justify-content:space-between;align-items:baseline;
+    margin-top:22px;padding-top:20px;border-top:1px solid var(--line);
+  }
+  .ltotal span{font-size:.9rem;color:var(--muted)}
+  .ltotal b{font-family:var(--display);font-size:2.6rem;font-weight:400;color:var(--critical)}
+
+  .vu-card{background:var(--sunk);border:1px solid var(--line);border-radius:18px;padding:24px}
+  .vu-cols{display:flex;gap:8px;align-items:stretch;height:132px}
+  .vu-col{flex:1;display:flex;flex-direction:column-reverse;gap:4px;min-width:0}
+  .vu-col i{flex:1;min-height:0;border-radius:2px;background:var(--line-2)}
+  .vu-col i.lit{background:var(--cool);opacity:.55}
+  .vu-col i.lit.top{background:var(--critical);opacity:1}
+  .vu-labels{display:flex;gap:8px;margin-top:12px}
+  .vu-labels span{
+    flex:1;text-align:center;font-size:9.5px;font-weight:600;letter-spacing:.05em;
+    text-transform:uppercase;color:var(--muted);min-width:0;
+  }
+
+  /* ---------- scenarios ---------- */
+  .scen{
+    background:var(--raised);border:1px solid var(--line);border-radius:18px;
+    padding:26px;display:flex;flex-direction:column;gap:13px;
+  }
+  .scen.crit{border-color:color-mix(in srgb,var(--critical) 40%,transparent);background:var(--critical-soft)}
+  .scen .tag{font-size:11px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:var(--muted)}
+  .scen .quote{font-family:var(--display);font-size:1.16rem;line-height:1.34}
+  .scen .why{font-size:.88rem;color:var(--muted);line-height:1.55}
+  .scen .verdict{
+    margin-top:auto;padding-top:16px;border-top:1px solid var(--line-2);
+    display:flex;align-items:baseline;gap:10px;
+  }
+  .scen .verdict b{font-family:var(--display);font-size:2rem;font-weight:400}
+  .scen .verdict i{font-style:normal;font-size:11px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:var(--muted)}
+  .scen.safe .verdict b{color:var(--safe)}
+  .scen.crit .verdict b{color:var(--critical)}
+
+  /* ---------- feed ---------- */
+  .feed{
+    display:flex;flex-direction:column;gap:9px;margin-top:40px;
+    max-width:620px;margin-inline:auto;min-height:330px;
+  }
+  .feed-item{
+    display:flex;align-items:center;justify-content:space-between;gap:14px;
+    padding:15px 18px;background:var(--raised);border:1px solid var(--line);
+    border-radius:14px;
+    opacity:0;transform:translateY(-14px) scale(.97);
+    transition:opacity .5s var(--ease),transform .5s var(--ease),
+               max-height .3s ease-in,margin .3s ease-in,padding .3s ease-in;
+    overflow:hidden;
+  }
+  .feed-item.in{opacity:1;transform:none}
+  .feed-item.out{opacity:0;transform:translateY(5px) scale(.98);max-height:0;margin:0;padding-block:0;border-width:0}
+  .fmeta b{display:block;font-size:.93rem;font-weight:600}
+  .fmeta span{display:block;font-size:.8rem;color:var(--muted);margin-top:2px}
+  .ftag{
+    font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+    padding:5px 11px;border-radius:99px;flex:none;
+  }
+  .ftag.safe{background:var(--sunk);color:var(--muted)}
+  .ftag.crit{background:var(--critical);color:#fff}
+
+  /* ---------- phone ---------- */
+  .phone-wrap{display:flex;justify-content:center;margin-top:clamp(48px,7vw,72px);position:relative;z-index:1}
+  .phone{
+    width:min(300px,78vw);aspect-ratio:9/19.3;background:#000;
+    border-radius:42px;padding:9px;
+    box-shadow:0 40px 90px -34px rgba(20,20,40,.5),0 0 0 1px rgba(0,0,0,.06);
+  }
+  .screen{
+    width:100%;height:100%;background:var(--screen);color:var(--screen-ink);
+    border-radius:34px;padding:26px 18px 18px;
+    display:flex;flex-direction:column;position:relative;overflow:hidden;
+  }
+  .notch{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:64px;height:5px;border-radius:99px;background:rgba(255,255,255,.16)}
+  .s-chip{
+    align-self:flex-start;background:rgba(255,107,90,.16);color:#FF8B7B;
+    font-size:9.5px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;
+    padding:5px 11px;border-radius:99px;margin-top:12px;
+  }
+  .s-title{font-family:var(--display);font-size:1.5rem;line-height:1.1;margin-top:14px;color:var(--screen-ink)}
+  .s-sub{font-size:.7rem;line-height:1.5;color:rgba(255,255,255,.52);margin-top:8px}
+  .s-amt{margin-top:15px;padding:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:13px}
+  .s-amt b{display:block;font-family:var(--display);font-size:1.6rem;font-weight:400;color:var(--screen-ink)}
+  .s-amt i{display:block;font-style:normal;font-size:.7rem;color:rgba(255,255,255,.5);margin-top:3px}
+  .s-why{font-size:9px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:rgba(255,255,255,.36);margin-top:16px}
+  .s-list{list-style:none;margin-top:9px;display:flex;flex-direction:column;gap:7px}
+  .s-list li{font-size:.72rem;line-height:1.35;color:rgba(255,255,255,.84);display:flex;gap:9px}
+  .s-list li::before{content:"";width:4px;height:4px;border-radius:50%;background:#FF6B5A;margin-top:5px;flex:none}
+  .s-btns{margin-top:auto;display:flex;flex-direction:column;gap:7px;padding-top:14px}
+  .s-btn{padding:12px;text-align:center;font-size:.78rem;font-weight:600;border-radius:12px}
+  .s-btn.primary{background:var(--screen-ink);color:var(--screen)}
+  .s-btn.ghost{color:rgba(255,255,255,.42);font-weight:500}
+
+  /* ---------- switch ---------- */
+  .switch-row{
+    display:flex;align-items:center;justify-content:center;gap:18px;
+    margin-top:30px;
+  }
+  .switch-copy{text-align:left}
+  .switch-copy strong{display:block;font-size:.92rem;font-weight:600}
+  .switch-copy span{display:block;font-size:.82rem;color:var(--muted);margin-top:1px}
+  .aswitch{
+    position:relative;flex:none;width:52px;height:31px;border-radius:99px;
+    background:var(--line);border:none;cursor:pointer;padding:0;
+    transition:background .28s var(--ease);
+  }
+  .aswitch[aria-checked="true"]{background:var(--safe)}
+  .aswitch .thumb{
+    position:absolute;top:3px;left:3px;width:25px;height:25px;border-radius:50%;
+    background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.22);
+    transition:transform .34s cubic-bezier(.34,1.56,.64,1),width .18s var(--ease);
+  }
+  .aswitch[aria-checked="true"] .thumb{transform:translateX(21px)}
+  .aswitch:active .thumb{width:30px}
+  .aswitch:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+
+  /* ---------- limits ---------- */
+  .limits{margin-top:44px;display:flex;flex-direction:column}
+  .limit{
+    display:grid;grid-template-columns:26px 1fr;gap:20px;align-items:start;
+    padding:26px 0;border-top:1px solid var(--line-2);
+  }
+  .limits .limit:last-child{border-bottom:1px solid var(--line-2)}
+  .limit .x{color:var(--muted);font-size:1.1rem;line-height:1.3}
+  .limit p{margin-top:8px;font-size:.95rem;line-height:1.6;color:var(--ink-2);max-width:66ch}
+
+  /* ---------- stats ---------- */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:44px}
+  @media(max-width:820px){.stats{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:var(--raised);border:1px solid var(--line);border-radius:18px;padding:26px}
+  .stat b{display:block;font-family:var(--display);font-size:2.3rem;font-weight:400;line-height:1}
+  .stat .k{display:block;font-size:11px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);margin-top:12px}
+  .stat small{display:block;font-size:.83rem;color:var(--muted);margin-top:10px;line-height:1.5}
+
+  /* ---------- download ---------- */
+  .dl{padding:clamp(64px,9vw,120px) 0;text-align:center;position:relative;overflow:hidden}
+  .dl .inner{position:relative;z-index:1}
+  .dl .lede{margin:20px auto 0;max-width:34rem}
+  .dl-note{font-size:.83rem;color:var(--muted);margin-top:18px}
+
+  /* ---------- footer ---------- */
+  footer{border-top:1px solid var(--line-2);padding:56px 0 40px;margin-top:40px}
+  .foot{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:34px}
+  @media(max-width:760px){.foot{grid-template-columns:1fr 1fr}}
+  .foot-brand{font-family:var(--display);font-size:1.42rem}
+  .foot p{font-size:.88rem;color:var(--muted);line-height:1.6;margin-top:12px;max-width:32ch}
+  .fcol span{display:block;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:13px}
+  .fcol a{display:block;font-size:.9rem;color:var(--ink-2);margin-bottom:9px;transition:color .2s}
+  .fcol a:hover{color:var(--ink)}
+  .foot-end{
+    margin-top:48px;padding-top:22px;border-top:1px solid var(--line-2);
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;
+    font-size:.82rem;color:var(--muted);
+  }
+
+  /* ---------- modal ---------- */
+  .backdrop{
+    position:fixed;inset:0;z-index:80;background:rgba(10,10,16,.5);
+    backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);
+    display:grid;place-items:center;padding:20px;
+    opacity:0;pointer-events:none;transition:opacity .28s var(--ease);
+  }
+  .backdrop.open{opacity:1;pointer-events:auto}
+  .modal{
+    width:min(520px,100%);background:var(--raised);border:1px solid var(--line);
+    border-radius:22px;padding:clamp(26px,4vw,38px);
+    transform:translateY(18px);transition:transform .38s var(--ease);
+    max-height:88vh;overflow-y:auto;text-align:left;
+  }
+  .backdrop.open .modal{transform:none}
+  .modal h3{margin:14px 0 12px}
+  .modal p{font-size:.94rem;line-height:1.62;color:var(--ink-2)}
+  .msteps{list-style:none;margin-top:20px;display:flex;flex-direction:column;gap:11px}
+  .msteps li{display:grid;grid-template-columns:22px 1fr;gap:12px;font-size:.9rem;line-height:1.55;color:var(--ink-2)}
+  .msteps b{font-family:var(--display);color:var(--ink);font-weight:400}
+  .modal code{
+    display:block;margin-top:16px;font-family:ui-monospace,"SF Mono",Menlo,monospace;
+    font-size:.8rem;background:var(--sunk);border:1px solid var(--line);
+    border-radius:11px;padding:12px 14px;overflow-x:auto;color:var(--ink-2);
+  }
+  .modal .pill{margin-top:24px;width:100%;justify-content:center}
+
+  .rv{opacity:0;transform:translateY(22px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
+  .rv.in{opacity:1;transform:none}
+
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+    .rv{opacity:1;transform:none}
+    html{scroll-behavior:auto}
+  }
+</style>
+
+<nav>
+  <div class="brand">Ruko</div>
+  <div class="navlinks">
+    <a href="#how">How it works</a>
+    <a href="#score">The score</a>
+    <a href="#limits">Limits</a>
+    <a href="#download">Download</a>
+  </div>
+  <button class="pill pill-solid" data-open-dl>Get the app</button>
+</nav>
+
+<!-- HERO -->
+<section class="hero shell" id="top">
+  <div class="bloom"><i class="warm"></i><i class="cool-l"></i><i class="cool-r"></i></div>
+  <div class="inner">
+    <svg class="flourish" width="210" height="26" viewBox="0 0 210 26" fill="none" aria-hidden="true">
+      <path d="M2 20h74M134 20h74" stroke="currentColor" stroke-width="1" opacity=".45"/>
+      <path d="M80 20c8 0 12-10 18-10s8 6 4 9-10 1-10-5 6-9 13-9" stroke="currentColor" stroke-width="1.1" fill="none" opacity=".7"/>
+      <path d="M130 20c-8 0-12-10-18-10s-8 6-4 9 10 1 10-5-6-9-13-9" stroke="currentColor" stroke-width="1.1" fill="none" opacity=".7"/>
+    </svg>
+    <span class="eyebrow">On-device · Works offline</span>
+    <h1>The pause before<br>you're talked into it</h1>
+    <p class="lede">Your phone, your account, your PIN, your finger on the button. Every fraud check in the country says this payment is fine — because the attack isn't on your device. It's on you.</p>
+    <div class="hero-cta">
+      <button class="pill pill-solid pill-lg" data-open-dl>Download for Android</button>
+      <a class="pill pill-ghost pill-lg" href="#how">See how it works</a>
+    </div>
+
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="screen">
+          <div class="notch"></div>
+          <div class="s-chip" data-protection-chip>Critical · 82/100</div>
+          <div class="s-title">Stop for a moment.</div>
+          <div class="s-sub">You may be under pressure from the person you're speaking to. Nothing has been paid yet.</div>
+          <div class="s-amt"><b>₹48,000</b><i>to Ravi Verify</i></div>
+          <div class="s-why">Why Ruko stopped</div>
+          <ul class="s-list">
+            <li>The caller is pressuring you</li>
+            <li>They're claiming to be your bank</li>
+            <li>You've never paid this recipient</li>
+            <li>20× larger than your usual payment</li>
+          </ul>
+          <div class="s-btns"><div class="s-btn primary">Don't pay</div><div class="s-btn ghost">I'm sure — continue</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="switch-row">
+      <div class="switch-copy">
+        <strong id="sw-label">Protection is on</strong>
+        <span id="sw-desc">Toggle to see what the screen does</span>
+      </div>
+      <button class="aswitch" role="switch" aria-checked="true" aria-labelledby="sw-label" data-protection-switch><span class="thumb"></span></button>
+    </div>
+  </div>
+</section>
+
+<!-- WATCH STRIP -->
+<section class="strip shell">
+  <div class="inner">
+    <span class="eyebrow">Six things Ruko watches</span>
+    <div class="dock" data-dock>
+      <div class="dock-item" data-dock-item><span class="dock-icon"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg></span><span>Room</span></div>
+      <div class="dock-item" data-dock-item><span class="dock-icon"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span><span>Payment</span></div>
+      <div class="dock-item" data-dock-item><span class="dock-icon"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span><span>Recipient</span></div>
+      <div class="dock-item" data-dock-item><span class="dock-icon"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L14 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 3 5a1 1 0 0 1 1-1Z"/></svg></span><span>Caller</span></div>
+      <div class="dock-item" data-dock-item><span class="dock-icon"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 9a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6M10 20a2 2 0 0 0 4 0"/></svg></span><span>Alerts</span></div>
+      <div class="dock-item" data-dock-item><span class="dock-icon"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 20V10M10 20V4M16 20v-8M22 20h-20"/></svg></span><span>Behaviour</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- BLIND SPOT -->
+<section class="block shell">
+  <div class="inner">
+    <div class="block-head center rv">
+      <span class="eyebrow">The blind spot</span>
+      <h2>Nobody watches the room</h2>
+      <p class="lede">A scammer doesn't break your encryption. They call, say your account freezes in ten minutes, and let you do the rest. Every technical signal stays clean — because you sent the money.</p>
+    </div>
+    <div class="cards">
+      <div class="card rv"><span class="k">Authenticated</span><p>Biometrics, OTP, device fingerprint — all green, because the victim really is the account holder.</p></div>
+      <div class="card rv"><span class="k">Unwatched</span><p>The signal lives in the conversation. Authority, threats, deadlines, secrecy — minutes before the transfer.</p></div>
+      <div class="card rv"><span class="k">Irreversible</span><p>Once the PIN is entered the money is gone. Protection has to arrive before the confirm button, not after.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW -->
+<section class="block shell" id="how">
+  <div class="inner narrow">
+    <div class="block-head center rv">
+      <span class="eyebrow">How it works</span>
+      <h2>Six steps, all on the phone</h2>
+      <p class="lede">None of them need signal. None of them reach a server.</p>
+    </div>
+    <div class="steps">
+      <div class="step rv">
+        <span class="n">01</span>
+        <div>
+          <h3>It hears the room, and forgets it</h3>
+          <p>Microphone live during a protected session, notification-visible. Audio is processed in memory and discarded — never stored, never uploaded, never leaving the native layer.</p>
+          <div class="bars" data-bars aria-hidden="true"></div>
+        </div>
+      </div>
+      <div class="step rv"><span class="n">02</span><div><h3>Speech becomes text, on the phone</h3><p>An on-device recogniser turns a rolling window into words. Nothing about the conversation reaches a server — there is no server in this path.</p></div></div>
+      <div class="step rv"><span class="n">03</span><div><h3>A small model scores six pressure tactics</h3><p>Not "is this a scam" — too big a question. Instead: authority, threat, urgency, payment instruction, secrecy, credential request. Six numbers, plus how confident it actually is.</p></div></div>
+      <div class="step rv"><span class="n">04</span><div><h3>It checks boring local facts</h3><p>No AI. Paid this person before? What do you normally send? On a call with an unknown number? All answered from your own phone's history.</p></div></div>
+      <div class="step rv"><span class="n">05</span><div><h3>Arithmetic decides — not the AI</h3><p>Every signal × a fixed weight × a trust gate, added up. A pure function: same evidence, same score, every phone, every time.</p></div></div>
+      <div class="step rv"><span class="n">06</span><div><h3>You get the reasons, not a verdict</h3><p><em class="ital">Don't pay</em> is the easy button. Continuing takes one deliberate extra tap — because sometimes Ruko will be wrong, and you're the one who knows.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- SCORE -->
+<section class="block shell" id="score">
+  <div class="inner">
+    <div class="block-head center rv">
+      <span class="eyebrow">No black box</span>
+      <h2>Just addition</h2>
+      <p class="lede">The actual maths behind the screen above. Red rows come from the model. Blue rows come from your own phone — and even at full confidence the model can't cross the line alone.</p>
+    </div>
+    <div class="score-grid" style="margin-top:52px">
+      <div class="ledger rv">
+        <div class="lrow"><span class="k">Caller is threatening you</span><span class="v num">22.8</span></div>
+        <div class="lrow"><span class="k">Claiming to be your bank</span><span class="v num">18.8</span></div>
+        <div class="lrow"><span class="k">Instructing a payment</span><span class="v num">14.6</span></div>
+        <div class="lrow"><span class="k">Creating a deadline</span><span class="v num">9.6</span></div>
+        <div class="lrow local"><span class="k">Never paid this recipient</span><span class="v num">10.0</span></div>
+        <div class="lrow local"><span class="k">20× your usual amount</span><span class="v num">10.0</span></div>
+        <div class="lrow local"><span class="k">Unknown caller</span><span class="v num">5.0</span></div>
+        <div class="lrow"><span class="k">Asked you to stay quiet</span><span class="v num">3.6</span></div>
+        <div class="ltotal"><span>Total — full stop</span><b class="num">82</b></div>
+      </div>
+      <div class="vu-card rv">
+        <div class="vu-cols" data-vu data-levels="0.94,0.91,0.97,0.96,0.72,0.10"></div>
+        <div class="vu-labels"><span>Auth</span><span>Coerce</span><span>Pay</span><span>Urgent</span><span>Secret</span><span>Cred</span></div>
+        <p class="small" style="margin-top:16px">A frightening conversation alone is capped below 80. The top band always needs a second, independent kind of evidence to agree — which is what stops a jumpy model from freezing your rent.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SCENARIOS -->
+<section class="block shell">
+  <div class="inner">
+    <div class="block-head center rv">
+      <span class="eyebrow">Staying quiet</span>
+      <h2>Two of these three do nothing</h2>
+      <p class="lede">A safety app that cries wolf gets switched off. Most of the work is in not firing.</p>
+    </div>
+    <div class="cards">
+      <div class="scen safe rv">
+        <span class="tag">Friend</span>
+        <p class="quote">"Can you send 500 for dinner whenever? No rush at all."</p>
+        <p class="why">No pressure, no deadline — and you've paid Ananya 14 times before.</p>
+        <div class="verdict"><b class="num">4</b><i>Silent</i></div>
+      </div>
+      <div class="scen safe rv">
+        <span class="tag">Landlord</span>
+        <p class="quote">₹50,000 rent, same week, same recipient as the last nine months.</p>
+        <p class="why">Roughly 60× a typical payment — and completely normal for this user.</p>
+        <div class="verdict"><b class="num">0</b><i>Silent</i></div>
+      </div>
+      <div class="scen crit rv">
+        <span class="tag">Scammer</span>
+        <p class="quote">"Your account freezes in ten minutes. Transfer 48,000 now. Don't disconnect."</p>
+        <p class="why">Authority, threat, deadline, secrecy — plus a new recipient during an unknown call.</p>
+        <div class="verdict"><b class="num">82</b><i>Full stop</i></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEED -->
+<section class="block shell">
+  <div class="inner">
+    <div class="block-head center rv">
+      <span class="eyebrow">Every decision, live</span>
+      <h2>Mostly, nothing happens</h2>
+      <p class="lede">A simulated stream of what Ruko checks through an ordinary day.</p>
+    </div>
+    <div class="feed" data-feed aria-live="polite"></div>
+  </div>
+</section>
+
+<!-- PRIVACY -->
+<section class="block shell">
+  <div class="inner">
+    <div class="block-head center rv">
+      <span class="eyebrow">Privacy</span>
+      <h2>Nothing leaves the phone</h2>
+    </div>
+    <div class="cards">
+      <div class="card rv"><span class="k">Audio</span><p>Lives in memory for one window, then it's gone. It never crosses out of the native layer.</p></div>
+      <div class="card rv"><span class="k">Recipients</span><p>Hashed locally with a random per-install salt before anything is written down.</p></div>
+      <div class="card rv"><span class="k">Guardian</span><p>A paired guardian sees the amount, the recipient's name, and the reasons. Never the transcript.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- LIMITS -->
+<section class="block shell" id="limits">
+  <div class="inner narrow">
+    <div class="block-head center rv">
+      <span class="eyebrow">Honest limits</span>
+      <h2>What it can't do</h2>
+      <p class="lede">Every safety product that overclaims gets caught eventually. So here are the limits, first, in our own words.</p>
+    </div>
+    <div class="limits">
+      <div class="limit rv"><span class="x">—</span><div><h3>It cannot record your phone call</h3><p>Android reserves call audio for privileged system apps. Ruko hears the room through the ordinary microphone: works on speaker, deaf at the ear, and says so.</p></div></div>
+      <div class="limit rv"><span class="x">—</span><div><h3>It cannot cancel a payment inside GPay or PhonePe</h3><p>No public API lets one app block another's transaction. Ruko reads what's visible on screen and interrupts the decision, not the transfer. The real fix is OEM integration.</p></div></div>
+      <div class="limit rv"><span class="x">—</span><div><h3>It doesn't understand every language yet</h3><p>English and romanised Hinglish today. Devanagari needs a tokeniser roughly five times larger — a real gap, not a rounding error.</p></div></div>
+      <div class="limit rv"><span class="x">—</span><div><h3>It will sometimes be wrong</h3><p>0.63 macro F1 on hand-written text it has never seen — useful, not solved. That is exactly why arithmetic makes the final call, and "continue anyway" is always one tap away.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section class="block shell">
+  <div class="inner">
+    <div class="block-head center rv">
+      <span class="eyebrow">Measured, not claimed</span>
+      <h2>The numbers we'd rather not round up</h2>
+    </div>
+    <div class="stats">
+      <div class="stat rv"><b class="num">0.631</b><span class="k">Macro F1</span><small>Hand-authored text, never seen. We quote this over the flattering 0.837.</small></div>
+      <div class="stat rv"><b class="num">1.12<span style="font-size:1rem">ms</span></b><span class="k">Median inference</span><small>Host CPU, int8. On-device latency is shown live in the app.</small></div>
+      <div class="stat rv"><b class="num">1.87<span style="font-size:1rem">%</span></b><span class="k">Quantisation drift</span><small>Label decisions flipped after 4× compression, against a 3% ceiling.</small></div>
+      <div class="stat rv"><b class="num">275</b><span class="k">Tests passing</span><small>Across the risk engine, the app, and the relay.</small></div>
+    </div>
+  </div>
+</section>
+
+<!-- DOWNLOAD -->
+<section class="dl shell" id="download">
+  <div class="bloom"><i class="warm" style="top:auto;bottom:-190px;opacity:.5"></i></div>
+  <div class="inner">
+    <span class="eyebrow">Prototype build · Android</span>
+    <h2 style="margin-top:16px">Put it on your phone</h2>
+    <p class="lede">Ruko runs entirely on-device. Nothing to sign up for, no account to create. Install it, grant the microphone, and it stays quiet until it matters.</p>
+    <div class="hero-cta"><button class="pill pill-solid pill-lg" data-open-dl>Download for Android</button></div>
+    <p class="dl-note">Sideloaded APK, not a Play Store listing — Ruko needs permissions Play policy restricts for good reasons.</p>
+  </div>
+</section>
+
+<footer class="shell">
+  <div class="inner">
+    <div class="foot">
+      <div>
+        <div class="foot-brand">Ruko</div>
+        <p>Built for the iQOO Hackathon. Fraud systems protect the transaction. Ruko protects the decision before it.</p>
+      </div>
+      <div class="fcol"><span>Team</span><a href="#">Aishwarya — Mobile</a><a href="#">Vedant — Model &amp; risk</a><a href="#">Puneesh — Android &amp; relay</a></div>
+      <div class="fcol"><span>Product</span><a href="#how">How it works</a><a href="#score">The score</a><a href="#limits">Limits</a></div>
+      <div class="fcol"><span>Get it</span><a href="#download">Download</a><a href="#top">Back to top</a></div>
+    </div>
+    <div class="foot-end"><span>© Ruko</span><span>iQOO Hackathon · 2026</span></div>
+  </div>
+</footer>
+
+<div class="backdrop" id="dl-modal" role="dialog" aria-modal="true" aria-labelledby="dl-h">
+  <div class="modal">
+    <span class="eyebrow">Not published yet</span>
+    <h3 id="dl-h">The build lands after the device run.</h3>
+    <p>We won't hand out an APK that hasn't been installed on a real phone by us first. Ruko hasn't run on the iQOO 15 yet — no signed build exists, and shipping one before that is exactly the overclaiming this product is built to avoid.</p>
+    <p style="margin-top:13px">When it's signed, installing takes three steps:</p>
+    <ol class="msteps">
+      <li><b>1</b><span>Settings → Security → allow installs from your browser or file manager.</span></li>
+      <li><b>2</b><span>Open <code style="display:inline;padding:2px 6px;margin:0;border:0;background:var(--sunk)">ruko-demo.apk</code> and confirm.</span></li>
+      <li><b>3</b><span>Grant microphone access. Accessibility and notifications are optional — Ruko works with less, it just sees less.</span></li>
+    </ol>
+    <p class="small" style="margin-top:16px">Or, with the phone plugged in:</p>
+    <code>adb install -r ruko-demo.apk</code>
+    <button class="pill pill-solid" data-close-dl>Got it</button>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+    document.querySelectorAll('.rv').forEach(function (el, i) {
+      el.style.transitionDelay = Math.min(i % 3, 2) * 70 + 'ms';
+      io.observe(el);
+    });
+
+    var modal = document.getElementById('dl-modal'), lastFocus = null;
+    function open() {
+      lastFocus = document.activeElement;
+      modal.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      var b = modal.querySelector('[data-close-dl]'); if (b) b.focus();
+    }
+    function close() {
+      modal.classList.remove('open');
+      document.body.style.overflow = '';
+      if (lastFocus) lastFocus.focus();
+    }
+    document.querySelectorAll('[data-open-dl]').forEach(function (b) { b.addEventListener('click', open); });
+    document.querySelectorAll('[data-close-dl]').forEach(function (b) { b.addEventListener('click', close); });
+    modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && modal.classList.contains('open')) close(); });
+  })();
+
+  /* Audio-energy bars: two blended sines under an arch envelope. */
+  (function () {
+    var panel = document.querySelector('[data-bars]');
+    if (!panel) return;
+    for (var i = 0; i < 34; i++) panel.appendChild(document.createElement('i'));
+    var bars = panel.children;
+    function paint(t) {
+      for (var i = 0; i < bars.length; i++) {
+        var x = i / bars.length;
+        var arch = Math.sin(Math.PI * x);
+        var w = 0.5 + 0.5 * Math.sin(x * 9 + t * 1.6) * Math.cos(x * 3 - t * 0.7);
+        bars[i].style.height = (14 + arch * w * 82) + '%';
+      }
+    }
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { paint(0.4); return; }
+    var raf = null;
+    function frame(ms) { raf = requestAnimationFrame(frame); paint(ms * 0.0012); }
+    new IntersectionObserver(function (es) {
+      if (es[0].isIntersecting) { if (raf === null) raf = requestAnimationFrame(frame); }
+      else if (raf !== null) { cancelAnimationFrame(raf); raf = null; }
+    }, { threshold: 0 }).observe(panel);
+  })();
+
+  /* Switch drives the phone screen, so it demos the product not the widget. */
+  (function () {
+    var sw = document.querySelector('[data-protection-switch]');
+    var chip = document.querySelector('[data-protection-chip]');
+    var label = document.getElementById('sw-label'), desc = document.getElementById('sw-desc');
+    if (!sw) return;
+    sw.addEventListener('click', function () {
+      var on = sw.getAttribute('aria-checked') === 'true';
+      sw.setAttribute('aria-checked', String(!on));
+      label.textContent = on ? 'Protection is paused' : 'Protection is on';
+      desc.textContent = on ? 'Ruko will not check payments' : 'Toggle to see what the screen does';
+      if (chip) {
+        chip.textContent = on ? 'Paused · not watching' : 'Critical · 82/100';
+        chip.style.background = on ? 'rgba(255,255,255,.07)' : 'rgba(255,107,90,.16)';
+        chip.style.color = on ? 'rgba(255,255,255,.5)' : '#FF8B7B';
+      }
+    });
+  })();
+
+  /* Live feed: newest on top, oldest collapses out, capped. */
+  (function () {
+    var feed = document.querySelector('[data-feed]');
+    if (!feed) return;
+    var MAX = 5, idx = 0, timer = null;
+    var pool = [
+      { a: '₹420', w: 'Local grocer', t: 'safe', x: 'Known merchant' },
+      { a: '₹1,200', w: 'Ananya', t: 'safe', x: 'Regular recipient' },
+      { a: '₹350', w: 'Auto ride', t: 'safe', x: 'Typical amount' },
+      { a: '₹48,000', w: 'Ravi Verify', t: 'crit', x: 'Coercion + new payee' },
+      { a: '₹2,100', w: 'Landlord', t: 'safe', x: 'Monthly, on schedule' },
+      { a: '₹900', w: 'Electricity board', t: 'safe', x: 'Recurring bill' },
+      { a: '₹15,000', w: 'Unknown UPI ID', t: 'crit', x: 'Urgency + unknown caller' },
+      { a: '₹600', w: 'Ride share', t: 'safe', x: 'Known app' }
+    ];
+    function spawn() {
+      var d = pool[idx++ % pool.length];
+      var row = document.createElement('div');
+      row.className = 'feed-item';
+      row.innerHTML = '<div class="fmeta"><b>' + d.a + ' · ' + d.w + '</b><span>' + d.x + '</span></div>' +
+        '<span class="ftag ' + d.t + '">' + (d.t === 'crit' ? 'Stopped' : 'Silent') + '</span>';
+      feed.prepend(row);
+      requestAnimationFrame(function () { requestAnimationFrame(function () { row.classList.add('in'); }); });
+      if (feed.children.length > MAX) {
+        var last = feed.children[feed.children.length - 1];
+        last.classList.add('out');
+        setTimeout(function () { last.remove(); }, 320);
+      }
+    }
+    function start() { if (timer === null) { if (!feed.children.length) { spawn(); spawn(); } else spawn(); timer = setInterval(spawn, 2600); } }
+    function stop() { if (timer !== null) { clearInterval(timer); timer = null; } }
+    new IntersectionObserver(function (es) { es[0].isIntersecting ? start() : stop(); }, { threshold: 0 }).observe(feed);
+  })();
+
+  /* Signal meter: the six model outputs, as LED columns. */
+  (function () {
+    var el = document.querySelector('[data-vu]');
+    if (!el) return;
+    var rows = 10;
+    el.getAttribute('data-levels').split(',').map(Number).forEach(function (lv) {
+      var col = document.createElement('div');
+      col.className = 'vu-col';
+      var lit = Math.round(lv * rows);
+      for (var r = 0; r < rows; r++) {
+        var px = document.createElement('i');
+        if (r < lit) px.className = (r >= rows - 2) ? 'lit top' : 'lit';
+        col.appendChild(px);
+      }
+      el.appendChild(col);
+    });
+  })();
+
+  /* Gaussian magnification: (mag-1)*exp(-d^2/(2*dist^2))+1 */
+  (function () {
+    var dock = document.querySelector('[data-dock]');
+    if (!dock) return;
+    var items = dock.querySelectorAll('[data-dock-item]');
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    dock.addEventListener('mousemove', function (e) {
+      items.forEach(function (it) {
+        var r = it.getBoundingClientRect();
+        var d = e.clientX - (r.left + r.width / 2);
+        var s = 0.45 * Math.exp(-(d * d) / (2 * 80 * 80)) + 1;
+        it.style.transform = 'scale(' + s.toFixed(3) + ')';
+      });
+    });
+    dock.addEventListener('mouseleave', function () {
+      items.forEach(function (it) { it.style.transform = 'scale(1)'; });
+    });
+  })();
+</script>
