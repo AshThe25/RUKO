@@ -402,7 +402,7 @@
     <a href="#limits">Limits</a>
     <a href="#download">Download</a>
   </div>
-  <button class="pill pill-solid" data-open-dl>Get the app</button>
+  <a class="pill pill-solid" href="/ruko.apk" download>Get the app</a>
 </nav>
 
 <!-- HERO -->
@@ -418,7 +418,7 @@
     <h1>The pause before<br>you're talked into it</h1>
     <p class="lede">Your phone, your account, your PIN, your finger on the button. Every fraud check in the country says this payment is fine — because the attack isn't on your device. It's on you.</p>
     <div class="hero-cta">
-      <button class="pill pill-solid pill-lg" data-open-dl>Download for Android</button>
+      <a class="pill pill-solid pill-lg" href="/ruko.apk" download>Download for Android</a>
       <a class="pill pill-ghost pill-lg" href="#how">See how it works</a>
     </div>
 
@@ -638,8 +638,8 @@
     <span class="eyebrow">Prototype build · Android</span>
     <h2 style="margin-top:16px">Put it on your phone</h2>
     <p class="lede">Ruko runs entirely on-device. Nothing to sign up for, no account to create. Install it, grant the microphone, and it stays quiet until it matters.</p>
-    <div class="hero-cta"><button class="pill pill-solid pill-lg" data-open-dl>Download for Android</button></div>
-    <p class="dl-note">Sideloaded APK, not a Play Store listing — Ruko needs permissions Play policy restricts for good reasons.</p>
+    <div class="hero-cta"><a class="pill pill-solid pill-lg" href="/ruko.apk" download>Download for Android</a></div>
+    <p class="dl-note">16 MB · Android 8.0+ · 64-bit. Sideloaded, not a Play Store listing — Ruko needs permissions Play policy restricts. <a href="#" data-open-dl style="text-decoration:underline">How to install</a></p>
   </div>
 </section>
 
@@ -660,18 +660,17 @@
 
 <div class="backdrop" id="dl-modal" role="dialog" aria-modal="true" aria-labelledby="dl-h">
   <div class="modal">
-    <span class="eyebrow">Not published yet</span>
-    <h3 id="dl-h">The build lands after the device run.</h3>
-    <p>We won't hand out an APK that hasn't been installed on a real phone by us first. Ruko hasn't run on the iQOO 15 yet — no signed build exists, and shipping one before that is exactly the overclaiming this product is built to avoid.</p>
-    <p style="margin-top:13px">When it's signed, installing takes three steps:</p>
+    <span class="eyebrow">Android · 16 MB</span>
+    <h3 id="dl-h">Installing takes three steps.</h3>
+    <p>This is a sideloaded APK rather than a Play Store listing, because Ruko needs the microphone and accessibility permissions that Play policy restricts — for good reasons. You are trusting us with those, so everything it does with them stays on the phone.</p>
     <ol class="msteps">
       <li><b>1</b><span>Settings → Security → allow installs from your browser or file manager.</span></li>
-      <li><b>2</b><span>Open <code style="display:inline;padding:2px 6px;margin:0;border:0;background:var(--sunk)">ruko-demo.apk</code> and confirm.</span></li>
+      <li><b>2</b><span>Open <code style="display:inline;padding:2px 6px;margin:0;border:0;background:var(--sunk)">ruko.apk</code> and confirm.</span></li>
       <li><b>3</b><span>Grant microphone access. Accessibility and notifications are optional — Ruko works with less, it just sees less.</span></li>
     </ol>
-    <p class="small" style="margin-top:16px">Or, with the phone plugged in:</p>
-    <code>adb install -r ruko-demo.apk</code>
-    <button class="pill pill-solid" data-close-dl>Got it</button>
+    <p class="small" style="margin-top:16px">Requires Android 8.0 or newer, 64-bit. Debug-signed prototype: uninstall any earlier copy first.</p>
+    <a class="pill pill-solid" href="/ruko.apk" download style="margin-top:24px;width:100%;justify-content:center">Download ruko.apk</a>
+    <button class="pill pill-ghost" data-close-dl style="margin-top:10px;width:100%;justify-content:center">Close</button>
   </div>
 </div>
 
