@@ -15,47 +15,47 @@
     {
       "file": "model_fp32.onnx",
       "size_mb": 90.39,
-      "cold_start_ms": 52.8,
+      "cold_start_ms": 47.3,
       "single_window_ms": {
         "runs": 200,
-        "p50": 1.439,
-        "p95": 1.885,
-        "p99": 3.619,
-        "mean": 1.497,
-        "stdev": 0.413,
-        "min": 1.01,
-        "max": 4.566
+        "p50": 1.241,
+        "p95": 1.672,
+        "p99": 1.827,
+        "mean": 1.265,
+        "stdev": 0.185,
+        "min": 0.976,
+        "max": 1.847
       },
       "batch": {
         "batch_size": 8,
-        "p50_ms": 13.508,
-        "windows_per_second": 571.0
+        "p50_ms": 13.157,
+        "windows_per_second": 612.2
       },
-      "rss_mb_before": 430.1,
-      "rss_mb_after": 635.6
+      "rss_mb_before": 427.9,
+      "rss_mb_after": 588.4
     },
     {
       "file": "model_int8.onnx",
       "size_mb": 22.87,
-      "cold_start_ms": 39.7,
+      "cold_start_ms": 43.9,
       "single_window_ms": {
         "runs": 200,
-        "p50": 1.118,
-        "p95": 1.643,
-        "p99": 1.843,
-        "mean": 1.064,
-        "stdev": 0.272,
-        "min": 0.641,
-        "max": 1.907
+        "p50": 1.139,
+        "p95": 1.756,
+        "p99": 1.847,
+        "mean": 1.125,
+        "stdev": 0.294,
+        "min": 0.69,
+        "max": 1.945
       },
       "batch": {
         "batch_size": 8,
-        "p50_ms": 16.214,
-        "windows_per_second": 507.9
+        "p50_ms": 15.348,
+        "windows_per_second": 517.6
       },
-      "rss_mb_before": 653.2,
-      "rss_mb_after": 699.9
+      "rss_mb_before": 604.7,
+      "rss_mb_after": 637.3
     }
   ],
-  "measured_at_utc": "2026-08-29T08:57:20Z"
+  "measured_at_utc": "2026-08-29T09:05:31Z"
 }

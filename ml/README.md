@@ -23,7 +23,7 @@ Two numbers are reported everywhere, always:
 
 | System | Generated test | **Authored holdout** |
 |---|---|---|
-| Lexicon only (`ruko-heuristic-v1`) | 0.563 | **0.508** |
+| Lexicon only (`ruko-heuristic-v1`) | 0.728 | **0.508** |
 | Neural int8 (`ruko-manip-v1`) | 0.633 | **0.621** |
 | **Ensemble int8 (ships)** | **0.837** | **0.631** |
 
