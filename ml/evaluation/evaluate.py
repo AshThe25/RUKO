@@ -33,6 +33,8 @@ import torch
 from transformers import AutoTokenizer
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "training"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # ml/
+from paths import resolve  # noqa: E402
 from data import MAX_LENGTH, load_jsonl  # noqa: E402
 from model import LABELS, RukoManipulationClassifier  # noqa: E402
 
@@ -167,6 +169,11 @@ def main() -> int:
     ap.add_argument("--heuristic-scores", type=Path,
                     default=Path("ml/data/derived/heuristic_scores.json"))
     args = ap.parse_args()
+    # Anchor to the repo root so the cwd cannot change what we read.
+    args.model_dir = resolve(args.model_dir)
+    args.data = resolve(args.data)
+    args.holdout = resolve(args.holdout)
+    args.heuristic = resolve(args.heuristic)
 
     if not args.heuristic_scores.exists():
         print("run `node ml/evaluation/export_heuristic_scores.ts` first", file=sys.stderr)

@@ -30,6 +30,8 @@ import torch
 from transformers import AutoTokenizer
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "training"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # ml/
+from paths import resolve  # noqa: E402
 from data import MAX_LENGTH, load_jsonl  # noqa: E402
 from model import LABELS, RukoManipulationClassifier  # noqa: E402
 
@@ -91,6 +93,9 @@ def main() -> int:
                     default=Path("ml/datasets/holdout/test_holdout.jsonl"))
     ap.add_argument("--opset", type=int, default=17)
     args = ap.parse_args()
+    # Anchor to the repo root so the cwd cannot change what we read.
+    args.model_dir = resolve(args.model_dir)
+    args.holdout = resolve(args.holdout)
 
     out_dir = args.model_dir / "onnx"
     out_dir.mkdir(parents=True, exist_ok=True)
