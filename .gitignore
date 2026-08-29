@@ -1,0 +1,54 @@
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# --- Node / React Native ---
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.expo/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# --- Android ---
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+*.apk
+*.aab
+*.keystore
+!debug.keystore
+
+# --- Python / ML ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+.pytest_cache/
+
+# ML artefacts: checkpoints and exported weights are NOT committed.
+# Everything needed to reproduce them IS committed (data generator + configs).
+ml/models/**/*.bin
+ml/models/**/*.safetensors
+ml/models/**/*.onnx
+ml/models/**/*.pt
+ml/models/**/checkpoints/
+ml/runs/
+!ml/models/**/model_card.json
+!ml/models/**/metrics.json
+!ml/models/**/.gitkeep
+
+# --- Secrets: never commit ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.json
