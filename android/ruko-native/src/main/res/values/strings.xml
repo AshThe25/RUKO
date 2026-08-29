@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ruko_accessibility_label">Ruko payment protection</string>
+    <string name="ruko_accessibility_description">Lets Ruko see when a payment screen is open and what it is asking you to pay, so it can warn you before you confirm. Ruko never reads anything else and never sends screen contents anywhere.</string>
+
+    <string name="ruko_notification_label">Ruko message check</string>
+
+    <string name="ruko_channel_protection">Protection session</string>
+    <string name="ruko_channel_protection_description">Shown whenever Ruko is listening during a protected session.</string>
+
+    <string name="ruko_session_title">Ruko is protecting you</string>
+    <string name="ruko_session_text">Listening on this device only. Nothing is recorded or uploaded.</string>
+    <string name="ruko_session_stop">Stop</string>
+</resources>

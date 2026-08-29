@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Same restrained palette as the Office Kit console. -->
+    <color name="bg">#FF0A0C0F</color>
+    <color name="surface">#FF12151A</color>
+    <color name="surface_raised">#FF171B21</color>
+    <color name="border">#FF242932</color>
+    <color name="text">#FFE9ECF1</color>
+    <color name="text_muted">#FF8A929F</color>
+    <color name="text_faint">#FF5D6673</color>
+    <color name="critical">#FFE5484D</color>
+    <color name="ok">#FF37C98B</color>
+    <color name="amber">#FFE0A82E</color>
+</resources>

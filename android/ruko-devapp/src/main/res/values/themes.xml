@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Ruko" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:statusBarColor">@color/bg</item>
+        <item name="android:navigationBarColor">@color/bg</item>
+        <item name="android:textColor">@color/text</item>
+    </style>
+
+    <!-- RukoPay looks like a normal payment app, not like Ruko. -->
+    <style name="Theme.RukoPay" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowBackground">#FFFFFFFF</item>
+        <item name="android:statusBarColor">#FFFFFFFF</item>
+        <item name="android:textColor">#FF101418</item>
+    </style>
+</resources>

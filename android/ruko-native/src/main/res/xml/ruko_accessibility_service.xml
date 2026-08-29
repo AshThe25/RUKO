@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Scoped as narrowly as the platform allows.
+
+    - canRetrieveWindowContent is required to read a payment screen at all.
+    - No packageNames filter, because Ruko must not hard-code a single UPI app
+      (build prompt §11). The filtering happens in code, against a payment-app
+      allowlist, so it is visible and reviewable rather than buried in XML.
+    - flagRetrieveInteractiveWindows is deliberately NOT set: Ruko only needs
+      the active window.
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagReportViewIds|flagIncludeNotImportantViews"
+    android:canRetrieveWindowContent="true"
+    android:description="@string/ruko_accessibility_description"
+    android:notificationTimeout="300" />
