@@ -84,3 +84,4 @@ docs/device-report.md
 android/.gradle/
 android/build/
 android/*/build/
+backend/model_manifest.json
