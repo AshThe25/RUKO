@@ -99,10 +99,18 @@ async def transcribe(
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, "transcription upstream unreachable") from exc
 
     if upstream.status_code >= 400:
-        # Never surface the upstream body: it can echo request details and, on
-        # some providers, fragments of the key.
-        logger.warning("sarvam returned %s", upstream.status_code)
-        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "transcription upstream rejected the request")
+        # Still never surface the upstream body: it can echo request details
+        # and, on some providers, fragments of the key. The status code alone
+        # is safe and is the difference between a rejected key (401/403) and a
+        # rejected parameter (400) -- without it a failure here is undiagnosable
+        # from outside, which cost a debugging round.
+        logger.warning(
+            "sarvam returned %s: %s", upstream.status_code, upstream.text[:300]
+        )
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY,
+            f"transcription upstream rejected the request (upstream status {upstream.status_code})",
+        )
 
     body = upstream.json()
     return TranscribeResponse(
