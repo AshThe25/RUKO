@@ -6,14 +6,18 @@
  * is live is recorded in `origins` and shown in the app, so a build can never
  * quietly imply it has device access it does not have.
  *
- * Still to swap when the other workstreams land on main:
- *   risk  -> evaluateRisk / getRiskEngineConfig from 'src/risk'      (Vedant)
- *   agent -> 'src/agent' + 'src/tools'                               (Vedant)
- *   classifier -> ONNX model, else src/risk/classifier fallback      (Vedant)
- *   guardian   -> WebSocket channel                                  (Puneesh)
+ * Risk and agent are now the real implementations from Vedant's lane: the
+ * deterministic engine decides, and the investigation agent gathers evidence
+ * through the same providers the screens use. The classifier still runs the
+ * lexicon -- the ONNX weights are not in the repo, and `createClassifier`
+ * falls back to exactly this when they are absent, so the seam is unchanged.
+ *
+ * Still to swap:
+ *   classifier -> ONNX model once the weights ship  (Vedant)
+ *   guardian   -> WebSocket channel                 (Puneesh)
  * See mobile/INTEGRATION.md.
  */
-import type {LocalRiskClassifier, RukoServices} from '@contracts';
+import type {LocalRiskClassifier, RiskEngine, RukoServices} from '@contracts';
 import {createDiagnosticsProvider} from './diagnostics';
 import {hasNativeModule} from './native/RukoNative';
 import {
@@ -31,8 +35,9 @@ import {
   createPaymentProvider,
 } from './stubs/deviceStubs';
 import {StubGuardianChannel} from './stubs/guardianStub';
-import {createStubAgent} from './stubs/stubAgent';
-import {stubRiskEngine} from './stubs/stubRiskEngine';
+import {evaluateRisk, getRiskEngineConfig} from '../risk/index.ts';
+import {RukoAgent} from '../agent/rukoAgent.ts';
+import {providersFromRukoServices} from '../tools/fromRukoServices.ts';
 
 /**
  * Handles the demo surfaces need to drive the *inputs* of the pipeline.
@@ -91,25 +96,30 @@ export function createServices(options: CreateServicesOptions = {}): RukoRuntime
     ? createNativeConversationProvider(transcript => classifier.classify(transcript))
     : createConversationProvider(bus);
 
-  const agent = createStubAgent({
+  const risk: RiskEngine = {
+    evaluate: evaluateRisk,
+    getConfig: getRiskEngineConfig,
+  };
+
+  // The agent reads evidence through the providers, never through the agent
+  // slot, so building it from a services object that has no agent yet is safe
+  // and avoids a circular construction.
+  const evidence = {
     call,
     payment,
     notification,
     conversation,
     behaviour,
-    risk: stubRiskEngine,
-  });
+    risk,
+    guardian,
+  };
+
+  const agent = new RukoAgent({providers: providersFromRukoServices(evidence)});
 
   const services: RukoServices = {
-    call,
-    payment,
-    notification,
-    conversation,
-    behaviour,
-    risk: stubRiskEngine,
+    ...evidence,
     agent,
-    guardian,
-    diagnostics: createDiagnosticsProvider({classifier, risk: stubRiskEngine}),
+    diagnostics: createDiagnosticsProvider({classifier, risk}),
   };
 
   const origins: ServiceOrigins = {
@@ -118,8 +128,8 @@ export function createServices(options: CreateServicesOptions = {}): RukoRuntime
     notification: native ? 'device' : 'stub',
     conversation: native ? 'device' : 'stub',
     behaviour: 'stub',
-    risk: 'stub',
-    agent: 'stub',
+    risk: 'device',
+    agent: 'device',
     guardian: 'stub',
   };
 

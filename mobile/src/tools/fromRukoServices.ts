@@ -60,7 +60,7 @@ function toHistoryStore(behaviour: BehaviourStore): HistoryStore {
  * transcript), so the adapter uses her result directly via `readEvidence` and
  * the classifier below is never actually invoked for this path.
  */
-function toConversationProvider(services: RukoServices): ConversationProvider {
+function toConversationProvider(services: RukoEvidenceServices): ConversationProvider {
   return {
     // Never used on this path; present because the interface requires it, and
     // a real classifier rather than a null so nothing can NPE on it.
@@ -79,8 +79,18 @@ function toConversationProvider(services: RukoServices): ConversationProvider {
  *
  * `now` is injected so the demo and the tests stay deterministic.
  */
+/**
+ * Only the evidence slots are read -- never `agent` -- so this takes the
+ * subset it actually uses. That lets the agent be constructed from a services
+ * object that does not have an agent in it yet, without a cast.
+ */
+export type RukoEvidenceServices = Pick<
+  RukoServices,
+  'conversation' | 'payment' | 'call' | 'notification' | 'behaviour'
+>;
+
 export function providersFromRukoServices(
-  services: RukoServices,
+  services: RukoEvidenceServices,
   now: () => number = () => Date.now(),
 ): RukoProviders {
   const payment: PaymentProvider = {
