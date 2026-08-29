@@ -77,3 +77,7 @@ docs/device-report.md
 # Published by ml/ when a model ships; absent means "no model published".
 backend/model_manifest.json
 .vercel
+
+# The landing page serves this build directly, so it has to be in the repo:
+# Vercel deploys from a clone, and without it the download 404s.
+!web/ruko.apk

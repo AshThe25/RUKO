@@ -35,6 +35,8 @@ import {
   createPaymentProvider,
 } from './stubs/deviceStubs';
 import {StubGuardianChannel} from './stubs/guardianStub';
+import {cloudConfigured} from './cloud/supabase';
+import {SupabaseGuardianChannel} from './cloud/supabaseGuardian';
 import {evaluateRisk, getRiskEngineConfig} from '../risk/index.ts';
 import {RukoAgent} from '../agent/rukoAgent.ts';
 import {providersFromRukoServices} from '../tools/fromRukoServices.ts';
@@ -84,7 +86,11 @@ export function createServices(options: CreateServicesOptions = {}): RukoRuntime
 
   const bus = new StubDeviceBus();
   const behaviour = new StubBehaviourStore();
+  // Real channel whenever the build has credentials; the stub otherwise, so a
+  // dev build with no .env still runs the whole flow offline.
+  const cloudGuardian = cloudConfigured ? new SupabaseGuardianChannel() : null;
   const guardian = new StubGuardianChannel();
+  if (cloudGuardian) void cloudGuardian.attach();
   const classifier: LocalRiskClassifier = bus.getClassifier();
 
   const call = native ? createNativeCallProvider() : createCallProvider(bus);
@@ -111,7 +117,7 @@ export function createServices(options: CreateServicesOptions = {}): RukoRuntime
     conversation,
     behaviour,
     risk,
-    guardian,
+    guardian: cloudGuardian ?? guardian,
   };
 
   const agent = new RukoAgent({providers: providersFromRukoServices(evidence)});
@@ -130,7 +136,7 @@ export function createServices(options: CreateServicesOptions = {}): RukoRuntime
     behaviour: 'stub',
     risk: 'device',
     agent: 'device',
-    guardian: 'stub',
+    guardian: cloudGuardian ? 'device' : 'stub',
   };
 
   return {
