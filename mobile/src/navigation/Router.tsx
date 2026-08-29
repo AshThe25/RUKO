@@ -12,6 +12,7 @@ import {
   PayDemoScreen,
   PermissionsScreen,
   SignInScreen,
+  CircleScreen,
 } from '@/screens';
 import {useProtectionStore} from '@/store/protectionStore';
 import type {RouteName} from '@/types';
@@ -19,6 +20,7 @@ import type {RouteName} from '@/types';
 const SCREENS: Record<RouteName, React.ComponentType> = {
   onboarding: OnboardingScreen,
   signin: SignInScreen,
+  circle: CircleScreen,
   permissions: PermissionsScreen,
   home: HomeScreen,
   investigation: InvestigationScreen,

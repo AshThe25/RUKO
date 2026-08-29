@@ -2,6 +2,7 @@
 export type RouteName =
   | 'onboarding'
   | 'signin'
+  | 'circle'
   | 'permissions'
   | 'home'
   | 'investigation'

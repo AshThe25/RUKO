@@ -22,7 +22,8 @@ export type AlertBand = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export interface TrustedLink {
   id: string;
   subject_id: string;
-  guardian_id: string;
+  guardian_id: string | null;
+  guardian_email: string | null;
   relationship: Relationship;
   status: LinkStatus;
   created_at: string;
@@ -103,17 +104,41 @@ export function subscribeToAlerts(onAlert: (alert: Alert) => void) {
   };
 }
 
-/** Propose a guardian. Only the subject may do this; the guardian must accept. */
+/**
+ * Invite a guardian by email. Nobody knows another person's user id, so the
+ * invite names an address and is claimed by whoever signs in with it. Until
+ * then guardian_id is null and the link grants nothing -- alerts require an
+ * accepted link, so an unclaimed invite cannot leak anything.
+ */
 export async function inviteGuardian(
-  guardianId: string,
+  guardianEmail: string,
   relationship: Relationship,
 ): Promise<{error: string | null}> {
+  const {data: session} = await supabase.auth.getSession();
+  const me = session.session?.user;
+  if (!me) return {error: 'not signed in'};
+  const email = guardianEmail.trim().toLowerCase();
+  if (email === (me.email ?? '').toLowerCase()) {
+    return {error: 'That is your own address — invite someone else.'};
+  }
+  const {error} = await supabase
+    .from('trusted_links')
+    .insert({subject_id: me.id, guardian_email: email, relationship});
+  if (error?.code === '23505') {
+    return {error: 'You have already invited that address.'};
+  }
+  return {error: error?.message ?? null};
+}
+
+/** Claim an invite addressed to this account. */
+export async function acceptInvite(linkId: string): Promise<{error: string | null}> {
   const {data: session} = await supabase.auth.getSession();
   const me = session.session?.user.id;
   if (!me) return {error: 'not signed in'};
   const {error} = await supabase
     .from('trusted_links')
-    .insert({subject_id: me, guardian_id: guardianId, relationship});
+    .update({status: 'accepted', guardian_id: me})
+    .eq('id', linkId);
   return {error: error?.message ?? null};
 }
 

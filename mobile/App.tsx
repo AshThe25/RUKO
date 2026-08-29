@@ -24,7 +24,7 @@ function App(): React.JSX.Element {
         if (result.user) {
           // isMinor defaults false here; the trusted-circle screen is where a
           // person states the relationship, and it can correct the profile.
-          void upsertProfile(result.user, false).then(() => navigate('home'));
+          void upsertProfile(result.user, false).then(() => navigate('circle'));
         }
       }),
     [navigate],

@@ -167,7 +167,7 @@ export function HomeScreen() {
         <NavTile
           label="Trusted circle"
           caption="Who gets told"
-          onPress={() => navigate('signin')}
+          onPress={() => navigate('circle')}
         />
         <NavTile label="History" caption="Every decision Ruko made" onPress={() => navigate('history')} />
         <NavTile
