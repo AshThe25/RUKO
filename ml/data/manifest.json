@@ -62,58 +62,62 @@
     "auth_police": "test",
     "auth_cyber_cell": "test",
     "auth_kyc_aadhaar": "test",
-    "coerce_legal": "train",
-    "coerce_sim_block": "train",
-    "sext_reputation": "train",
-    "coerce_freeze": "train",
-    "coerce_electricity": "train",
+    "sext_hinglish": "train",
     "coerce_parcel": "train",
+    "coerce_electricity": "train",
+    "sext_implied_consequence": "train",
     "coerce_freeze_hinglish": "train",
-    "sext_hinglish": "val",
+    "coerce_freeze": "train",
+    "sext_reputation": "train",
+    "coerce_sim_block": "train",
+    "coerce_legal": "train",
+    "sext_possession": "train",
+    "sext_possession_hinglish": "train",
+    "sext_escalation": "val",
     "sext_threat_publish": "val",
     "coerce_arrest": "test",
     "coerce_arrest_hinglish": "test",
-    "cred_kyc": "train",
-    "cred_otp": "train",
     "cred_remote_access": "train",
     "cred_card_number": "train",
+    "cred_kyc": "train",
+    "cred_pin_cvv": "train",
     "cred_hinglish": "val",
-    "cred_pin_cvv": "test",
-    "fin_investment": "train",
+    "cred_otp": "test",
     "fin_wide_hinglish": "train",
-    "fin_upi": "train",
     "fin_hinglish": "train",
     "fin_fees": "train",
     "fin_transfer_account": "train",
+    "fin_refund_reverse": "train",
+    "fin_upi": "train",
     "fin_safe_account": "train",
-    "fin_refund_reverse": "val",
-    "fin_wide_phrasings": "test",
-    "groom_hinglish": "train",
-    "sec_hinglish_wide": "train",
-    "sec_trailing": "train",
+    "fin_wide_phrasings": "val",
+    "fin_investment": "test",
     "sec_authority_gag": "train",
-    "sec_hinglish_plain": "train",
-    "sec_delete_traces": "train",
+    "groom_hinglish": "train",
     "sec_hinglish": "train",
+    "sec_plain_conceal": "train",
+    "sec_hinglish_plain": "train",
+    "sec_hinglish_wide": "train",
+    "sec_no_branch": "train",
+    "groom_platform_move": "train",
+    "sec_delete_traces": "train",
     "groom_secret": "train",
     "groom_isolate": "train",
-    "sec_no_branch": "train",
-    "sec_dont_tell": "train",
-    "sec_confidential_case": "train",
-    "sec_plain_conceal": "val",
-    "sec_cover_story": "val",
-    "groom_platform_move": "test",
+    "sec_cover_story": "train",
+    "sec_dont_tell": "val",
+    "sec_trailing": "val",
     "sec_isolation": "test",
-    "urg_last_chance": "train",
-    "urg_hinglish_wide": "train",
-    "urg_trailing_pressure": "train",
+    "sec_confidential_case": "test",
+    "urg_consequence_of_delay": "train",
     "urg_immediate": "train",
+    "urg_hinglish_wide": "train",
+    "urg_hinglish": "train",
+    "urg_last_chance": "train",
     "urg_dont_disconnect": "train",
-    "urg_deadline_named": "train",
-    "urg_consequence_of_delay": "val",
-    "urg_hinglish": "test"
+    "urg_trailing_pressure": "val",
+    "urg_deadline_named": "test"
   },
-  "families_total": 102,
+  "families_total": 106,
   "splits": {
     "train": {
       "families": [
@@ -136,17 +140,18 @@
         "coerce_sim_block",
         "cred_card_number",
         "cred_kyc",
-        "cred_otp",
+        "cred_pin_cvv",
         "cred_remote_access",
         "fin_fees",
         "fin_hinglish",
-        "fin_investment",
+        "fin_refund_reverse",
         "fin_safe_account",
         "fin_transfer_account",
         "fin_upi",
         "fin_wide_hinglish",
         "groom_hinglish",
         "groom_isolate",
+        "groom_platform_move",
         "groom_secret",
         "hard_otp_warning",
         "hard_rent_landlord",
@@ -171,41 +176,44 @@
         "safe_support_no_payment",
         "safe_surprise_secret",
         "sec_authority_gag",
-        "sec_confidential_case",
+        "sec_cover_story",
         "sec_delete_traces",
-        "sec_dont_tell",
         "sec_hinglish",
         "sec_hinglish_plain",
         "sec_hinglish_wide",
         "sec_no_branch",
-        "sec_trailing",
+        "sec_plain_conceal",
+        "sext_hinglish",
+        "sext_implied_consequence",
+        "sext_possession",
+        "sext_possession_hinglish",
         "sext_reputation",
-        "urg_deadline_named",
+        "urg_consequence_of_delay",
         "urg_dont_disconnect",
+        "urg_hinglish",
         "urg_hinglish_wide",
         "urg_immediate",
-        "urg_last_chance",
-        "urg_trailing_pressure"
+        "urg_last_chance"
       ],
       "rows": 6000,
       "positives_per_label": {
-        "authority": 2003,
-        "coercion": 1257,
-        "urgency": 1312,
-        "financialInstruction": 1633,
-        "secrecy": 2052,
-        "credentialRequest": 900
+        "authority": 1977,
+        "coercion": 1747,
+        "urgency": 1277,
+        "financialInstruction": 1600,
+        "secrecy": 1937,
+        "credentialRequest": 819
       },
-      "all_zero_rows": 1188,
+      "all_zero_rows": 1112,
       "by_lang": {
-        "en": 3581,
-        "hinglish": 2419
+        "en": 3332,
+        "hinglish": 2668
       },
       "by_kind": {
-        "safe": 1969,
-        "scam": 4031
+        "scam": 4135,
+        "safe": 1865
       },
-      "mean_words": 21.72
+      "mean_words": 21.45
     },
     "val": {
       "families": [
@@ -213,38 +221,38 @@
         "auth_courier_customs",
         "auth_police_hinglish",
         "cred_hinglish",
-        "fin_refund_reverse",
+        "fin_wide_phrasings",
         "hard_legit_bank_verify",
         "hard_urgent_friend",
         "hardneg_price_question",
         "safe_awareness_sextortion",
         "safe_friend_split",
         "safe_merchant",
-        "sec_cover_story",
-        "sec_plain_conceal",
-        "sext_hinglish",
+        "sec_dont_tell",
+        "sec_trailing",
+        "sext_escalation",
         "sext_threat_publish",
-        "urg_consequence_of_delay"
+        "urg_trailing_pressure"
       ],
       "rows": 1200,
       "positives_per_label": {
-        "authority": 568,
-        "coercion": 447,
-        "urgency": 319,
-        "financialInstruction": 340,
-        "secrecy": 270,
-        "credentialRequest": 164
+        "authority": 578,
+        "coercion": 433,
+        "urgency": 318,
+        "financialInstruction": 325,
+        "secrecy": 294,
+        "credentialRequest": 170
       },
-      "all_zero_rows": 181,
+      "all_zero_rows": 185,
       "by_lang": {
-        "en": 833,
-        "hinglish": 367
+        "en": 924,
+        "hinglish": 276
       },
       "by_kind": {
-        "safe": 471,
-        "scam": 729
+        "safe": 448,
+        "scam": 752
       },
-      "mean_words": 22.56
+      "mean_words": 22.59
     },
     "test": {
       "families": [
@@ -253,9 +261,8 @@
         "auth_police",
         "coerce_arrest",
         "coerce_arrest_hinglish",
-        "cred_pin_cvv",
-        "fin_wide_phrasings",
-        "groom_platform_move",
+        "cred_otp",
+        "fin_investment",
         "hard_business_payment",
         "hard_legit_deadline",
         "hardneg_speaker_own_hurry",
@@ -263,28 +270,29 @@
         "safe_hinglish_friend",
         "safe_ordinary_privacy",
         "safe_secret_hinglish",
+        "sec_confidential_case",
         "sec_isolation",
-        "urg_hinglish"
+        "urg_deadline_named"
       ],
       "rows": 1200,
       "positives_per_label": {
-        "authority": 523,
-        "coercion": 295,
-        "urgency": 294,
-        "financialInstruction": 306,
-        "secrecy": 300,
-        "credentialRequest": 149
+        "authority": 532,
+        "coercion": 252,
+        "urgency": 289,
+        "financialInstruction": 301,
+        "secrecy": 272,
+        "credentialRequest": 156
       },
-      "all_zero_rows": 162,
+      "all_zero_rows": 175,
       "by_lang": {
-        "en": 695,
-        "hinglish": 505
+        "hinglish": 394,
+        "en": 806
       },
       "by_kind": {
-        "safe": 484,
-        "scam": 716
+        "safe": 517,
+        "scam": 683
       },
-      "mean_words": 22.07
+      "mean_words": 22.36
     },
     "holdout": {
       "families": [
@@ -312,9 +320,9 @@
     }
   },
   "files": {
-    "processed/train.jsonl": "8d2ca77286ea0645b27033451b56e9d98c0ae0d5d4b6fc71d5bb83ff8f2f1428",
-    "processed/val.jsonl": "d3c222d3a762535c160ebd17c5e8f9b29718f22a0f2edf406b5ffb4388433005",
-    "processed/test.jsonl": "6b714402fc94bdf4b1409ba6571beeb8988888e96fe104e04f9f237f4207daab",
+    "processed/train.jsonl": "1711908633dc6817a6abddbded1e51086133321ddad7c25d2902a0f865c3ef59",
+    "processed/val.jsonl": "a564df9e40c5b0bfeda9b20dcfab3ff44cfcc2748434bac1390f89554ecb96a8",
+    "processed/test.jsonl": "fe38a18be0113da0fe2d169ece43f8a0b2f724dd17d384535c8c0054afcaa282",
     "holdout/test_holdout.jsonl": "e458b9b13d567696b62c12bb2dda3280b98bd3a613b5a921ebde61c3a98010bd"
   },
   "leakage_check": "passed: no exact text shared across splits"

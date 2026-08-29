@@ -426,6 +426,60 @@ FAMILIES: list = [
         "School group me daal dunga video, samjhe?",
     )),
 
+    # --- sextortion: possession and implication (v4) ------------------- #
+    #
+    # MEASURED, AND NOT CURRENTLY SHIPPED. Training on these lifts sextortion
+    # recall on the authored safeguarding set from 0.29 to 0.88 -- it stops
+    # missing 12 of 17 extortion threats. But the ensemble int8 payment
+    # holdout falls 0.699 -> 0.616, below the 0.65 bar, so the model built
+    # from them was not exported.
+    #
+    # The cause is structural, not a tuning miss: sextortion and account-freeze
+    # threats both score on `coercion`, which carries 25 of 100 points in the
+    # risk engine. Making coercion sensitive enough for oblique extortion
+    # ("I saved every picture", "your reputation is in my hands") makes it
+    # trigger-happy on payments. One label cannot serve both.
+    #
+    # The fix is a seventh label so each threat type gets its own boundary.
+    # That changes the contract, the risk engine and the ONNX output shape, so
+    # it needs Vedant and Aishwarya -- it is not a solo change.
+    #
+    # These families are committed because the diagnosis is the valuable part.
+    # Re-measure BOTH splits before enabling them.
+    # The v3 families all named the act explicitly ("post the video to your
+    # friends"). On the authored safeguarding set the model then missed 12 of
+    # 17 threats -- recall 0.29 -- because real extortion rarely says it out
+    # loud. It states possession and lets the victim complete the sentence.
+    # Recall is the number that matters here: a missed threat is a child who
+    # gets no warning.
+    F("sext_possession", ("coercion",), "en", (
+        "I saved every picture you ever sent me.",
+        "I have the whole folder backed up already.",
+        "Your contact list is downloaded, so think carefully.",
+        "I know where you study and I know who your friends are.",
+        "Everything you sent is sitting on my drive right now.",
+    )),
+    F("sext_implied_consequence", ("coercion",), "en", (
+        "One click and this reaches everyone you know.",
+        "Keep ignoring me and see what happens tonight.",
+        "Everyone finds out what you look like, your choice.",
+        "By morning this will not be private any more.",
+        "Your reputation is in my hands right now.",
+    )),
+    F("sext_escalation", ("coercion",), "en", (
+        "Do not block me, blocking me only makes this worse.",
+        "Refuse and it goes public, agree and nothing happens.",
+        "Every hour you stay quiet the price goes up.",
+        "Delete me and I send it immediately.",
+    )),
+    F("sext_possession_hinglish", ("coercion",), "hinglish", (
+        "Tumhari saari photos mere paas hai, soch lo.",
+        "Sab kuch save kar liya hai maine.",
+        "Mana kiya to sab dost dekh lenge.",
+        "Izzat ka sawaal tumhara hai, mera nahi.",
+        "Block karoge to aur bura hoga.",
+    )),
+
     # ------------------------------------------------------------------ #
     # SAFEGUARDING / AWARENESS COPY -- the false-positive trap.
     #
