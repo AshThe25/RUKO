@@ -23,12 +23,15 @@ import json
 import statistics
 import time
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # ml/
+from paths import resolve  # noqa: E402
 
 import numpy as np
 import onnxruntime as ort
 from transformers import AutoTokenizer
 
-MODEL_DIR = Path("ml/models/ruko-manip-v1")
+MODEL_DIR = resolve("ml/models/ruko-manip-v1")
 
 SAMPLES = [
     "hello sir i am calling from your bank your account will be frozen you must "

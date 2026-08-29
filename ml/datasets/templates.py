@@ -622,4 +622,101 @@ FAMILIES: list = [
         "Never share your OTP with anyone, not even with bank staff.",
         "My friend lost money because he shared the OTP on a call.",
     ), kind="safe"),
+
+    # ------------------------------------------------------------------ #
+    # HARD NEGATIVES: urgency vocabulary, no urgency
+    #
+    # Why these exist: on the authored holdout, urgency ran at precision 0.281
+    # with 41 false positives against 16 true ones — it had learned that any
+    # time word means pressure. The label is specifically *time pressure applied
+    # to the listener to act*. A speaker who is themselves in a hurry, a stated
+    # fact about when something happens, or a rush that already ended are all
+    # label 0, and none of that was represented in training.
+    # ------------------------------------------------------------------ #
+    F("hardneg_speaker_own_hurry", (), "en", (
+        "I am running late for the office, I will call you back.",
+        "Sorry, I have to rush, the train leaves in {minutes} minutes.",
+        "I am in a hurry right now, can we talk in the evening?",
+        "Give me {minutes} minutes, I am just finishing lunch.",
+        "I am late already, {relation} has been waiting since morning.",
+    ), kind="safe"),
+    F("hardneg_schedule_facts", (), "en", (
+        "The delivery slot is between two and four this afternoon.",
+        "The movie starts at seven, we can leave whenever you are ready.",
+        "The shop closes at nine, no rush, it is only {hours} away.",
+        "My appointment with the doctor is at four thirty tomorrow.",
+        "The {courier} package is showing out for delivery today.",
+        "The match is on at eight, I will be home before that.",
+    ), kind="safe"),
+    F("hardneg_rush_already_over", (), "en", (
+        "We finished the report just in time yesterday, it was very close.",
+        "There was a big rush at the {merchant} counter but we managed.",
+        "I had to hurry last night, thankfully everything worked out.",
+        "It was urgent last week, now it is all sorted.",
+    ), kind="safe"),
+    F("hardneg_urgency_hinglish", (), "hinglish", (
+        "Yaar main late ho gaya hoon, thodi der mein call karta hoon.",
+        "Abhi jaldi mein hoon, shaam ko baat karte hain.",
+        "Train {minutes} minute mein hai, main nikal raha hoon.",
+        "Bas do minute, main aa raha hoon.",
+        "Kal bahut jaldi thi, ab sab theek hai.",
+    ), kind="safe"),
+
+    # ------------------------------------------------------------------ #
+    # HARD NEGATIVES: money vocabulary, no instruction to move money
+    #
+    # financialInstruction is an instruction to the *listener* to move money.
+    # Naming a price, reporting a payment the speaker already made, or asking
+    # what something cost are none of those. Holdout precision was 0.550.
+    # ------------------------------------------------------------------ #
+    F("hardneg_money_mentioned", (), "en", (
+        "The scooter repair cost me {small} rupees at the garage.",
+        "That phone is around {large} now, the price went up.",
+        "We spent about {small} on groceries at {merchant} this month.",
+        "The ticket was {small} each, which is cheaper than last year.",
+        "Electricity bill came to {small} this time, higher than usual.",
+    ), kind="safe"),
+    F("hardneg_payment_completed", (), "en", (
+        "I already paid the electricity bill yesterday, it is done.",
+        "The transfer went through last night, {relation} confirmed it.",
+        "I have settled the {merchant} bill, nothing is pending.",
+        "The EMI was auto debited this morning as usual.",
+        "Salary got credited today, a day earlier than expected.",
+    ), kind="safe"),
+    F("hardneg_price_question", (), "en", (
+        "How much did the repair come to in the end?",
+        "What is the going rate for that these days?",
+        "Was it expensive, or did you get a discount?",
+        "Do you remember how much we paid at {merchant} last time?",
+    ), kind="safe"),
+    F("hardneg_money_hinglish", (), "hinglish", (
+        "Bill already pay kar diya maine kal hi.",
+        "Yeh wala {small} ka aata hai, market mein.",
+        "Salary aa gayi hai aaj, time pe.",
+        "Kitne ka mila tujhe? Mehenga tha kya?",
+        "Maine {merchant} ka payment kar diya tha pichle hafte.",
+    ), kind="safe"),
+
+    # ------------------------------------------------------------------ #
+    # WIDER financialInstruction SURFACE FORMS
+    #
+    # Holdout recall was 0.440: the model knew "transfer X to account Y" and
+    # little else. These are the same instruction in the phrasings people
+    # actually use, so the label is learned as intent rather than as a verb.
+    # ------------------------------------------------------------------ #
+    F("fin_wide_phrasings", ("financialInstruction",), "en", (
+        "Just put the {large} through to this account and we are done.",
+        "Go ahead and move the money across now.",
+        "Send it to the number I messaged you, {large} should cover it.",
+        "You will need to do a bank transfer of {large} today.",
+        "Push {large} to the {wallet} number I am about to give you.",
+        "Once you make the payment of {large}, everything will be cleared.",
+        "Kindly do the needful and remit {large} to the given account.",
+    )),
+    F("fin_wide_hinglish", ("financialInstruction",), "hinglish", (
+        "Aap {large} is account mein daal dijiye abhi.",
+        "Paise transfer kar do is number pe, {large}.",
+        "{wallet} se bhej dijiye {large}, main number deta hoon.",
+        "Bas payment kar dijiye {large} ka, phir sab clear ho jayega.",
+    )),
 ]

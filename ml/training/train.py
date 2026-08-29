@@ -296,7 +296,10 @@ def main() -> int:
                args.out / "pytorch_model.pt")
     tokenizer.save_pretrained(args.out / "tokenizer")
 
-    manifest_path = Path("ml/data/manifest.json")
+    # Anchored like every other path here: read from the repo root, so running
+    # train.py from ml/ cannot record provenance from a manifest that is not
+    # the one generate.py wrote.
+    manifest_path = resolve("ml/data/manifest.json")
     metrics = {
         "model_version": MODEL_VERSION,
         "base_model": args.base_model,

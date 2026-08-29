@@ -20,6 +20,9 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # ml/
+from paths import resolve  # noqa: E402
 
 import numpy as np
 import onnxruntime as ort
@@ -28,7 +31,7 @@ from transformers import AutoTokenizer
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "training"))
 from model import LABELS  # noqa: E402
 
-MODEL_DIR = Path("ml/models/ruko-manip-v1")
+MODEL_DIR = resolve("ml/models/ruko-manip-v1")
 TEXTS = [
     "hello sir i am calling from your bank your account will be frozen "
     "you must transfer 48000 immediately do not disconnect this call",
@@ -93,7 +96,7 @@ def main() -> int:
                 f"{ort.__version__} on CPUExecutionProvider",
         "cases": rows,
     }
-    path = Path("mobile/src/risk/classifier/__tests__/parity_fixture.json")
+    path = resolve("mobile/src/risk/classifier/__tests__/parity_fixture.json")
     path.write_text(json.dumps(out, ensure_ascii=False, indent=1) + "\n")
     print(f"wrote {len(rows)} parity cases -> {path}")
     return 0
