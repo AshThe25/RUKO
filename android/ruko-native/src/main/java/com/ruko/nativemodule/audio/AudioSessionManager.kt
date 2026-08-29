@@ -61,6 +61,16 @@ class AudioSessionManager(
 
     var onError: ((code: String, message: String) -> Unit)? = null
 
+    /** Live frame energy in dBFS, updated every ~20ms while running. For diagnostics. */
+    @Volatile
+    var lastLevelDb: Double = -80.0
+        private set
+
+    /** Current adaptive noise floor, for diagnostics. */
+    @Volatile
+    var noiseFloorDb: Double = -80.0
+        private set
+
     fun hasPermission(): Boolean =
         ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
             PackageManager.PERMISSION_GRANTED
@@ -168,6 +178,9 @@ class AudioSessionManager(
                 reportedSilence = true
                 onAllSilentDuringCall?.invoke()
             }
+
+            lastLevelDb = vad.lastFrameDb
+            noiseFloorDb = vad.noiseFloorDbFs
 
             when (val event = vad.accept(frame)) {
                 is VoiceActivityDetector.Event.SpeechStart -> {

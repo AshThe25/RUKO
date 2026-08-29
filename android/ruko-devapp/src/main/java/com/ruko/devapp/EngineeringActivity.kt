@@ -239,16 +239,35 @@ class EngineeringActivity : AppCompatActivity() {
                 }
 
                 var segments = 0
+                var maxDb = -80.0
                 val started = manager.start { _, durationMs ->
                     segments++
                     runOnUiThread { status.text = "Speech detected: $segments segment(s), last ${durationMs} ms" }
                 }
                 status.text = if (started) "Listening — say something." else "Could not start."
 
+                val ticker = object : Runnable {
+                    override fun run() {
+                        if (!manager.isRunning) return
+                        maxDb = maxOf(maxDb, manager.lastLevelDb)
+                        if (segments == 0) {
+                            status.text = "Listening… level %.0f dBFS, floor %.0f dBFS, peak %.0f dBFS"
+                                .format(manager.lastLevelDb, manager.noiseFloorDb, maxDb)
+                        }
+                        status.postDelayed(this, 200)
+                    }
+                }
+                status.post(ticker)
+
                 status.postDelayed({
                     manager.stop()
                     if (segments == 0) {
-                        status.text = "No speech detected in 5 s. Levels stayed at the noise floor."
+                        status.text = ("No speech detected in 5 s. Peak level was %.0f dBFS " +
+                            "against a %.0f dBFS floor — your voice needs to be louder than " +
+                            "the floor by more than the detector's margin. Try speaking " +
+                            "closer to the mic, or this device's mic gain may need a lower " +
+                            "threshold in VoiceActivityDetector.Config.")
+                                .format(maxDb, manager.noiseFloorDb)
                     }
                 }, 5_000)
             },
