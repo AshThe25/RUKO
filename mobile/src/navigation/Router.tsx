@@ -11,12 +11,14 @@ import {
   OnboardingScreen,
   PayDemoScreen,
   PermissionsScreen,
+  SignInScreen,
 } from '@/screens';
 import {useProtectionStore} from '@/store/protectionStore';
 import type {RouteName} from '@/types';
 
 const SCREENS: Record<RouteName, React.ComponentType> = {
   onboarding: OnboardingScreen,
+  signin: SignInScreen,
   permissions: PermissionsScreen,
   home: HomeScreen,
   investigation: InvestigationScreen,

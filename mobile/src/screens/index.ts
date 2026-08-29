@@ -7,3 +7,4 @@ export {GuardianScreen} from './GuardianScreen';
 export {HistoryScreen} from './HistoryScreen';
 export {EngineeringScreen} from './EngineeringScreen';
 export {PayDemoScreen} from './PayDemoScreen';
+export {SignInScreen} from './SignInScreen';

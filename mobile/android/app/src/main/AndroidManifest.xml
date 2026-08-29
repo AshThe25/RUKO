@@ -17,6 +17,16 @@
         android:launchMode="singleTask"
         android:windowSoftInputMode="adjustResize"
         android:exported="true">
+        <!-- Google sign-in returns to the app through this scheme. Supabase
+             redirects the browser to ruko://auth with the authorisation code,
+             which the app exchanges for a session. singleTask above means the
+             running activity receives it rather than a second copy starting. -->
+        <intent-filter android:autoVerify="false">
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="ruko" android:host="auth" />
+        </intent-filter>
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />

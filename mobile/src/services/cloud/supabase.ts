@@ -19,6 +19,9 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     // No URL to detect a session in on a phone; the OAuth deep link is handled
     // explicitly rather than by scraping window.location.
     detectSessionInUrl: false,
+    // PKCE, not implicit: a phone app cannot hold a client secret, so the code
+    // exchange is bound to a verifier this device generated.
+    flowType: 'pkce',
   },
   // Everything Ruko owns lives in its own schema, so it shares a project
   // without touching anything in public.

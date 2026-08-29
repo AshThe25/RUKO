@@ -12,8 +12,10 @@
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@supabase/supabase-js": "^2.78.0",
+    "onnxruntime-react-native": "^1.20.0",
     "react": "18.3.1",
     "react-native": "0.76.5",
+    "react-native-fs": "^2.20.0",
     "react-native-safe-area-context": "^5.9.1",
     "react-native-url-polyfill": "^4.0.0",
     "zustand": "^5.0.15"

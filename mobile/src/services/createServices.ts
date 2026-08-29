@@ -19,6 +19,7 @@
  */
 import type {LocalRiskClassifier, RiskEngine, RukoServices} from '@contracts';
 import {createDiagnosticsProvider} from './diagnostics';
+import {bringUpClassifier} from './onnxSetup';
 import {hasNativeModule} from './native/RukoNative';
 import {
   createNativeCallProvider,
@@ -91,7 +92,20 @@ export function createServices(options: CreateServicesOptions = {}): RukoRuntime
   const cloudGuardian = cloudConfigured ? new SupabaseGuardianChannel() : null;
   const guardian = new StubGuardianChannel();
   if (cloudGuardian) void cloudGuardian.attach();
-  const classifier: LocalRiskClassifier = bus.getClassifier();
+  // Start on the lexicon so the first screen paints immediately, then swap in
+  // the neural model once it has been unpacked and a session created. Copying
+  // 22 MB out of the APK takes long enough that blocking start-up on it would
+  // be felt, and the lexicon is a genuine classifier in the meantime -- not a
+  // placeholder.
+  let live: LocalRiskClassifier = bus.getClassifier();
+  const classifier: LocalRiskClassifier = {
+    classify: (...args) => live.classify(...args),
+    loadModel: () => live.loadModel?.() ?? Promise.resolve(),
+  } as LocalRiskClassifier;
+
+  void bringUpClassifier().then(result => {
+    if (result.neural) live = result.classifier;
+  });
 
   const call = native ? createNativeCallProvider() : createCallProvider(bus);
   const payment = native ? createNativePaymentProvider() : createPaymentProvider(bus);

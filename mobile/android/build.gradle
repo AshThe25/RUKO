@@ -21,3 +21,18 @@ buildscript {
 }
 
 apply plugin: "com.facebook.react.rootproject"
+
+// onnxruntime-react-native asks for `latest.integration`, a dynamic version that
+// only resolves against Microsoft's nightly repository. Pinning it to the
+// released artifact keeps the build reproducible and offline-buildable, and a
+// fraud model should not silently change version between two builds anyway.
+allprojects {
+    configurations.all {
+        resolutionStrategy.eachDependency { details ->
+            if (details.requested.group == 'com.microsoft.onnxruntime') {
+                details.useVersion '1.20.0'
+                details.because 'latest.integration is a nightly channel; pin to a release'
+            }
+        }
+    }
+}

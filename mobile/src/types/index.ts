@@ -1,6 +1,7 @@
 /** Screens are addressed by name; the router is driven by the protection store. */
 export type RouteName =
   | 'onboarding'
+  | 'signin'
   | 'permissions'
   | 'home'
   | 'investigation'
