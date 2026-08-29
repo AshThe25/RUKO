@@ -6,7 +6,11 @@
 
 <style>
   /*
-    Ruko — quiet register.
+    Ruko — quiet register, deliberately single-theme.
+    The page commits to the light palette in every context rather than
+    following prefers-color-scheme, so the identity is the same for everyone
+    who opens the link. Every colour is painted explicitly (body background
+    included) so nothing borrows a host's dark ground.
     The ambient bloom runs warm amber into calm indigo on purpose: that is the
     product's whole arc, alarm resolving into calm. Everything else stays out
     of the way — hairline borders, one accent, a lot of air.
@@ -35,37 +39,8 @@
     --screen-ink:#F2F2F2;
   }
 
-  @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]){
-      --ground:#0B0B0E;
-      --raised:#141419;
-      --sunk:#101014;
-      --ink:#F4F4F6;
-      --ink-2:#C3C3CC;
-      --muted:#8C8C99;
-      --line:rgba(255,255,255,.13);
-      --line-2:rgba(255,255,255,.07);
-      --critical:#FF6B5A;
-      --critical-soft:rgba(255,107,90,.14);
-      --safe:#5FBF87;
-    }
-  }
-  :root[data-theme="dark"]{
-    --ground:#0B0B0E;
-    --raised:#141419;
-    --sunk:#101014;
-    --ink:#F4F4F6;
-    --ink-2:#C3C3CC;
-    --muted:#8C8C99;
-    --line:rgba(255,255,255,.13);
-    --line-2:rgba(255,255,255,.07);
-    --critical:#FF6B5A;
-    --critical-soft:rgba(255,107,90,.14);
-    --safe:#5FBF87;
-  }
-
   *{box-sizing:border-box;margin:0;padding:0}
-  html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+  html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;color-scheme:light}
   body{
     background:var(--ground);color:var(--ink);
     font-family:var(--body);font-size:16.5px;line-height:1.6;
@@ -109,10 +84,6 @@
     width:min(620px,76vw);height:440px;top:-40px;right:-8%;
     background:radial-gradient(closest-side,var(--cool),transparent);
   }
-  @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]) .bloom i{opacity:.4;filter:blur(110px)}
-  }
-  :root[data-theme="dark"] .bloom i{opacity:.4;filter:blur(110px)}
 
   /* ---------- nav ---------- */
   nav{
@@ -153,7 +124,6 @@
   .hero .inner{position:relative;z-index:1}
   .flourish{display:block;margin:0 auto 26px;opacity:.5}
   .hero .eyebrow{color:var(--cool);font-weight:700}
-  :root[data-theme="dark"] .hero .eyebrow{color:#A8AEFF}
   .hero h1{margin-top:18px}
   .hero .lede{margin:22px auto 0;max-width:36rem}
   .hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:34px}
@@ -231,7 +201,6 @@
   .lrow .v{font-weight:700;color:var(--critical)}
   .lrow.local .k{color:var(--ink-2)}
   .lrow.local .v{color:var(--cool)}
-  :root[data-theme="dark"] .lrow.local .v{color:#A8AEFF}
   .ltotal{
     display:flex;justify-content:space-between;align-items:baseline;
     margin-top:22px;padding-top:20px;border-top:1px solid var(--line);
