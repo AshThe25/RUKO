@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 
 import {
   bandRank,
+  isSpendAlert,
   bandTone,
   formatMinor,
   formatScore,
@@ -143,5 +144,25 @@ describe('privacy contract', () => {
 
   test('an ordinary row passes', () => {
     expect(() => assertNoTranscript({ ...alert() })).not.toThrow();
+  });
+});
+
+describe('spend-oversight alerts', () => {
+  test('recognised by their reason codes', () => {
+    expect(isSpendAlert(alert({ reasons: ['CUMULATIVE_THRESHOLD'] }))).toBe(true);
+    expect(isSpendAlert(alert({ reasons: ['SINGLE_LARGE_PAYMENT'] }))).toBe(true);
+    expect(isSpendAlert(alert({ reasons: ['RAPID_REPEAT_PAYMENTS'] }))).toBe(true);
+  });
+
+  test('a manipulation alert is not one', () => {
+    expect(isSpendAlert(alert({ reasons: ['COERCION', 'AUTHORITY_IMPERSONATION'] }))).toBe(false);
+    expect(isSpendAlert(alert({ reasons: [] }))).toBe(false);
+  });
+
+  test('spend reasons read as plain English, not as engine codes', () => {
+    expect(humaniseReason('CUMULATIVE_THRESHOLD')).toBe('Small payments adding up');
+    expect(humaniseReason('SINGLE_LARGE_PAYMENT')).toBe('One large payment');
+    // Manipulation codes keep the generic humanisation.
+    expect(humaniseReason('AUTHORITY_IMPERSONATION')).toBe('Authority impersonation');
   });
 });
