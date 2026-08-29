@@ -124,15 +124,23 @@ export async function completeOAuth(url: string): Promise<AuthResult | null> {
 }
 
 /** Listen for the OAuth return. Returns an unsubscribe. */
+const handled = new Set<string>();
+
 export function listenForOAuth(onDone: (result: AuthResult) => void): () => void {
-  const sub = Linking.addEventListener('url', ({url}) => {
+  // getInitialURL and the 'url' event can both deliver the same link. An
+  // authorisation code is single-use and its verifier is cleared on the first
+  // exchange, so a second attempt fails rather than being harmlessly ignored.
+  const once = (url: string) => {
+    if (handled.has(url)) return;
+    handled.add(url);
     void completeOAuth(url).then(r => {
       if (r) onDone(r);
     });
-  });
+  };
+  const sub = Linking.addEventListener('url', ({url}) => once(url));
   // A cold start arrives as the initial URL rather than an event.
   void Linking.getInitialURL().then(url => {
-    if (url) void completeOAuth(url).then(r => r && onDone(r));
+    if (url) once(url);
   });
   return () => sub.remove();
 }

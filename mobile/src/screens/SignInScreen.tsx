@@ -4,7 +4,6 @@ import {Button, Card, Screen, Txt} from '@/components';
 import {colors, radius, space, type} from '@/theme';
 import {useProtectionStore} from '@/store/protectionStore';
 import {
-  listenForOAuth,
   signInWithEmail,
   signInWithGoogle,
   signUpWithEmail,
@@ -30,18 +29,9 @@ export function SignInScreen() {
 
   const canSubmit = email.includes('@') && password.length >= 8 && !busy;
 
-  // The browser returns through ruko://auth; this catches it whether the app
-  // stayed alive or was cold-started by the link.
-  React.useEffect(
-    () =>
-      listenForOAuth(result => {
-        if (result.error) return setMessage(result.error);
-        if (result.user) {
-          void upsertProfile(result.user, isMinor).then(() => navigate('home'));
-        }
-      }),
-    [isMinor, navigate],
-  );
+  // The OAuth return is handled once, in App. A second listener here would
+  // exchange the same code again: the first exchange consumes the verifier,
+  // and the second fails with 'code verifier should be non-empty'.
 
   async function google() {
     setBusy(true);
