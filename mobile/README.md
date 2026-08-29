@@ -6,10 +6,30 @@ React Native + TypeScript. Owned by Aishwarya.
 npm install
 npm start          # metro
 npm run android    # build + install on the connected iQOO 15
-npm test           # 51 tests
+npm test           # 60 tests
 npx tsc --noEmit
 npm run lint
+
+# proves the whole tree resolves and bundles for the device, no phone needed
+npx react-native bundle --platform android --dev false \
+  --entry-file index.js --bundle-output /tmp/ruko.bundle
 ```
+
+### Before `npm run android` will work
+
+Not yet set up on this machine — these are needed on whichever machine drives
+the demo:
+
+- **Android SDK + platform-tools** (Android Studio, or `brew install --cask android-commandlinetools`),
+  with `ANDROID_HOME` exported and `adb` on the PATH.
+- **JDK 17.** This machine has JDK 24, which React Native 0.76's Gradle build
+  does not support. `brew install --cask zulu@17` and point `JAVA_HOME` at it.
+- The iQOO 15 in developer mode with USB debugging on, showing up in
+  `adb devices`.
+
+Everything above the line has been verified. The on-device build has **not** —
+no SDK and no device have been available, so nothing in this repo claims it has
+run on the phone yet.
 
 ## Layout
 
