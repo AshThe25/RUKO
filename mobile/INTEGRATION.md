@@ -124,3 +124,13 @@ Vedant's `src/risk/classifier/heuristicClassifier.ts` supersedes my
 `stubs/lexicalClassifier.ts` as the offline fallback. Both implement
 `LocalRiskClassifier`, so it is a one-line change in `createServices` and the
 engineering screen starts reporting his model version on its own.
+
+## 8. One dependency added
+
+`@react-native-async-storage/async-storage` — for the persisted slice of the
+store (onboarding, permissions, the risk-event log). It autolinks, so it needs
+a native rebuild the first time, and it is mocked in the test suite.
+
+Nothing sensitive goes in it: the log holds amounts, payee display names, risk
+reasons and version strings. No transcript, no audio, no raw conversation. The
+history screen has a two-tap delete for it.

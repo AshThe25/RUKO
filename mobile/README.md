@@ -6,7 +6,7 @@ React Native + TypeScript. Owned by Aishwarya.
 npm install
 npm start          # metro
 npm run android    # build + install on the connected iQOO 15
-npm test           # 60 tests
+npm test           # 66 tests
 npx tsc --noEmit
 npm run lint
 
@@ -88,6 +88,12 @@ engineering screen prints those values verbatim.
   a decision.
 - **Continuing past a critical warning takes a second, deliberate action** with
   a short delay — long enough to think, not so long it feels like a punishment.
+- **The audit trail is persisted; the session is not.** Onboarding state,
+  permissions and the risk-event log survive a restart, because a log that
+  vanishes when the app closes is not a log. The current investigation, its
+  trace and any guardian alert are dropped — none of it should outlive the
+  payment it was about, and none of it contains a transcript. The user can
+  delete the log from the history screen.
 
 ## Tests
 
@@ -99,6 +105,7 @@ behaviour    the amount-anomaly curve and cold-start behaviour
 store        navigation stack and the audit log
 screens      every screen mounts, including empty, error and no-result states
 native       payload adapters and the stub fallback when there is no module
+persistence  what survives a restart, and what deliberately does not
 ```
 
-60 tests.
+66 tests.

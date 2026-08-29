@@ -12,7 +12,8 @@ import {useProtectionStore} from '@/store/protectionStore';
 import type {RouteName} from '@/types';
 
 function renderAt(route: RouteName) {
-  useProtectionStore.setState({route, stack: [route]});
+  // Rehydration is async; screens under test are past it by definition.
+  useProtectionStore.setState({route, stack: [route], hydrated: true});
   const runtime = createServices();
   let tree: ReactTestRenderer.ReactTestRenderer | undefined;
   ReactTestRenderer.act(() => {
@@ -48,6 +49,7 @@ describe('screens', () => {
       revealed: 0,
       status: 'idle',
       error: null,
+      hydrated: true,
     });
   });
 
@@ -55,8 +57,23 @@ describe('screens', () => {
     expect(() => renderAt(route)).not.toThrow();
   });
 
+  it('shows nothing until the persisted state has been read back', () => {
+    useProtectionStore.setState({route: 'home', stack: ['home'], hydrated: false});
+    const runtime = createServices();
+    let tree: ReactTestRenderer.ReactTestRenderer | undefined;
+    ReactTestRenderer.act(() => {
+      tree = ReactTestRenderer.create(
+        <ServicesProvider runtime={runtime}>
+          <Router />
+        </ServicesProvider>,
+      );
+    });
+    // A returning user must never flash past onboarding on their way to home.
+    expect(JSON.stringify(tree!.toJSON())).not.toContain('Checks today');
+  });
+
   it('renders the app shell', () => {
-    useProtectionStore.setState({route: 'onboarding', stack: ['onboarding']});
+    useProtectionStore.setState({route: 'onboarding', stack: ['onboarding'], hydrated: true});
     ReactTestRenderer.act(() => {
       ReactTestRenderer.create(<App />);
     });

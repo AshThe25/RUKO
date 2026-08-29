@@ -53,6 +53,7 @@ export function InterventionScreen() {
     <Screen
       testID="intervention-screen"
       background={colors.bg}
+      modal
       footer={
         <View>
           <Button
@@ -91,7 +92,11 @@ export function InterventionScreen() {
         </Txt>
       </View>
 
-      <Txt variant="title" style={styles.headline}>
+      <Txt
+        variant="title"
+        style={styles.headline}
+        accessibilityRole="header"
+        accessibilityLiveRegion="assertive">
         Stop for a moment.
       </Txt>
       <Txt variant="body" tone="secondary" style={styles.sub}>

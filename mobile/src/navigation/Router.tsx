@@ -1,5 +1,6 @@
 import React, {useEffect} from 'react';
-import {BackHandler} from 'react-native';
+import {BackHandler, StyleSheet, View} from 'react-native';
+import {colors} from '@/theme';
 import {
   EngineeringScreen,
   GuardianScreen,
@@ -38,6 +39,7 @@ export function Router() {
   const route = useProtectionStore(s => s.route);
   const back = useProtectionStore(s => s.back);
   const stack = useProtectionStore(s => s.stack);
+  const hydrated = useProtectionStore(s => s.hydrated);
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -54,6 +56,16 @@ export function Router() {
     return () => sub.remove();
   }, [back, route, stack.length]);
 
+  // Reading the persisted slice is async. Showing nothing for that frame is
+  // better than flashing onboarding at someone who onboarded weeks ago.
+  if (!hydrated) {
+    return <View style={styles.splash} />;
+  }
+
   const Screen = SCREENS[route] ?? HomeScreen;
   return <Screen />;
 }
+
+const styles = StyleSheet.create({
+  splash: {flex: 1, backgroundColor: colors.bg},
+});

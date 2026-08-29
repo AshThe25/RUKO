@@ -10,6 +10,8 @@ interface ScreenProps {
   background?: string;
   footer?: React.ReactNode;
   contentStyle?: ViewStyle;
+  /** Traps assistive focus. Used by the intervention, which must be dealt with. */
+  modal?: boolean;
   testID?: string;
 }
 
@@ -19,6 +21,7 @@ export function Screen({
   background = colors.bg,
   footer,
   contentStyle,
+  modal,
   testID,
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
@@ -43,7 +46,10 @@ export function Screen({
   );
 
   return (
-    <View style={[styles.flex, {backgroundColor: background}]} testID={testID}>
+    <View
+      style={[styles.flex, {backgroundColor: background}]}
+      accessibilityViewIsModal={modal}
+      testID={testID}>
       <StatusBar barStyle="light-content" backgroundColor={background} />
       {body}
       {footer ? (

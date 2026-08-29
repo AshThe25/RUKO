@@ -14,7 +14,7 @@ interface PillProps {
 
 export function Pill({label, dotColor, fg = colors.textSecondary, bg = colors.surfaceRaised, style}: PillProps) {
   return (
-    <View style={[styles.pill, {backgroundColor: bg}, style]}>
+    <View accessible accessibilityLabel={label} style={[styles.pill, {backgroundColor: bg}, style]}>
       {dotColor ? <View style={[styles.dot, {backgroundColor: dotColor}]} /> : null}
       <Txt variant="label" color={fg} uppercase>
         {label}

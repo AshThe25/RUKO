@@ -29,7 +29,7 @@ export function Card({
       {title || trailing ? (
         <View style={styles.header}>
           {title ? (
-            <Txt variant="label" tone="tertiary" uppercase>
+            <Txt variant="label" tone="tertiary" uppercase accessibilityRole="header">
               {title}
             </Txt>
           ) : (

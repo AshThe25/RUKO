@@ -10,3 +10,8 @@ jest.mock('react-native-safe-area-context', () => {
     useSafeAreaInsets: () => inset,
   };
 });
+
+// AsyncStorage ships its own in-memory jest mock.
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);

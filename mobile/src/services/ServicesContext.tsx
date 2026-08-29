@@ -15,9 +15,10 @@ export function ServicesProvider({
   const [value] = useState<RukoRuntime>(() => runtime ?? createServices());
 
   useEffect(() => {
-    // Loading the classifier is async and can fail; the diagnostics screen
-    // reports whatever actually happened rather than assuming success.
-    void value.demo.bus.init();
+    // Loading the classifier is async and can fail. Nothing is thrown at the
+    // user: the diagnostics screen reports whatever actually happened, which
+    // for a failed load is `loaded: false`, not a crash.
+    value.demo.bus.init().catch(() => {});
   }, [value]);
 
   const memo = useMemo(() => value, [value]);

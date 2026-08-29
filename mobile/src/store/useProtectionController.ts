@@ -148,9 +148,11 @@ export function useProtectionController() {
             store.getState().setMachineState('INTERVENTION');
             store.getState().navigate('intervention');
             if (result.risk.escalateToGuardian) {
-              void escalate(result.sessionId).then(outcome => {
-                store.getState().updateOutcome(result.sessionId, outcome);
-              });
+              escalate(result.sessionId)
+                .then(outcome => store.getState().updateOutcome(result.sessionId, outcome))
+                // A guardian round-trip that fails leaves the phone's own
+                // intervention standing, which is already on screen.
+                .catch(() => store.getState().updateOutcome(result.sessionId, 'GUARDIAN_TIMED_OUT'));
             }
           } else {
             store.getState().setMachineState('RESOLVED');

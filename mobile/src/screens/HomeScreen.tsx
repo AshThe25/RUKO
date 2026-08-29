@@ -79,7 +79,7 @@ export function HomeScreen() {
         </View>
       ) : null}
 
-      <Txt variant="title" style={styles.state}>
+      <Txt variant="title" style={styles.state} accessibilityRole="header">
         {STATE_COPY[machineState] ?? 'Watching for payment pressure.'}
       </Txt>
       <Txt variant="body" tone="secondary" style={styles.stateSub}>
@@ -201,7 +201,7 @@ function backendLabel(d: EngineDiagnostics): string {
 
 function Stat({label, value, tone}: {label: string; value: string; tone?: string}) {
   return (
-    <View style={styles.stat}>
+    <View style={styles.stat} accessible accessibilityLabel={`${value} ${label}`}>
       <Txt variant="heading" color={tone ?? colors.text}>
         {value}
       </Txt>

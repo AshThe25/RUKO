@@ -3,7 +3,9 @@
  * `useProtectionController`, so the store stays trivially testable and no
  * screen can accidentally drive the pipeline from a render.
  */
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {create} from 'zustand';
+import {createJSONStorage, persist} from 'zustand/middleware';
 import type {
   GuardianAlert,
   GuardianConnectionState,
@@ -98,9 +100,31 @@ interface ProtectionStore {
   history: RiskEventRecord[];
   recordEvent: (record: Omit<RiskEventRecord, 'id' | 'timestamp'>) => void;
   updateOutcome: (sessionId: string, outcome: InterventionOutcome) => void;
+  clearHistory: () => void;
+
+  /** False until the persisted slice has been read back off disk. */
+  hydrated: boolean;
+  setHydrated: (value: boolean) => void;
 }
 
-export const useProtectionStore = create<ProtectionStore>(set => ({
+/**
+ * What survives a restart, and what deliberately does not.
+ *
+ * Persisted: whether onboarding is done, which permissions the user allowed,
+ * and the risk-event log — an audit trail that vanishes when the app is closed
+ * is not an audit trail (spec §49).
+ *
+ * Not persisted: the current investigation, its trace, the guardian alert. All
+ * of it is session state, and none of it should outlive the payment it was
+ * about. Nothing here contains a transcript or any raw conversation.
+ */
+const PERSISTED_KEYS = ['onboarded', 'permissions', 'history'] as const;
+
+export const STORAGE_KEY = 'ruko.protection.v1';
+
+export const useProtectionStore = create<ProtectionStore>()(
+  persist(
+    set => ({
   route: 'onboarding',
   stack: ['onboarding'],
   navigate: route =>
@@ -152,7 +176,32 @@ export const useProtectionStore = create<ProtectionStore>(set => ({
     set(s => ({
       history: s.history.map(h => (h.sessionId === sessionId ? {...h, outcome} : h)),
     })),
-}));
+  clearHistory: () => set({history: []}),
+
+  hydrated: false,
+  setHydrated: value => set({hydrated: value}),
+    }),
+    {
+      name: STORAGE_KEY,
+      storage: createJSONStorage(() => AsyncStorage),
+      partialize: state =>
+        Object.fromEntries(
+          Object.entries(state).filter(([key]) =>
+            (PERSISTED_KEYS as readonly string[]).includes(key),
+          ),
+        ) as Partial<ProtectionStore>,
+      onRehydrateStorage: () => state => {
+        // Runs whether or not there was anything stored, and on failure — the
+        // app must start even if storage is unreadable.
+        state?.setHydrated(true);
+        // A returning user lands on home, not back through onboarding.
+        if (state?.onboarded) {
+          state.replace('home');
+        }
+      },
+    },
+  ),
+);
 
 /** Selector helpers, so components subscribe to the narrowest slice possible. */
 export const selectTodayEvents = (state: {history: RiskEventRecord[]}) => {

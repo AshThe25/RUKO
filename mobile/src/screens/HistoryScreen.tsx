@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {StyleSheet, View} from 'react-native';
 import {Button, Card, EmptyState, Screen, Txt} from '@/components';
 import {colors, riskPalette, space} from '@/theme';
@@ -22,11 +22,38 @@ const OUTCOME_COPY: Record<RiskEventRecord['outcome'], string> = {
 export function HistoryScreen() {
   const history = useProtectionStore(s => s.history);
   const navigate = useProtectionStore(s => s.navigate);
+  const clearHistory = useProtectionStore(s => s.clearHistory);
+  const [confirmingClear, setConfirmingClear] = useState(false);
 
   return (
     <Screen
       testID="history-screen"
-      footer={<Button label="Back" variant="ghost" onPress={() => navigate('home')} />}>
+      footer={
+        <View>
+          {history.length > 0 ? (
+            <Button
+              label={confirmingClear ? 'Delete everything — tap to confirm' : 'Delete this history'}
+              variant={confirmingClear ? 'danger' : 'quiet'}
+              onPress={() => {
+                if (confirmingClear) {
+                  clearHistory();
+                  setConfirmingClear(false);
+                } else {
+                  setConfirmingClear(true);
+                }
+              }}
+              hint={confirmingClear ? undefined : 'It is stored only on this phone.'}
+              testID="clear-history"
+            />
+          ) : null}
+          <Button
+            label="Back"
+            variant="ghost"
+            onPress={() => navigate('home')}
+            style={history.length > 0 ? styles.backSpaced : undefined}
+          />
+        </View>
+      }>
       <Txt variant="label" tone="tertiary" uppercase>
         History
       </Txt>
@@ -101,4 +128,5 @@ const styles = StyleSheet.create({
   reason: {marginBottom: 2},
   outcome: {marginTop: space.md},
   versions: {marginTop: space.xs},
+  backSpaced: {marginTop: space.sm},
 });

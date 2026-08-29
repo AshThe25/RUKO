@@ -31,8 +31,14 @@ export function InvestigationStep({label, status, summary, contribution}: Invest
   }, [fade, status]);
 
   return (
-    <Animated.View style={[styles.row, {opacity: fade}]}>
-      <View style={styles.marker}>{renderMarker(status)}</View>
+    <Animated.View
+      accessible
+      accessibilityRole="text"
+      accessibilityLabel={spokenLabel(label, status, summary)}
+      style={[styles.row, {opacity: fade}]}>
+      <View style={styles.marker} importantForAccessibility="no-hide-descendants">
+        {renderMarker(status)}
+      </View>
       <View style={styles.body}>
         <View style={styles.headline}>
           <Txt variant="bodyStrong">{label}</Txt>
@@ -53,6 +59,21 @@ export function InvestigationStep({label, status, summary, contribution}: Invest
       </View>
     </Animated.View>
   );
+}
+
+/**
+ * A screen reader should hear "Recipient, first payment to this recipient",
+ * not "Recipient" then a tick glyph then a fragment.
+ */
+function spokenLabel(label: string, status: StepStatus, summary?: string): string {
+  const state: Record<StepStatus, string> = {
+    pending: 'not checked yet',
+    running: 'checking',
+    done: 'checked',
+    flagged: 'flagged',
+    error: 'could not be checked',
+  };
+  return summary ? `${label}, ${summary}` : `${label}, ${state[status]}`;
 }
 
 function renderMarker(status: StepStatus) {
