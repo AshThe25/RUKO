@@ -5,40 +5,45 @@
  * restrained accent; risk colours are calm, not alarming — a security product
  * that shouts at the user every day gets uninstalled before the day it
  * actually needs to be believed.
+ *
+ * These are the landing page's values, not an approximation of them. The site
+ * renders light, but the phone it shows in the hero is this screen, so the app
+ * matches that mock: #0E0F12 ground, coral for risk, indigo for information.
+ * A person who installs from the site should recognise what they installed.
  */
 
 export const colors = {
   /* surfaces */
-  bg: '#08090B',
-  surface: '#101216',
-  surfaceRaised: '#171A20',
-  surfacePressed: '#1D2129',
-  border: '#23272F',
+  bg: '#0E0F12',            /* site: the phone mock's screen */
+  surface: '#16181D',
+  surfaceRaised: '#1C1F26',
+  surfacePressed: '#232730',
+  border: '#252932',
   borderStrong: '#333944',
 
   /* text */
   text: '#F2F4F7',
   textSecondary: '#9BA3AF',
   textTertiary: '#666E7A',
-  textInverse: '#08090B',
+  textInverse: '#0E0F12',
 
   /* brand — used sparingly, never as decoration */
-  accent: '#4C8DFF',
-  accentPressed: '#3C74D6',
+  accent: '#8B93F8',        /* site: --cool */
+  accentPressed: '#727BE8',
 
   /* risk — calm, desaturated, readable on near-black */
-  safe: '#3FB37F',
+  safe: '#5FBF87',          /* site: --safe on dark */
   safeSurface: '#11221B',
   medium: '#D9A441',
   mediumSurface: '#241C10',
-  high: '#E07A3E',
+  high: '#FF8A3D',          /* site: --warm */
   highSurface: '#26170E',
-  critical: '#E2544C',
-  criticalSurface: '#2A1312',
+  critical: '#FF6B5A',      /* site: --critical on dark */
+  criticalSurface: '#2A1512',
 
   /* status */
   offline: '#666E7A',
-  online: '#3FB37F',
+  online: '#5FBF87',
 } as const;
 
 export const riskPalette = {
