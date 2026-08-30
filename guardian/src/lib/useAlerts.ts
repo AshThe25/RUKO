@@ -55,11 +55,46 @@ export function useAlerts(userId: string | null) {
 
     (async () => {
       setLoading(true);
-      const { data, error: queryError } = await supabase
-        .from('alerts')
-        .select(SELECT)
-        .order('created_at', { ascending: false })
-        .limit(100);
+
+      /**
+       * The backfill query, retried a few times before it is called a failure.
+       *
+       * The first request after signing in can lose a race that has nothing to
+       * do with this app: the token is minted by one Supabase service and
+       * verified by another, and when their clocks differ by even a second a
+       * token used immediately is rejected as "JWT issued at future". It
+       * succeeds a moment later on its own.
+       *
+       * Reporting that as a permanent error was worse than the race itself —
+       * the guardian showed a red banner for the rest of the session while
+       * everything on the page worked, which is exactly the wrong thing to do
+       * to someone whose job here is to trust what this screen tells them.
+       */
+      const ATTEMPTS = 3;
+      const RETRY_DELAY_MS = 700;
+      let data: unknown[] | null = null;
+      let queryError: { message: string } | null = null;
+
+      for (let attempt = 0; attempt < ATTEMPTS; attempt += 1) {
+        const result = await supabase
+          .from('alerts')
+          .select(SELECT)
+          .order('created_at', { ascending: false })
+          .limit(100);
+
+        if (cancelled) return;
+        if (!result.error) {
+          data = result.data as unknown[];
+          queryError = null;
+          break;
+        }
+        queryError = result.error;
+
+        const isLastAttempt = attempt === ATTEMPTS - 1;
+        if (isLastAttempt) break;
+        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+        if (cancelled) return;
+      }
 
       if (cancelled) return;
       if (queryError) {
