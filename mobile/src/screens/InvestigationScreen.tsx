@@ -72,7 +72,14 @@ export function InvestigationScreen() {
     <Screen
       testID="investigation-screen"
       footer={
-        finished && result.risk.policyAction === 'NONE' ? (
+        // Show Done for every finished result that stays on this screen. Only
+        // STRONG_WARNING and BLOCK_WARNING navigate to the intervention; NONE
+        // and SUBTLE_WARNING do not, and SUBTLE_WARNING used to leave the screen
+        // with no way forward — a dead end at exactly the MEDIUM scores a live
+        // demo often produces.
+        finished &&
+        result.risk.policyAction !== 'STRONG_WARNING' &&
+        result.risk.policyAction !== 'BLOCK_WARNING' ? (
           <Button label="Done" onPress={() => endSession('NO_INTERRUPTION')} testID="investigation-done" />
         ) : undefined
       }>

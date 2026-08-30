@@ -227,12 +227,22 @@ function summarise(name: ToolName, data: unknown): string {
       if (!d.amountRatio || d.amountAnomaly === 0) return 'Amount is normal for you';
       return `Amount is ${d.amountRatio.toFixed(1)}× your usual`;
     case 'conversationTool': {
+      // Speech and message text are the same model on the same tactics, but
+      // they are not the same claim to the user. Ruko says which one it read.
+      const fromMessages = d?.textSource === 'MESSAGES';
       if (!d?.available) return 'Nothing was heard';
-      if (d.reliability < 0.35) return 'Too little speech to assess';
+      if (d.reliability < 0.35) {
+        return fromMessages ? 'Too little message text to assess' : 'Too little speech to assess';
+      }
       const top = Object.entries(d.scores as Record<string, number>)
         .filter(([, v]) => v >= 0.5).sort((a, b) => b[1] - a[1]).slice(0, 3);
-      return top.length === 0 ? 'No pressure tactics detected'
-        : `Detected: ${top.map(([k, v]) => `${LABEL_COPY[k] ?? k} ${Math.round(v * 100)}%`).join(', ')}`;
+      if (top.length === 0) {
+        return fromMessages ? 'No pressure tactics in your messages' : 'No pressure tactics detected';
+      }
+      const detected = top
+        .map(([k, v]) => `${LABEL_COPY[k] ?? k} ${Math.round(v * 100)}%`)
+        .join(', ');
+      return fromMessages ? `In your messages: ${detected}` : `Detected: ${detected}`;
     }
     case 'notificationTool':
       if (!d?.available) return 'Notification access not granted';

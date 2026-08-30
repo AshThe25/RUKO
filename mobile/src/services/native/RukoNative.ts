@@ -59,6 +59,15 @@ export interface NativeNotificationContext {
   suspicion: number;
   matchCount: number;
   lookbackMinutes: number;
+  /**
+   * Redacted excerpts of the notifications that were kept -- links, amounts and
+   * long digit runs already stripped native-side.
+   *
+   * The bridge has always sent these; they were simply not declared here, so
+   * the only copy of the actual scam wording on the device was thrown away at
+   * the type boundary and the manipulation model never saw a word of it.
+   */
+  excerpts?: string[];
 }
 
 export interface NativeAiBackend {

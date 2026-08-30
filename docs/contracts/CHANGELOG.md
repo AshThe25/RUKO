@@ -1,5 +1,65 @@
 # Contract changelog
 
+## contracts-v1.3 — 2026-08-30 — Puneesh
+
+One additive field, which is always safe.
+
+- **Added** optional `textSource?: 'SPEECH' | 'MESSAGES'` to `ConversationEvidence`
+  (`conversation.schema.ts`). Absent means `SPEECH`, which is what every
+  existing producer emits, so nothing needs to change.
+
+  WHY. The manipulation model was only ever fed ASR output. With no call in
+  progress it never ran at all, so a scam conducted entirely over messages --
+  which is most of them -- reached the risk engine as *no conversation evidence*
+  and the notification family's 3-point ceiling was the only trace it left. On
+  the device a textbook KYC scam, mid-payment, scored **10/100 SAFE**.
+
+  The model reads language, and the tactics in a chat bubble are the same ones
+  it was trained on. So when nothing was heard, the same classifier now reads
+  the redacted notification excerpts instead. Same model, same engine, real
+  text -- the evidence is measured, not manufactured. The same scam now scores
+  66 and raises the intervention.
+
+  `textSource` exists because "Ruko heard this" and "Ruko read this in your
+  messages" are different claims and must never be shown as the same one.
+  `riskEngine.reasonLabel()` picks the wording to match, so a warning no longer
+  says "the caller is threatening you" when there was no call.
+
+  Consumers that ignore the field keep their current behaviour exactly.
+
+## contracts-v1.2 — 2026-08-30 — Puneesh
+
+One rename, to fix a name collision that made the barrel unusable for the type
+involved.
+
+- **Renamed** `InferenceBackend` in `guardian.schema.ts` to
+  `NativeInferenceBackend`. Unchanged members: `CPU | NNAPI | QUALCOMM | RULES
+  | UNKNOWN`.
+
+  `conversation.schema.ts` already exported a different `InferenceBackend`
+  (`CPU | NNAPI | QNN | XNNPACK | HEURISTIC | UNAVAILABLE`). `index.ts`
+  re-exports both, so `export *` collided and TypeScript raised TS2308 —
+  the only production typecheck error in the mobile app. Neither name was
+  importable from `@contracts`.
+
+  This is a **rename, not an addition**, so by the rule in CLAUDE.md it is not
+  automatically safe. It is safe here in fact: `NativeInferenceBackend` and the
+  `RuntimeInfo` that holds it have no consumer anywhere in the repo outside
+  `guardian.schema.ts` itself. Nothing to migrate — but shout if you were about
+  to use it.
+
+  The two types are kept separate rather than merged because they describe
+  different layers and genuinely disagree: `ruko-core`'s Kotlin enum says
+  `QUALCOMM`/`RULES`, and the app-facing contract says `QNN`/`HEURISTIC`.
+  Collapsing them would have forced one layer to lie about what it reports.
+
+  Related bug this exposed, fixed in `mobile/src/services/native/
+  nativeProviders.ts`: `toInferenceBackend` only accepted the contract's
+  spellings, so the `QUALCOMM` and `RULES` the bridge actually sends both fell
+  through to `UNAVAILABLE`. A device running on the Qualcomm NPU reported no
+  runtime at all on the Engineering screen. Now translated explicitly and
+  covered by tests against the names native really emits.
+
 ## contracts-v1 — 2026-08-29 — Vedant
 Initial contracts: conversation, payment, risk, investigation, guardian.
 No consumers existed yet, so this is not a breaking change for anyone.

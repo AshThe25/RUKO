@@ -55,10 +55,35 @@ class PayNowScreenParserTest {
         val withBalance = confirmScreen + listOf("Available balance", "₹9,99,999")
         val reading = PaymentScreenParser.parse(withBalance)
 
-        // Documents the real limitation: the parser takes the largest
-        // currency-marked figure, so a balance visible on the *same* screen
-        // would win. PayNow never draws the balance on the confirm screen, and
-        // this test exists to keep that true.
-        assertEquals(9_99_999_00L, reading.amountMinor)
+        // The balance is excluded by its caption, so the amount being sent
+        // wins even when both are on screen. This used to assert the opposite
+        // and documented it as a known limitation; on the device that
+        // limitation was not theoretical. PayNow's home screen draws the
+        // balance above a "Send money" list, so every payment was investigated
+        // as ₹9,99,999 going to the account holder's own UPI id, whoever the
+        // user had actually chosen to pay.
+        assertEquals(50_000L, reading.amountMinor)
+    }
+
+    @Test
+    fun `the PayNow home screen is not a payment`() {
+        // The exact shape that broke it: a balance, the user's own VPA, and a
+        // "Send money" list of people they might pay. Nobody is being paid yet.
+        val home = listOf(
+            "PayNow",
+            "Available balance",
+            "₹9,99,999",
+            "iQOO Bank •••• 4471 · aishwarya@paynow",
+            "Send money",
+            "Rahul Sharma", "rahul.sharma@okaxis",
+            "KYC Verification Desk", "kyc.verify9931@ybl",
+        )
+
+        val reading = PaymentScreenParser.parse(home)
+
+        assertFalse(
+            reading.isUsable,
+            "home screen read as a payment of ${reading.amountMinor}: ${reading.signals}",
+        )
     }
 }

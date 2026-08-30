@@ -7,7 +7,9 @@
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
-    "test": "jest"
+    "test": "jest",
+    "test:unit": "tsx --tsconfig tsconfig.node-tests.json --test \"src/**/__tests__/*.test.ts\"",
+    "test:all": "npm test && npm run test:unit"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",
@@ -42,6 +44,7 @@
     "prettier": "2.8.8",
     "react-native-dotenv": "^4.1.1",
     "react-test-renderer": "18.3.1",
+    "tsx": "^4.23.13",
     "typescript": "5.0.4"
   },
   "engines": {

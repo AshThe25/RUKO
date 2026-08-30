@@ -61,7 +61,19 @@ export class SupabaseGuardianChannel implements GuardianChannel {
     // Below the notify line the circle is not told at all. A family that gets
     // pinged about every small payment turns the alerts off long before the
     // one that matters.
-    if (alert.score < NOTIFY_AT || !this.userId) return null;
+    if (alert.score < NOTIFY_AT) {
+      console.warn(
+        `[ruko-guardian] not escalating: score ${alert.score} is below the ` +
+          `notify line of ${NOTIFY_AT}`,
+      );
+      return null;
+    }
+    if (!this.userId) {
+      // Every alert was being dropped here before attach() tracked auth state.
+      // Say so rather than looking like a guardian who did not answer.
+      console.warn('[ruko-guardian] not escalating: nobody is signed in on this phone');
+      return null;
+    }
 
     const {data, error} = await supabase
       .from('alerts')
@@ -85,7 +97,22 @@ export class SupabaseGuardianChannel implements GuardianChannel {
       .select('id')
       .single();
 
-    if (error || !data) return null;
+    if (error || !data) {
+      // This is the failure that looks exactly like a guardian ignoring you:
+      // the alert row never existed, so nothing could ever arrive in the
+      // console and no decision could ever come back. Swallowing it silently
+      // cost a debugging session — an RLS refusal, a missing profiles row or a
+      // dropped connection all land here and all present as "not reached".
+      console.warn(
+        '[ruko-guardian] alert insert FAILED, nothing was sent: ' +
+          (error?.message ?? 'no row returned') +
+          (error?.code ? ` (code ${error.code})` : '') +
+          (error?.details ? ` — ${error.details}` : '') +
+          (error?.hint ? ` hint: ${error.hint}` : ''),
+      );
+      return null;
+    }
+    console.warn(`[ruko-guardian] alert ${data.id} inserted; awaiting a decision`);
 
     return await this.awaitDecision(data.id, alert.sessionId, alert.expiresInSec);
   }

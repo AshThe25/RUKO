@@ -222,14 +222,24 @@ export interface GuardianAlertPayload {
   expiresInSec: number;
 }
 
-export type InferenceBackend = 'CPU' | 'NNAPI' | 'QUALCOMM' | 'RULES' | 'UNKNOWN';
+/**
+ * The backend names `ruko-core` reports, which are not the contract's own.
+ *
+ * This used to be exported as `InferenceBackend`, colliding in the barrel with
+ * the app-facing type of the same name in conversation.schema.ts. The two are
+ * genuinely different vocabularies for different layers -- native says
+ * QUALCOMM/RULES, the app says QNN/HEURISTIC -- so they are now named for the
+ * layer they describe rather than one shadowing the other. The translation
+ * between them lives in `toInferenceBackend`.
+ */
+export type NativeInferenceBackend = 'CPU' | 'NNAPI' | 'QUALCOMM' | 'RULES' | 'UNKNOWN';
 
 export interface RuntimeInfo {
   /** e.g. "onnxruntime-android". */
   engine: string;
   model: string;
   /** The backend the runtime reported after initialising — never the requested one. */
-  backend: InferenceBackend;
+  backend: NativeInferenceBackend;
   isLocal: boolean;
   isReady: boolean;
   /**

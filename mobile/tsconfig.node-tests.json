@@ -1,0 +1,19 @@
+{
+  // The Node half of the test suite (`npm run test:unit`). Identical to the app
+  // tsconfig except that `@env` resolves to a real file, because Node resolves
+  // modules for real and react-native-dotenv's virtual module does not exist
+  // outside a Babel build.
+  //
+  // `paths` replaces rather than merges when a config is extended, so the app's
+  // aliases are repeated here.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@contracts": ["../docs/contracts/index.ts"],
+      "@contracts/*": ["../docs/contracts/*"],
+      "@env": ["src/types/envShim.ts"]
+    }
+  }
+}

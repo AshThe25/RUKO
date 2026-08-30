@@ -16,7 +16,10 @@ import {formatMinor} from '@/utils/format';
  */
 export function HoldScreen() {
   const navigate = useProtectionStore(s => s.navigate);
-  const [approval, setApproval] = useState<Approval>('pending');
+  // The setter is deliberately unused for now: nothing delivers a guardian's
+  // answer to this screen yet, because the approve/deny console is unbuilt.
+  // Named with the underscore so that stays visible rather than looking done.
+  const [approval, _setApproval] = useState<Approval>('pending');
   const [remaining, setRemaining] = useState(HOLD_MINUTES * 60);
 
   useEffect(() => {
