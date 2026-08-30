@@ -20,7 +20,7 @@
 import type {LocalRiskClassifier, RiskEngine, RukoServices} from '@contracts';
 import {createDiagnosticsProvider} from './diagnostics';
 import {bringUpClassifier} from './onnxSetup';
-import {hasNativeModule} from './native/RukoNative';
+import {getNativeModule, hasNativeModule} from './native/RukoNative';
 import {
   createNativeCallProvider,
   createNativeConversationProvider,
@@ -90,6 +90,25 @@ export interface CreateServicesOptions {
   forceStubs?: boolean;
 }
 
+/**
+ * Redacted excerpts of the notifications the native filter kept.
+ *
+ * Reads the bridge directly rather than going through the notification
+ * provider: the provider maps to `NotificationEvidence`, which carries a
+ * count and a suspicion but deliberately not the text. The text is what the
+ * manipulation model needs.
+ */
+async function readRecentMessageText(): Promise<string[]> {
+  const native = getNativeModule();
+  if (!native) return [];
+  try {
+    const raw = await native.getNotificationContext();
+    return raw?.excerpts ?? [];
+  } catch {
+    return [];
+  }
+}
+
 export function createServices(options: CreateServicesOptions = {}): RukoRuntime {
   const native = !options.forceStubs && hasNativeModule();
 
@@ -97,7 +116,13 @@ export function createServices(options: CreateServicesOptions = {}): RukoRuntime
   const behaviour = new StubBehaviourStore();
   // Real channel whenever the build has credentials; the stub otherwise, so a
   // dev build with no .env still runs the whole flow offline.
-  const cloudGuardian = cloudConfigured ? new SupabaseGuardianChannel() : null;
+  //
+  // `forceStubs` covers this seam too. It previously did not, so on any machine
+  // with a .env the tests drove `demo.guardian` while the services held the
+  // Supabase channel -- pairing a guardian the code under test never consulted,
+  // and reaching the network from a unit test.
+  const cloudGuardian =
+    !options.forceStubs && cloudConfigured ? new SupabaseGuardianChannel() : null;
   const guardian = new StubGuardianChannel();
   if (cloudGuardian) void cloudGuardian.attach();
   // Start on the lexicon so the first screen paints immediately, then swap in
@@ -137,6 +162,11 @@ export function createServices(options: CreateServicesOptions = {}): RukoRuntime
         // native side withholds the audio otherwise, so this is never called
         // with anything to send.
         cloudConfigured ? wav => transcribeBase64Wav(wav) : undefined,
+        // The scam text Ruko has already read from notifications. Without
+        // this the manipulation model only ever runs on speech, so a scam
+        // conducted entirely over messages -- which is most of them -- reached
+        // the risk engine as no conversation evidence at all.
+        () => readRecentMessageText(),
       )
     : createConversationProvider(bus);
 

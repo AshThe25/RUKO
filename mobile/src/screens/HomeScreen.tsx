@@ -249,21 +249,6 @@ function Stat({label, value, tone}: {label: string; value: string; tone?: string
   );
 }
 
-function NavTile({label, caption, onPress}: {label: string; caption: string; onPress: () => void}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      testID={`nav-${label.toLowerCase().replace(/\s+/g, '-')}`}
-      style={({pressed}) => [styles.tile, pressed && styles.tilePressed]}>
-      <Txt variant="bodyStrong">{label}</Txt>
-      <Txt variant="caption" tone="tertiary">
-        {caption}
-      </Txt>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   headerLeft: {flexDirection: 'row', alignItems: 'center', gap: space.sm},
   header: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'},

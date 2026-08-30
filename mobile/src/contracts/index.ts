@@ -127,6 +127,19 @@ export interface ConversationEvidence extends EvidenceBase {
   /** Wall-clock inference latency in ms. Real measurement, for the eng screen. */
   latencyMs?: number;
 
+
+  /**
+   * Which kind of text the classifier actually read.
+   *
+   * Ruko's manipulation model does not care whether a sentence arrived down a
+   * phone line or in a chat bubble -- it reads language, and the tactics are
+   * identical. But the *user* cares, and so does the audit trail: "Ruko heard
+   * this" and "Ruko read this in your messages" are different claims and must
+   * never be shown as the same one.
+   *
+   * Absent means SPEECH, which is what every existing producer emits.
+   */
+  textSource?: 'SPEECH' | 'MESSAGES';
   detectedLanguage?: 'en' | 'hi' | 'hinglish' | 'unknown';
   timestamp: Timestamp;
 }

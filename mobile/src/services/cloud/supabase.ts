@@ -39,8 +39,14 @@ export const supabase = createClient(
   {
   auth: {
     storage: AsyncStorage,
-    persistSession: true,
-    autoRefreshToken: true,
+    // There is no session to keep or refresh when the build has no
+    // credentials, and the placeholder client points at an unresolvable host.
+    // Leaving these on meant an unconfigured build ran a token-refresh timer
+    // forever against `.invalid` -- work that cannot succeed, on the one app
+    // that promises to keep working with no network at all. It also leaked a
+    // timer past the end of every Node test that imported this module.
+    persistSession: cloudConfigured,
+    autoRefreshToken: cloudConfigured,
     // No URL to detect a session in on a phone; the OAuth deep link is handled
     // explicitly rather than by scraping window.location.
     detectSessionInUrl: false,

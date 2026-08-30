@@ -140,6 +140,19 @@ describe('inference backend', () => {
     expect(toInferenceBackend('HEURISTIC')).toBe('HEURISTIC');
   });
 
+  /**
+   * These are the names the bridge actually sends -- `ruko-core`'s enum is
+   * CPU/NNAPI/QUALCOMM/RULES/UNKNOWN. The suite previously only exercised the
+   * contract's own spellings, which native never emits, so the whole
+   * translation could be wrong with every assertion green.
+   */
+  it('translates the names ruko-core really sends', () => {
+    expect(toInferenceBackend('QUALCOMM')).toBe('QNN');
+    expect(toInferenceBackend('RULES')).toBe('HEURISTIC');
+    expect(toInferenceBackend('CPU')).toBe('CPU');
+    expect(toInferenceBackend('UNKNOWN')).toBe('UNAVAILABLE');
+  });
+
   it('never invents a backend it was not told about', () => {
     expect(toInferenceBackend('SNAPDRAGON_MAGIC')).toBe('UNAVAILABLE');
     expect(toInferenceBackend(null)).toBe('UNAVAILABLE');

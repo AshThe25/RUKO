@@ -6,7 +6,9 @@
  * the audit trail. Screens call these functions; they never touch a provider.
  */
 import {
+  latchDetectedPayment,
   openNativeDemoPayment,
+  releaseDetectedPayment,
   showNativeIntervention,
   startPaymentWatch,
   type DetectedPayment,
@@ -196,6 +198,10 @@ export function useProtectionController() {
                 .catch(() => store.getState().updateOutcome(result.sessionId, 'GUARDIAN_TIMED_OUT'));
             }
           } else {
+            // Nothing was shown, so the payment stops being the live one here.
+            // An interrupted payment stays latched until the user answers the
+            // warning, because the guardian escalation still reads it.
+            releaseDetectedPayment();
             store.getState().setMachineState('RESOLVED');
           }
         });
@@ -225,7 +231,13 @@ export function useProtectionController() {
       if (state.machineState === 'INVESTIGATION' || state.machineState === 'INTERVENTION') {
         return;
       }
+      // Two provider chains, and the payment has to reach whichever one is
+      // live. The bus feeds the stub providers; the latch feeds the native
+      // ones. Previously only the bus was written, so on a real device — the
+      // only case that matters — the agent went looking for the payment in a
+      // provider that had never been told about it, and found nothing.
       demo.bus.openPayment(payment.amountMinor, payment.payeeDisplayName, payment.payeeHash);
+      latchDetectedPayment(payment);
       await runInvestigation('PAYMENT_SCREEN_DETECTED');
     },
     [demo.bus, runInvestigation, store],
@@ -252,6 +264,9 @@ export function useProtectionController() {
 
   useEffect(() => {
     return onNativeEvent<{stopped: boolean}>(NATIVE_EVENTS.interventionResolved, ({stopped}) => {
+      // The user has answered the warning either way, so the payment is no
+      // longer the one under investigation.
+      releaseDetectedPayment();
       const result = store.getState().result;
       if (!result) return;
       // What the user did with the warning is the most valuable thing Ruko
@@ -314,6 +329,7 @@ export function useProtectionController() {
       await runtime.services.conversation.stop();
       demo.bus.closePayment();
       demo.bus.reset();
+      releaseDetectedPayment();
       store.getState().setMachineState('IDLE');
       store.getState().resetInvestigation();
       store.getState().navigate('home');

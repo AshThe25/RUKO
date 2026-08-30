@@ -13,7 +13,7 @@ import assert from 'node:assert/strict';
 
 import { evaluateRisk } from '../riskEngine.ts';
 import {
-  behaviour, call, conversation, evidence, notification, payee, payment, NOW,
+  behaviour, call, conversation, evidence, notification, payee, payment,
 } from './fixtures.ts';
 
 describe('Definition of Done', () => {

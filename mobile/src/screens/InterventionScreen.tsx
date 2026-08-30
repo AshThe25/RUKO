@@ -101,8 +101,9 @@ export function InterventionScreen() {
         Stop for a moment.
       </Txt>
       <Txt variant="body" tone="secondary" style={styles.sub}>
-        You may be under pressure from the person you are speaking to. Nothing
-        has been paid yet.
+        {evidence.conversation?.textSource === 'MESSAGES'
+          ? 'You may be under pressure from the person messaging you. Nothing has been paid yet.'
+          : 'You may be under pressure from the person you are speaking to. Nothing has been paid yet.'}
       </Txt>
 
       <Card

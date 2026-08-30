@@ -12,7 +12,7 @@ import assert from 'node:assert/strict';
 import { RukoAgent } from '../rukoAgent.ts';
 import { HeuristicClassifier } from '../../risk/classifier/heuristicClassifier.ts';
 import {
-  DEMO_SALT, DemoCallProvider, DemoConversationProvider, DemoNotificationProvider,
+  DemoCallProvider, DemoConversationProvider, DemoNotificationProvider,
   DemoPaymentProvider, InMemoryHistoryStore, demoHistory,
 } from '../../tools/demoProviders.ts';
 import type { RukoProviders } from '../../tools/providers.ts';

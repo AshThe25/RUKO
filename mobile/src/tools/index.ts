@@ -46,7 +46,7 @@ export function createTools(providers: RukoProviders): InvestigationTool[] {
     name: 'paymentTool',
     description: 'Is a payment being made right now, to whom, and for how much?',
     cost: 'LOW',
-    execute: (ctx) => run('paymentTool', 'ACCESSIBILITY',
+    execute: () => run('paymentTool', 'ACCESSIBILITY',
       () => providers.payment.getPaymentContext(), now),
   };
 
