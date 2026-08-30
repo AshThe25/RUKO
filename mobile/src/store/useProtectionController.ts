@@ -15,7 +15,7 @@ import {
 } from '@/services/native/nativeProviders';
 import {NATIVE_EVENTS, onNativeEvent} from '@/services/native/RukoNative';
 import {useCallback, useEffect} from 'react';
-import type {GuardianAlert, InvestigationTrigger} from '@contracts';
+import type {GuardianAlert, GuardianConnectionState, InvestigationTrigger} from '@contracts';
 import {useDemo, useRuntime} from '@/services/ServicesContext';
 import {prepareScenario} from '@/services/stubs/prepareScenario';
 import type {ScenarioId} from '@/services/stubs/scenarios';
@@ -180,7 +180,13 @@ export function useProtectionController() {
                 'This payment matches a pattern seen in reported scams.',
               amountLabel: formatMinor(result.evidence.payment.amountMinor),
               payee: result.evidence.payment.payeeDisplayName ?? 'this recipient',
-              requiresGuardian: result.risk.escalateToGuardian === true,
+              // Only claim a contact is waiting when there is actually one to
+              // wait for. The overlay's guardian copy says "they have been
+              // notified", and saying that to someone whose phone is signed
+              // out is worse than saying nothing at all.
+              requiresGuardian:
+                result.risk.escalateToGuardian === true &&
+                store.getState().guardianState === 'ONLINE',
             }).then(shown => {
               if (!shown) {
                 // The warning never reached the screen. Say so in the audit
@@ -338,17 +344,32 @@ export function useProtectionController() {
 export function useProtectionOrchestrator() {
   const controller = useProtectionController();
   const {onPaymentDetected} = controller;
-  const demo = useDemo();
+  const runtime = useRuntime();
   const store = useProtectionStore;
 
   // Keep the guardian connection state in the store so every screen can show
   // it without subscribing to the channel itself.
+  //
+  // From the channel that is actually in use. This read `demo.guardian`, which
+  // is always the stub -- so on any build with Supabase credentials the pill
+  // said Offline forever and `escalate()` returned before reaching sendAlert,
+  // while the intervention still told the user their contact had been
+  // notified. Both channels expose the same emitter; nothing else changes.
+  const channel = runtime.services.guardian;
   useEffect(() => {
-    const unsub = demo.guardian.state.subscribe(state => {
+    const observable = channel as Partial<{
+      state: {subscribe: (cb: (s: GuardianConnectionState) => void) => () => void};
+    }>;
+    if (!observable.state) {
+      // Not observable: take the one reading it can give rather than sitting
+      // on a stale default.
+      store.getState().setGuardianState(channel.getState());
+      return;
+    }
+    return observable.state.subscribe(state => {
       store.getState().setGuardianState(state);
     });
-    return unsub;
-  }, [demo.guardian, store]);
+  }, [channel, store]);
 
   useEffect(() => {
     return () => {

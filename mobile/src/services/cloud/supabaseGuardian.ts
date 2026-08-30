@@ -16,6 +16,7 @@ import type {
   GuardianConnectionState,
   GuardianDecision,
 } from '@contracts';
+import {Emitter} from '@/services/stubs/emitter';
 import {supabase} from './supabase';
 import {NOTIFY_AT, type AlertBand} from './trustedCircle';
 
@@ -27,7 +28,17 @@ const BAND: Record<string, AlertBand> = {
 };
 
 export class SupabaseGuardianChannel implements GuardianChannel {
-  private state: GuardianConnectionState = 'UNPAIRED';
+  /**
+   * Observable, and named to match the stub's, because the app subscribes to
+   * this to decide whether escalating is even possible.
+   *
+   * It used to be a plain field. The UI subscribed to the stub channel's
+   * emitter regardless of which channel was actually in use, so on any build
+   * with credentials -- every real one -- the guardian pill read Offline
+   * forever and `escalate()` returned before it ever called `sendAlert`. The
+   * phone still told the user their trusted contact had been notified.
+   */
+  readonly state = new Emitter<GuardianConnectionState>('UNPAIRED');
   private userId: string | null = null;
   private unsubscribe: (() => void) | null = null;
 
@@ -56,11 +67,11 @@ export class SupabaseGuardianChannel implements GuardianChannel {
 
   private setUser(id: string | null): void {
     this.userId = id;
-    this.state = id ? 'ONLINE' : 'UNPAIRED';
+    this.state.emit(id ? 'ONLINE' : 'UNPAIRED');
   }
 
   getState(): GuardianConnectionState {
-    return this.state;
+    return this.state.value;
   }
 
   async sendAlert(alert: GuardianAlert): Promise<GuardianDecision | null> {
