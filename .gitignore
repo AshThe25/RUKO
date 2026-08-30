@@ -21,6 +21,12 @@ android/build/
 android/app/build/
 android/local.properties
 *.apk
+# ...except the two the website serves. These are the download, so an ignored
+# APK is a broken link on a live page -- which is exactly how paynow.apk
+# shipped as a 404 while ruko.apk worked: one had been force-added and the
+# other silently was not.
+!web/ruko.apk
+!web/paynow.apk
 *.aab
 *.keystore
 !debug.keystore
