@@ -117,9 +117,13 @@ export interface RukoNativeSpec {
   setShareAudioWithJs(enabled: boolean): Promise<boolean>;
   startProtection(): Promise<NativeProtectionState>;
   /**
-   * Watch payment screens without starting the microphone. Rejects when the
-   * accessibility service is not enabled, which is a state the user must be
-   * told about rather than one to retry quietly.
+   * Watch payment screens without starting the microphone.
+   *
+   * Resolves true when the accessibility service is delivering events right
+   * now, false when the wiring is in place but the service is not up yet. It
+   * does not reject for that case: the provider is held statically on the
+   * native side, so attaching early is correct and the service picks it up
+   * whenever the system starts it.
    */
   startPaymentWatch(): Promise<boolean>;
   stopPaymentWatch(): Promise<boolean>;
