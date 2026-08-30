@@ -77,9 +77,54 @@ async function pruneOldCopies(fs: any, dir: string): Promise<void> {
  * six-tactic pipeline never depends on it.
  */
 let fraudGate: FraudGateClassifier | null = null;
+let fraudGateLoad: Promise<void> | null = null;
 
 export function getFraudGate(): FraudGateClassifier | null {
   return fraudGate;
+}
+
+/**
+ * Resolves when the background gate load has settled, successfully or not.
+ *
+ * For tests and the engineering screen only. Nothing on the startup path may
+ * await this — that is the whole point of loading the gate off to one side.
+ */
+export function fraudGateSettled(): Promise<void> {
+  return fraudGateLoad ?? Promise.resolve();
+}
+
+/**
+ * Start loading the gate without blocking bring-up.
+ *
+ * It used to be awaited inline, which meant first launch copied 45.8 MB of
+ * model assets and built two ONNX sessions before the app could score anything
+ * — twice the startup work, paid before the gate influences a single decision.
+ * Now bring-up returns as soon as the six-tactic classifier is ready and the
+ * gate arrives when it arrives. Callers already handle `getFraudGate()`
+ * returning null, which is exactly the state during the window.
+ *
+ * Errors are swallowed into a warning on purpose: an optional model failing to
+ * load must never surface as an unhandled rejection, and must never be able to
+ * take down the classifier the app actually scores with.
+ */
+function startFraudGateLoad(
+  RNFS: any,
+  adapter: ReturnType<typeof createReactNativeAdapter>,
+  vocabPath: string,
+  dir: string,
+): void {
+  fraudGateLoad = (async () => {
+    try {
+      const gatePath = await materialise(RNFS, GATE_MODEL_FILE, dir);
+      const {gate, reason} = await createFraudGate({adapter, modelPath: gatePath, vocabPath});
+      if (!gate) console.warn('[ruko-gate] fraud gate unavailable: ' + reason);
+      fraudGate = gate;
+    } catch (gateErr) {
+      console.warn('[ruko-gate] fraud gate bring-up failed: ' +
+        (gateErr instanceof Error ? gateErr.message : String(gateErr)));
+      fraudGate = null;
+    }
+  })();
 }
 
 export async function bringUpClassifier(): Promise<ClassifierBringUp> {
@@ -110,21 +155,10 @@ export async function bringUpClassifier(): Promise<ClassifierBringUp> {
 
     const selection = await createClassifier({adapter, modelPath, vocabPath});
 
-    // Bring the binary fraud gate up alongside, best-effort. It is a separate
-    // model answering a different question ("is this fraud?" at F1 0.9915 on
-    // real held-out text) and is NOT part of the six-tactic pipeline. If it
-    // fails to load, `gate` is null and nothing above changes.
-    try {
-      const gatePath = await materialise(RNFS, GATE_MODEL_FILE, dir);
-      const {gate, reason} = await createFraudGate({adapter, modelPath: gatePath, vocabPath});
-      if (!gate) console.warn('[ruko-gate] fraud gate unavailable: ' + reason);
-      fraudGate = gate;
-    } catch (gateErr) {
-      // Never allowed to affect the classifier the app actually scores with.
-      console.warn('[ruko-gate] fraud gate bring-up failed: ' +
-        (gateErr instanceof Error ? gateErr.message : String(gateErr)));
-      fraudGate = null;
-    }
+    // Deliberately not awaited. The gate is a separate model answering a
+    // different question and is NOT part of the six-tactic pipeline, so making
+    // the app wait for it before it can score anything buys nothing.
+    startFraudGateLoad(RNFS, adapter, vocabPath, dir);
 
     return selection;
   } catch (err) {

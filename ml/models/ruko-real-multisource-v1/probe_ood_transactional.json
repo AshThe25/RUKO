@@ -1,0 +1,97 @@
+{
+  "probe": "out-of-distribution negative control: Indian transactional SMS",
+  "why": "the gate's legitimate class contains no Indian transactional SMS, while its fraud class is full of Indian smishing, so its own test split cannot measure this failure",
+  "threshold": 0.46000000000000024,
+  "legit_false_positive_rate": 0.7273,
+  "legit_false_positives": 8,
+  "legit_total": 11,
+  "scams_missed": 0,
+  "scam_total": 3,
+  "verdict": "DO NOT wire to notificationSuspicion",
+  "rows": [
+    {
+      "text": "Rs.2,500 debited from A/c XX4417 on 30-Aug UPI/P2M/Swiggy. Bal Rs.18,230.",
+      "expected": "legit",
+      "p_fraud": 0.9928,
+      "flagged": true
+    },
+    {
+      "text": "Your OTP for login is 449021. Valid for 10 minutes. Do not share with anyone.",
+      "expected": "legit",
+      "p_fraud": 0.9916,
+      "flagged": true
+    },
+    {
+      "text": "Electricity bill of Rs.1,840 is due on 05-Sep. Pay via the BESCOM app.",
+      "expected": "legit",
+      "p_fraud": 0.9962,
+      "flagged": true
+    },
+    {
+      "text": "Your Flipkart order #OD338 is out for delivery today between 2-4 PM.",
+      "expected": "legit",
+      "p_fraud": 0.7452,
+      "flagged": true
+    },
+    {
+      "text": "Reminder: EMI of Rs.12,400 will be auto-debited on 02-Sep from A/c XX4417.",
+      "expected": "legit",
+      "p_fraud": 0.9915,
+      "flagged": true
+    },
+    {
+      "text": "Dear customer, your monthly statement for Aug is ready in the app.",
+      "expected": "legit",
+      "p_fraud": 0.971,
+      "flagged": true
+    },
+    {
+      "text": "Salary credited to your account ending 4417. Available balance 62,340.",
+      "expected": "legit",
+      "p_fraud": 0.9982,
+      "flagged": true
+    },
+    {
+      "text": "Your Amazon order has been delivered. Rate your experience in the app.",
+      "expected": "legit",
+      "p_fraud": 0.781,
+      "flagged": true
+    },
+    {
+      "text": "Movie tickets confirmed. PVR Forum, 7:15 PM, seats G12 G13.",
+      "expected": "legit",
+      "p_fraud": 0.187,
+      "flagged": false
+    },
+    {
+      "text": "Mom, reached office safely. Will call in the evening.",
+      "expected": "legit",
+      "p_fraud": 0.0174,
+      "flagged": false
+    },
+    {
+      "text": "Hey are we still on for dinner at 8? I'll book the table.",
+      "expected": "legit",
+      "p_fraud": 0.0021,
+      "flagged": false
+    },
+    {
+      "text": "URGENT: Your SBI account is suspended. Update KYC now: http://sbi-verify.tk",
+      "expected": "scam",
+      "p_fraud": 0.9972,
+      "flagged": true
+    },
+    {
+      "text": "You have won Rs.10 lakh in KBC lucky draw. Call 9876543210 to claim.",
+      "expected": "scam",
+      "p_fraud": 0.9804,
+      "flagged": true
+    },
+    {
+      "text": "This is the Income Tax Department. A case is filed against you. Pay immediately.",
+      "expected": "scam",
+      "p_fraud": 0.9922,
+      "flagged": true
+    }
+  ]
+}
