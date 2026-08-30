@@ -10,6 +10,7 @@
 import type { LocalRiskClassifier } from '../../contracts/index.ts';
 import { EnsembleClassifier } from './ensembleClassifier.ts';
 import { HeuristicClassifier } from './heuristicClassifier.ts';
+import { FraudGateClassifier, type FraudGateOptions } from './fraudGateClassifier.ts';
 import { OnnxClassifier } from './onnxClassifier.ts';
 import type { OnnxClassifierOptions } from './onnxClassifier.ts';
 
@@ -58,5 +59,36 @@ export async function createClassifier(
       neural: false,
       fallbackReason: err instanceof Error ? err.message : String(err),
     };
+  }
+}
+
+/**
+ * Build the binary fraud gate, or null if this device cannot run it.
+ *
+ * Deliberately a SEPARATE factory from createClassifier. The gate is not part
+ * of the six-tactic pipeline and must not be able to affect it: if the gate
+ * fails to load, createClassifier is untouched and Ruko keeps working exactly
+ * as before. Never throws, for the same reason as above — an optional model
+ * failing to load must degrade a feature, not break the app.
+ *
+ * The caller decides what to do with the score. It is NOT a seventh tactic:
+ * feed it to the risk engine only as bounded corroborating evidence, in the
+ * shape of notificationSuspicion, never able to reach CRITICAL alone.
+ *
+ * Measured on the quantised artefact this loads (ml/models/
+ * ruko-real-multisource-v1/evaluation_int8.json): F1 0.9915, precision 0.9953,
+ * recall 0.9878 on 1,501 held-out real messages.
+ */
+export async function createFraudGate(
+  options?: FraudGateOptions,
+): Promise<{ gate: FraudGateClassifier | null; reason?: string }> {
+  if (!options) return { gate: null, reason: 'no fraud gate configured for this build' };
+
+  const gate = new FraudGateClassifier(options);
+  try {
+    await gate.loadModel();
+    return { gate };
+  } catch (err) {
+    return { gate: null, reason: err instanceof Error ? err.message : String(err) };
   }
 }

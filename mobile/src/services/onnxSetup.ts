@@ -13,7 +13,8 @@
  */
 import {Platform} from 'react-native';
 import type {LocalRiskClassifier} from '@contracts';
-import {createClassifier} from '@/risk/classifier';
+import {createClassifier, createFraudGate} from '@/risk/classifier';
+import {GATE_MODEL_FILE, type FraudGateClassifier} from '@/risk/classifier/fraudGateClassifier';
 import {
   EXPECTED_MODEL_SHA256,
   MODEL_VERSION,
@@ -70,6 +71,17 @@ async function pruneOldCopies(fs: any, dir: string): Promise<void> {
   }
 }
 
+/**
+ * The binary fraud gate, once bring-up has run. Null until then, and null on
+ * any device where it could not load — callers must handle that, and the
+ * six-tactic pipeline never depends on it.
+ */
+let fraudGate: FraudGateClassifier | null = null;
+
+export function getFraudGate(): FraudGateClassifier | null {
+  return fraudGate;
+}
+
 export async function bringUpClassifier(): Promise<ClassifierBringUp> {
   // Only Android ships the assets today; anywhere else goes straight to the
   // lexicon rather than failing on a missing module.
@@ -96,7 +108,25 @@ export async function bringUpClassifier(): Promise<ClassifierBringUp> {
       },
     });
 
-    return await createClassifier({adapter, modelPath, vocabPath});
+    const selection = await createClassifier({adapter, modelPath, vocabPath});
+
+    // Bring the binary fraud gate up alongside, best-effort. It is a separate
+    // model answering a different question ("is this fraud?" at F1 0.9915 on
+    // real held-out text) and is NOT part of the six-tactic pipeline. If it
+    // fails to load, `gate` is null and nothing above changes.
+    try {
+      const gatePath = await materialise(RNFS, GATE_MODEL_FILE, dir);
+      const {gate, reason} = await createFraudGate({adapter, modelPath: gatePath, vocabPath});
+      if (!gate) console.warn('[ruko-gate] fraud gate unavailable: ' + reason);
+      fraudGate = gate;
+    } catch (gateErr) {
+      // Never allowed to affect the classifier the app actually scores with.
+      console.warn('[ruko-gate] fraud gate bring-up failed: ' +
+        (gateErr instanceof Error ? gateErr.message : String(gateErr)));
+      fraudGate = null;
+    }
+
+    return selection;
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
     // Logged: a silent fallback is how a stale model went unnoticed until the
