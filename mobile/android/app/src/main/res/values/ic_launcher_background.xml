@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The logo's own field. Adaptive icons are masked to whatever shape the
+         launcher uses, so the background must be a flat colour that still
+         reads as the mark's when the corners are cut away. -->
+    <color name="ic_launcher_background">#0A0A0A</color>
+</resources>

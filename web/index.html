@@ -130,6 +130,39 @@
   .hero .eyebrow{color:var(--cool);font-weight:700}
   .hero h1{margin-top:18px}
   .hero .lede{margin:22px auto 0;max-width:36rem}
+
+  /* ---- The bloom -------------------------------------------------------
+     The same construction as the app's home screen: two rings of petals, the
+     outer offset by half a step so one ring's gaps sit behind the other's
+     mass. Each petal is one element with three round corners and one sharp
+     one; alpha accumulates where they overlap, which is what produces the
+     soft falloff without a single gradient or image.
+     Rings counter-rotate, and the whole thing breathes at roughly the cadence
+     of calm breathing -- slow enough to be felt rather than watched, because
+     a fast pulse on a security page reads as alarm. */
+  .bloom-mark{position:relative;width:min(340px,78vw);aspect-ratio:1;margin:0 auto;
+    display:grid;place-items:center}
+  .bloom-ring{position:absolute;inset:0;display:grid;place-items:center;
+    transform-origin:50% 50%}
+  .bloom-ring.outer{animation:bloom-turn 48s linear infinite}
+  .bloom-ring.inner{animation:bloom-turn 48s linear infinite reverse}
+  .bloom-breathe{position:absolute;inset:0;display:grid;place-items:center;
+    animation:bloom-breathe 4.4s ease-in-out infinite}
+  .bloom-breathe.counter{animation-name:bloom-breathe-counter}
+  .petal{position:absolute;left:50%;top:50%;width:34%;height:34%;
+    border-radius:60% 0 60% 60%}
+  .bloom-ring.outer .petal{background:var(--warm);opacity:.11}
+  .bloom-ring.inner .petal{background:var(--cool);opacity:.09}
+  .bloom-core{position:absolute;width:20%;height:20%;border-radius:50%;
+    background:var(--cool);opacity:.16;filter:blur(14px);
+    animation:bloom-core 4.4s ease-in-out infinite}
+  @keyframes bloom-turn{to{transform:rotate(360deg)}}
+  @keyframes bloom-breathe{0%,100%{transform:scale(.88)}50%{transform:scale(1.12)}}
+  @keyframes bloom-breathe-counter{0%,100%{transform:scale(1.10)}50%{transform:scale(.92)}}
+  @keyframes bloom-core{0%,100%{opacity:.12;transform:scale(.9)}50%{opacity:.22;transform:scale(1.08)}}
+  @media (prefers-reduced-motion: reduce){
+    .bloom-ring,.bloom-breathe,.bloom-core{animation:none}
+  }
   .hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:34px}
 
   /* ---------- watch strip ---------- */
@@ -763,6 +796,33 @@
   </div>
 </section>
 
+<!-- AGENT AND MODEL -->
+<section class="block shell" id="agent">
+  <div class="inner">
+    <div class="block-head center rv">
+      <span class="eyebrow">The agent, and the model</span>
+      <h2>Two different jobs</h2>
+      <p class="lede">People hear &ldquo;AI agent&rdquo; and picture a language model deciding whether to stop your payment. Ruko does not work that way, and it matters that it does not.</p>
+    </div>
+    <div class="bloom-mark rv" aria-hidden="true"><div class="bloom-ring outer"><div class="bloom-breathe"><i class="petal" style="width:34%;height:34%;transform:translate(-50%,-50%) rotate(0.0deg) translateY(-62%)"></i><i class="petal" style="width:34%;height:34%;transform:translate(-50%,-50%) rotate(30.0deg) translateY(-62%)"></i><i class="petal" style="width:34%;height:34%;transform:translate(-50%,-50%) rotate(60.0deg) translateY(-62%)"></i><i class="petal" style="width:34%;height:34%;transform:translate(-50%,-50%) rotate(90.0deg) translateY(-62%)"></i><i class="petal" style="width:34%;height:34%;transform:translate(-50%,-50%) rotate(120.0deg) translateY(-62%)"></i><i class="petal" style="width:34%;height:34%;transform:translate(-50%,-50%) rotate(150.0deg) translateY(-62%)"></i><i class="petal" style="width:34%;height:34%;transform:translate(-50%,-50%) rotate(180.0deg) translateY(-62%)"></i><i class="petal" style="width:34%;height:34%;transform:translate(-50%,-50%) rotate(210.0deg) translateY(-62%)"></i><i class="petal" style="width:34%;height:34%;transform:translate(-50%,-50%) rotate(240.0deg) translateY(-62%)"></i><i class="petal" style="width:34%;height:34%;transform:translate(-50%,-50%) rotate(270.0deg) translateY(-62%)"></i><i class="petal" style="width:34%;height:34%;transform:translate(-50%,-50%) rotate(300.0deg) translateY(-62%)"></i><i class="petal" style="width:34%;height:34%;transform:translate(-50%,-50%) rotate(330.0deg) translateY(-62%)"></i></div></div><div class="bloom-ring inner"><div class="bloom-breathe counter"><i class="petal" style="width:26%;height:26%;transform:translate(-50%,-50%) rotate(0.0deg) translateY(-46%)"></i><i class="petal" style="width:26%;height:26%;transform:translate(-50%,-50%) rotate(36.0deg) translateY(-46%)"></i><i class="petal" style="width:26%;height:26%;transform:translate(-50%,-50%) rotate(72.0deg) translateY(-46%)"></i><i class="petal" style="width:26%;height:26%;transform:translate(-50%,-50%) rotate(108.0deg) translateY(-46%)"></i><i class="petal" style="width:26%;height:26%;transform:translate(-50%,-50%) rotate(144.0deg) translateY(-46%)"></i><i class="petal" style="width:26%;height:26%;transform:translate(-50%,-50%) rotate(180.0deg) translateY(-46%)"></i><i class="petal" style="width:26%;height:26%;transform:translate(-50%,-50%) rotate(216.0deg) translateY(-46%)"></i><i class="petal" style="width:26%;height:26%;transform:translate(-50%,-50%) rotate(252.0deg) translateY(-46%)"></i><i class="petal" style="width:26%;height:26%;transform:translate(-50%,-50%) rotate(288.0deg) translateY(-46%)"></i><i class="petal" style="width:26%;height:26%;transform:translate(-50%,-50%) rotate(324.0deg) translateY(-46%)"></i></div></div><span class="bloom-core"></span></div>
+    <div class="cards">
+      <div class="card rv">
+        <span class="k">The agent gathers</span>
+        <p>One agent, six tools: the payment on screen, the recipient's history, the amount against your own pattern, whether you are on a call, recent notifications, and the conversation. It decides at run time which to call and in what order &mdash; cheap ones first, and it stops early when no combination of what is left could change the answer. There is no language model in that loop, deliberately: an LLM would add latency, a model file, a network dependency and non-determinism to a routing decision six rules make correctly and reproducibly.</p>
+      </div>
+      <div class="card rv">
+        <span class="k">The model reads language</span>
+        <p>A quantised MiniLM classifier runs on the phone through NNAPI, scoring six manipulation patterns &mdash; authority, urgency, secrecy, threat, isolation, reward. It reads what was said, in speech or in a message. It never sees your bank details and it never decides anything: it produces six numbers that become one family of evidence among six.</p>
+      </div>
+      <div class="card rv">
+        <span class="k">Arithmetic decides</span>
+        <p>The score is signal &times; weight &times; gate, and nothing else. Every point is traceable to a named reason, each family is capped so no single one can carry a verdict alone, and the same evidence always produces the same score. You can read the whole calculation on the phone, including which parts were missing and how much that cost.</p>
+      </div>
+    </div>
+    <p class="dl-note" style="text-align:center;margin-top:28px">Why draw the line there: a model that hallucinates a reason is a model that stops a real payment on a made-up one. The part that can be wrong is kept away from the part that acts.</p>
+  </div>
+</section>
+
 <!-- PAYNOW -->
 <section class="block shell" id="paynow">
   <div class="inner">
@@ -813,7 +873,7 @@
       <a class="pill pill-solid pill-lg" href="/ruko.apk" download>Download Ruko</a>
       <a class="pill pill-ghost pill-lg" href="/paynow.apk" download>Download PayNow</a>
     </div>
-    <p class="dl-note">Ruko 48 MB · PayNow 2.4 MB · Android 8.0+ · 64-bit. Install both to try the whole thing: PayNow is the wallet, Ruko is what sits between you and it. Sideloaded rather than a Play Store listing, because Ruko needs permissions Play policy restricts. <a href="#" data-open-dl style="text-decoration:underline">How to install</a></p>
+    <p class="dl-note">Ruko 64 MB · PayNow 2.4 MB · Android 8.0+ · 64-bit. Install both to try the whole thing: PayNow is the wallet, Ruko is what sits between you and it. Sideloaded rather than a Play Store listing, because Ruko needs permissions Play policy restricts. <a href="#" data-open-dl style="text-decoration:underline">How to install</a></p>
   </div>
 </section>
 
@@ -825,7 +885,7 @@
         <p>Built for the iQOO Hackathon. Fraud systems protect the transaction. Ruko protects the decision before it.</p>
       </div>
       <div class="fcol"><span>Team</span><a href="#">Aishwarya — Mobile</a><a href="#">Vedant — Model &amp; risk</a><a href="#">Puneesh — Android &amp; relay</a></div>
-      <div class="fcol"><span>Product</span><a href="#how">How it works</a><a href="#score">The score</a><a href="#limits">Limits</a></div>
+      <div class="fcol"><span>Product</span><a href="#how">How it works</a><a href="#agent">Agent &amp; model</a><a href="#score">The score</a><a href="#limits">Limits</a></div>
       <div class="fcol"><span>Get it</span><a href="#download">Download</a><a href="#paynow">PayNow demo wallet</a><a href="#top">Back to top</a></div>
     </div>
     <div class="foot-end"><span>© Ruko</span><span>iQOO Hackathon · 2026</span></div>

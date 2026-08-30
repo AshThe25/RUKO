@@ -33,10 +33,21 @@ export function AudioMeter({
   level?: number;
 }) {
   const reduced = useReducedMotion();
-  const bars = useMemo(
-    () => Array.from({length: BARS}, () => new Animated.Value(0)),
-    [],
-  );
+  /**
+   * One driver for the whole meter, not one per bar.
+   *
+   * Each bar previously ran its own `Animated.loop`, which meant 34 concurrent
+   * looping animations for a single decorative strip -- and the Bloom above it
+   * added 22 more. Even on the native driver each loop is separately scheduled
+   * and committed every frame, and the cost showed up as jank across the whole
+   * app, not just here.
+   *
+   * A single value sweeping 0 -> 1 forever carries the same information: the
+   * per-bar phase offset is applied by interpolating that one value with a
+   * shifted input range, so the crest still travels along the row exactly as
+   * before while the UI thread animates one node instead of thirty-four.
+   */
+  const phase = useRef(new Animated.Value(0)).current;
   const amp = useRef(new Animated.Value(0.4)).current;
 
   // Ease toward the new level. Speech energy is spiky, and a meter that jumps
@@ -53,44 +64,34 @@ export function AudioMeter({
 
   useEffect(() => {
     if (reduced) {
-      bars.forEach(b => b.setValue(0.5));
+      phase.setValue(0);
       return;
     }
-    const loops = bars.map((bar, i) =>
-      Animated.loop(
-        Animated.sequence([
-          // The stagger. Linear both ways, so the crest moves at a constant
-          // rate and the loop seam is invisible.
-          Animated.delay((i / BARS) * CYCLE_MS),
-          Animated.timing(bar, {
-            toValue: 1,
-            duration: CYCLE_MS / 2,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(bar, {
-            toValue: 0,
-            duration: CYCLE_MS / 2,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ]),
-      ),
+    const loop = Animated.loop(
+      Animated.timing(phase, {
+        toValue: 1,
+        duration: CYCLE_MS,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
     );
-    loops.forEach(l => l.start());
-    return () => loops.forEach(l => l.stop());
-  }, [bars, reduced]);
+    loop.start();
+    return () => loop.stop();
+  }, [phase, reduced]);
 
   return (
     <View
       style={styles.row}
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants">
-      {bars.map((bar, i) => {
+      {Array.from({length: BARS}, (_, i) => {
         const x = i / BARS;
         // Arch envelope: tall in the middle, quiet at the edges, so it reads as
         // a voice rather than a graphic equaliser.
         const arch = Math.sin(Math.PI * x);
+        // Where in the shared cycle this bar peaks. Bars later in the row
+        // crest later, which is what makes the wave travel.
+        const crest = Math.max(0.001, Math.min(0.998, 1 - x));
         const lo = 0.14 + arch * 0.16;
         const hi = 0.14 + arch * 0.86;
         return (
@@ -102,8 +103,17 @@ export function AudioMeter({
                 opacity: active ? 1 : 0.35,
                 transform: [
                   {
+                    // The bar's own place in the travelling wave. Shifting
+                    // the input range is what the per-bar delay used to do:
+                    // the crest reaches bar i when the shared phase passes
+                    // 1 - x, and the range is written so the loop seam at
+                    // 0/1 lands at the same height either side.
                     scaleY: Animated.multiply(
-                      bar.interpolate({inputRange: [0, 1], outputRange: [lo, hi]}),
+                      phase.interpolate({
+                        inputRange: [0, crest, Math.min(1, crest + 0.5), 1],
+                        outputRange: [lo, hi, lo, lo],
+                        extrapolate: 'clamp',
+                      }),
                       active ? amp : 0.45,
                     ),
                   },
