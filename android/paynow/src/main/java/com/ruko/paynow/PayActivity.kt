@@ -52,6 +52,18 @@ class PayActivity : AppCompatActivity() {
             Ui.lp(MATCH, WRAP),
         )
 
+        // A pay link that named an amount opens with it already entered, which
+        // is what tapping a real payment link does.
+        val prefill = intent.getLongExtra(EXTRA_PREFILL_MINOR, 0L)
+        if (prefill > 0L) {
+            typed = if (prefill % 100L == 0L) {
+                (prefill / 100L).toString()
+            } else {
+                "${prefill / 100L}.${(prefill % 100L).toString().padStart(2, '0')}"
+            }
+            amountView.text = Money.format(prefill)
+        }
+
         setContentView(root)
     }
 
@@ -115,5 +127,12 @@ class PayActivity : AppCompatActivity() {
         const val EXTRA_NAME = "name"
         const val EXTRA_VPA = "vpa"
         const val EXTRA_AMOUNT_MINOR = "amountMinor"
+
+        /**
+         * Amount to start the keypad on, when the payment was opened from a
+         * link that named one. The user can still change it -- a prefilled
+         * amount is a suggestion, not a commitment.
+         */
+        const val EXTRA_PREFILL_MINOR = "prefillMinor"
     }
 }
