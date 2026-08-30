@@ -300,6 +300,12 @@ export function createNativeConversationProvider(
    * device has no way to transcribe, and segments are counted, not read.
    */
   transcribe?: (wavBase64: string) => Promise<string>,
+  /**
+   * Notified with the growing transcript each time a segment is transcribed,
+   * so the pay screen can show the live words. Display-only: it can never
+   * change a score.
+   */
+  onTranscript?: (lines: string[]) => void,
 ): ConversationProvider {
   const native = getNativeModule();
   const emitter = new Emitter<ConversationEvidence>(noTranscript('idle'));
@@ -343,6 +349,7 @@ export function createNativeConversationProvider(
           if (transcript.length > 24) {
             transcript = transcript.slice(-24);
           }
+          onTranscript?.([...transcript]);
           emitter.emit(await classify(transcript.join(' ')));
         },
       );

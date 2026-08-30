@@ -13,7 +13,11 @@
 import type {InvestigationTrigger} from '@contracts';
 import {rupeesToMinor} from '@/utils/format';
 
-export type ScenarioId = 'bank-impersonation' | 'friend-dinner' | 'landlord-rent';
+export type ScenarioId =
+  | 'live-voice'
+  | 'bank-impersonation'
+  | 'friend-dinner'
+  | 'landlord-rent';
 
 export interface ScenarioLine {
   atMs: number;
@@ -27,6 +31,13 @@ export interface Scenario {
   caption: string;
   trigger: InvestigationTrigger;
   lines: ScenarioLine[];
+  /**
+   * When true this scenario has no scripted dialogue: the microphone is opened
+   * on the payment screen and the operator speaks, transcribed live by Sarvam
+   * through Ruko's proxy and scored on device. This is the "prove it on real
+   * voice" path.
+   */
+  liveMic?: boolean;
   call: {
     active: boolean;
     callerKnown: boolean | null;
@@ -55,6 +66,32 @@ export interface Scenario {
 const EVERYDAY_HISTORY = [320, 450, 180, 1200, 800, 2100, 650, 900, 1500, 240, 1100, 380];
 
 export const SCENARIOS: Record<ScenarioId, Scenario> = {
+  'live-voice': {
+    id: 'live-voice',
+    title: 'Live voice — speak yourself',
+    caption: 'You talk; Ruko transcribes with Sarvam and scores it on device',
+    trigger: 'PAYMENT_SCREEN_DETECTED',
+    lines: [],
+    liveMic: true,
+    call: {active: false, callerKnown: null, direction: 'UNKNOWN', startedBeforePayment: null},
+    payment: {
+      amountMinor: rupeesToMinor(48000),
+      payeeDisplayName: 'Ravi Verify',
+      payeeHash: 'demo_live_ravi',
+      appPackage: 'com.ruko.paydemo',
+    },
+    payee: {
+      known: false,
+      previousTransactions: 0,
+      averageAmountMinor: null,
+      userTrusted: false,
+      ageDays: null,
+    },
+    notification: null,
+    history: EVERYDAY_HISTORY,
+    expectation: 'Depends on what you say — the conversation is real.',
+  },
+
   'bank-impersonation': {
     id: 'bank-impersonation',
     title: 'Bank impersonation',
@@ -147,6 +184,7 @@ export const SCENARIOS: Record<ScenarioId, Scenario> = {
 };
 
 export const SCENARIO_ORDER: ScenarioId[] = [
+  'live-voice',
   'bank-impersonation',
   'friend-dinner',
   'landlord-rent',

@@ -139,6 +139,8 @@ export function createServices(options: CreateServicesOptions = {}): RukoRuntime
           // native side withholds the audio otherwise, so this is never called
           // with anything to send.
           cloudConfigured ? wav => transcribeBase64Wav(wav) : undefined,
+          // Show the live words as they are transcribed, on the pay screen.
+          lines => bus.transcript.emit(lines),
         ),
         bus,
         // Demo Mode scores scripted lines through the same on-device model the

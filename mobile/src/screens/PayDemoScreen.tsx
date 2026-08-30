@@ -117,7 +117,25 @@ export function PayDemoScreen() {
         </Txt>
       </Card>
 
-      {scenario.lines.length > 0 ? (
+      {scenario.liveMic ? (
+        <Card title="What Ruko is hearing" style={styles.card}>
+          {transcript.length === 0 ? (
+            <Txt variant="caption" tone="tertiary">
+              Listening — speak now. Say something a scam caller would.
+            </Txt>
+          ) : (
+            transcript.map((line, i) => (
+              <Txt key={`${i}-${line.slice(0, 12)}`} variant="caption" tone="secondary" style={styles.line}>
+                “{line}”
+              </Txt>
+            ))
+          )}
+          <Txt variant="caption" tone="tertiary" style={styles.note}>
+            Your live voice, transcribed by Sarvam and scored on device. Press
+            Pay when you are done speaking.
+          </Txt>
+        </Card>
+      ) : scenario.lines.length > 0 ? (
         <Card title="What Ruko is hearing" style={styles.card}>
           {transcript.length === 0 ? (
             <Txt variant="caption" tone="tertiary">

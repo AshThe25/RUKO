@@ -270,7 +270,19 @@ export function useProtectionController() {
       s.resetInvestigation();
 
       const scenario = await prepareScenario(demo.bus, demo.behaviour, id);
-      if (scenario.lines.length > 0) {
+      if (scenario.liveMic) {
+        // Open the mic on the payment screen so the operator can speak and be
+        // transcribed live (Sarvam via the proxy) before pressing Pay. Seeding
+        // the payment is what puts the native session into PAYMENT_WATCH, which
+        // is the state that actually turns the microphone on.
+        await runtime.services.conversation.start(`demo_${id}`);
+        await openNativeDemoPayment(
+          scenario.payment.amountMinor,
+          scenario.payment.payeeDisplayName ?? 'Demo payee',
+          scenario.payment.payeeHash ?? 'demo',
+        );
+        s.setMachineState('PAYMENT_WATCH');
+      } else if (scenario.lines.length > 0) {
         await runtime.services.conversation.start(`demo_${id}`);
         s.setMachineState('MONITORING');
       } else {
