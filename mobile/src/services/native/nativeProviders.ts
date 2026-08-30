@@ -347,6 +347,17 @@ export function createNativeConversationProvider(
         },
       );
 
+      // Let audio cross the bridge only when there is somewhere for it to go.
+      // The native side withholds the PCM unless this is switched on, and
+      // nothing was switching it on — so `audioWavBase64` was never present,
+      // `transcribe` was never reached, and every session reported "nothing
+      // was heard" while the microphone and the VAD were working perfectly.
+      //
+      // Tying it to `transcribe` rather than to a flag keeps the promise the
+      // native comment makes: with no transcriber configured this stays false
+      // and the audio never leaves the device, which is still the default.
+      await safeNative(() => native?.setShareAudioWithJs(Boolean(transcribe)));
+
       await safeNative(() => native?.startProtection());
     },
     async stop() {
@@ -354,6 +365,9 @@ export function createNativeConversationProvider(
       unsubscribe?.();
       unsubscribe = null;
       transcript = [];
+      // Revoke on the way out, so a stopped session cannot leave the bridge
+      // open for the next one.
+      await safeNative(() => native?.setShareAudioWithJs(false));
       await safeNative(() => native?.stopProtection());
       // Derived evidence dies with the session. Nothing is retained.
       emitter.emit(noTranscript('idle'));

@@ -27,6 +27,7 @@ import {
   createNativeNotificationProvider,
   createNativePaymentProvider,
 } from './native/nativeProviders';
+import {createDemoAwareConversationProvider} from './native/demoConversation';
 import {
   StubBehaviourStore,
   StubDeviceBus,
@@ -131,12 +132,19 @@ export function createServices(options: CreateServicesOptions = {}): RukoRuntime
     ? createNativeNotificationProvider()
     : createNotificationProvider(bus);
   const conversation = native
-    ? createNativeConversationProvider(
+    ? createDemoAwareConversationProvider(
+        createNativeConversationProvider(
+          transcript => classifier.classify(transcript),
+          // Only reached when the user has switched cloud transcription on: the
+          // native side withholds the audio otherwise, so this is never called
+          // with anything to send.
+          cloudConfigured ? wav => transcribeBase64Wav(wav) : undefined,
+        ),
+        bus,
+        // Demo Mode scores scripted lines through the same on-device model the
+        // microphone path uses. Without this, running a scenario on a native
+        // build played no dialogue and the investigation heard nothing.
         transcript => classifier.classify(transcript),
-        // Only reached when the user has switched cloud transcription on: the
-        // native side withholds the audio otherwise, so this is never called
-        // with anything to send.
-        cloudConfigured ? wav => transcribeBase64Wav(wav) : undefined,
       )
     : createConversationProvider(bus);
 
