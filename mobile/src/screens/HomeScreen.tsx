@@ -91,7 +91,7 @@ export function HomeScreen() {
 
       {machineState === 'IDLE' && protectionEnabled ? (
         <View style={styles.quiet}>
-          <Bloom size={200} tint="duo" />
+          <Bloom size={260} tint="duo" />
           <Txt variant="title" center style={styles.quietTitle} accessibilityRole="header">
             {STATE_COPY.IDLE}
           </Txt>

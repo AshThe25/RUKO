@@ -64,13 +64,13 @@ export function Bloom({size = 300, tint = 'duo', animated = true, style}: BloomP
       Animated.sequence([
         Animated.timing(breath, {
           toValue: 1,
-          duration: 3200,
+          duration: 2000,
           easing: Easing.inOut(Easing.quad),
           useNativeDriver: true,
         }),
         Animated.timing(breath, {
           toValue: 0,
-          duration: 3800,
+          duration: 2400,
           easing: Easing.inOut(Easing.quad),
           useNativeDriver: true,
         }),
@@ -88,9 +88,9 @@ export function Bloom({size = 300, tint = 'duo', animated = true, style}: BloomP
   const coolShift = drift.interpolate({inputRange: [0, 1], outputRange: [0, -size * 0.05]});
   // The two layers breathe slightly out of phase, so the edge softens and
   // firms instead of the whole shape scaling as one disc.
-  const warmBreath = breath.interpolate({inputRange: [0, 1], outputRange: [0.94, 1.06]});
-  const coolBreath = breath.interpolate({inputRange: [0, 1], outputRange: [1.05, 0.95]});
-  const glow = breath.interpolate({inputRange: [0, 1], outputRange: [0.82, 1]});
+  const warmBreath = breath.interpolate({inputRange: [0, 1], outputRange: [0.82, 1.18]});
+  const coolBreath = breath.interpolate({inputRange: [0, 1], outputRange: [1.16, 0.86]});
+  const glow = breath.interpolate({inputRange: [0, 1], outputRange: [0.62, 1]});
 
   return (
     <View
