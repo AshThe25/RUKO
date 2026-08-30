@@ -39,10 +39,16 @@ export class SupabaseGuardianChannel implements GuardianChannel {
    */
   async attach(): Promise<void> {
     const {data} = await supabase.auth.getSession();
+    console.warn(
+      `[ruko-guardian] attach: session at start = ${data.session?.user.id ?? 'none'}`,
+    );
     this.setUser(data.session?.user.id ?? null);
 
     if (this.unsubscribe) return;
-    const sub = supabase.auth.onAuthStateChange((_event, session) => {
+    const sub = supabase.auth.onAuthStateChange((event, session) => {
+      console.warn(
+        `[ruko-guardian] auth event ${event}: user = ${session?.user.id ?? 'none'}`,
+      );
       this.setUser(session?.user.id ?? null);
     });
     this.unsubscribe = () => sub.data.subscription.unsubscribe();
@@ -69,8 +75,21 @@ export class SupabaseGuardianChannel implements GuardianChannel {
       return null;
     }
     if (!this.userId) {
-      // Every alert was being dropped here before attach() tracked auth state.
-      // Say so rather than looking like a guardian who did not answer.
+      // Do not trust a value captured at start-up. attach() reads the session
+      // once and then follows auth events, but a cold start races the restore
+      // from storage, and a token that expired while the app was closed leaves
+      // this null until a refresh lands. Re-reading here costs one call on the
+      // rare path and is the difference between escalating and silently not.
+      const {data} = await supabase.auth.getSession();
+      const recovered = data.session?.user.id ?? null;
+      if (recovered) {
+        console.warn('[ruko-guardian] session was stale at start-up; recovered before sending');
+        this.setUser(recovered);
+      }
+    }
+    if (!this.userId) {
+      // Genuinely signed out. Say so rather than looking like a guardian who
+      // did not answer — the two are indistinguishable on screen otherwise.
       console.warn('[ruko-guardian] not escalating: nobody is signed in on this phone');
       return null;
     }

@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {StyleSheet, View} from 'react-native';
+import {StyleSheet, Vibration, View} from 'react-native';
 import type {GuardianAlert} from '@contracts';
 import {Button, Card, EmptyState, Pill, Row, Screen, Txt} from '@/components';
 import {colors, riskPalette, space} from '@/theme';
@@ -13,6 +13,7 @@ import {
   type Alert as CloudAlert,
 } from '@/services/cloud/trustedCircle';
 import {cloudConfigured} from '@/services/cloud/supabase';
+import {showNativeIntervention} from '@/services/native/nativeProviders';
 
 /**
  * Guardian link status, and — until the Office Kit is wired up — a stand-in
@@ -46,6 +47,28 @@ export function GuardianScreen() {
     const stop = subscribeToAlerts(row => {
       void listAlertsIWatch().then(rows => {
         if (live) setWatched(rows);
+      });
+
+      // A guardian alert must never be silent. Someone is being pressured into
+      // paying right now, and a card that only appears if this screen happens
+      // to be open is not a warning — it is a log entry. So the same
+      // unmissable surface the subject gets is raised here: a system overlay
+      // that draws over whatever the guardian is doing, plus a vibration
+      // pattern, whether or not the app is in front.
+      const amount =
+        row.amount_minor === null || row.amount_minor === undefined
+          ? 'A payment'
+          : formatMinor(row.amount_minor);
+      Vibration.vibrate([0, 600, 250, 600, 250, 900]);
+      void showNativeIntervention({
+        headline: 'Someone you watch over needs you.',
+        reason:
+          row.band === 'CRITICAL'
+            ? 'Ruko stopped a payment that looks like a scam.'
+            : 'Ruko flagged a payment as risky.',
+        amountLabel: amount,
+        payee: row.payee_label ?? 'an unnamed recipient',
+        requiresGuardian: true,
       });
     });
     return () => {
