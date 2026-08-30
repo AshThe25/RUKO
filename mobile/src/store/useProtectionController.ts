@@ -21,6 +21,7 @@ import {prepareScenario} from '@/services/stubs/prepareScenario';
 import type {ScenarioId} from '@/services/stubs/scenarios';
 import {motion} from '@/theme';
 import {formatMinor} from '@/utils/format';
+import {DEFAULT_APPROVAL_THRESHOLD_MINOR as SPEND_APPROVAL_THRESHOLD_MINOR} from '@/risk/policy';
 import {useProtectionStore, type InterventionOutcome} from './protectionStore';
 
 /** The phone stops waiting on the guardian after this and decides alone. */
@@ -30,6 +31,8 @@ export function useProtectionController() {
   const runtime = useRuntime();
   const demo = useDemo();
   const revealTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  /** Which payment the current investigation is about. See onPaymentDetected. */
+  const inFlight = useRef<string | null>(null);
 
   const store = useProtectionStore;
 
@@ -228,12 +231,60 @@ export function useProtectionController() {
   const onPaymentDetected = useCallback(
     async (payment: DetectedPayment) => {
       const state = store.getState();
-      // A payment arriving while an investigation is already on screen is the
-      // same payment being re-read, or one the user is already being warned
-      // about. Either way, starting a second investigation would replace the
-      // warning they are currently reading.
-      if (state.machineState === 'INVESTIGATION' || state.machineState === 'INTERVENTION') {
+
+      /**
+       * A newer reading of a *different* payment supersedes one in flight.
+       *
+       * The amount keypad emits a usable reading per keystroke, so typing
+       * 2500 produces ₹2, ₹25, ₹250, ₹2500. Refusing every reading while an
+       * investigation was running meant the first one won: Ruko investigated
+       * a ₹2 payment, found it unremarkable, and let ₹2,500 through. The
+       * native side debounces, but debouncing cannot fix this on its own --
+       * the user can also correct an amount after the settle window.
+       *
+       * So: ignore a repeat of the payment we are already looking at, and
+       * restart for a genuinely different one. Restarting is safe because
+       * nothing has been shown to the user yet at INVESTIGATION, and at
+       * INTERVENTION the warning we would replace names an amount that is no
+       * longer the one on screen -- which is worse than replacing it.
+       */
+      const identity = `${payment.amountMinor}:${payment.payeeHash}`;
+      const busy =
+        state.machineState === 'INVESTIGATION' || state.machineState === 'INTERVENTION';
+      if (busy && identity === inFlight.current) {
         return;
+      }
+      inFlight.current = identity;
+
+      /**
+       * The spend gate fires from the reading that triggered this, not from
+       * whatever the tools manage to re-read a moment later.
+       *
+       * The agent's payment tool polls the accessibility provider when it
+       * runs, and by then the user may have moved to the PIN sheet or the
+       * receipt -- both of which the parser correctly refuses. The evidence
+       * then says "no payment in progress", `paymentPending` is false, and the
+       * limit check inside the policy can never fire. That is how a ₹2,500
+       * payment reached the score as though nothing was pending.
+       *
+       * The amount here is the one Ruko genuinely saw on the confirmation
+       * screen, so it is the honest basis for a limit that is about size
+       * rather than suspicion. The investigation still runs underneath and
+       * still produces the score and the audit trail; this only guarantees
+       * the stop happens.
+       */
+      if (payment.amountMinor >= SPEND_APPROVAL_THRESHOLD_MINOR) {
+        store.getState().setMachineState('INTERVENTION');
+        void showNativeIntervention({
+          headline: 'This needs approval first.',
+          reason:
+            `${formatMinor(payment.amountMinor)} is at or above the ` +
+            `${formatMinor(SPEND_APPROVAL_THRESHOLD_MINOR)} limit your trusted ` +
+            'contact set. They have been asked to approve it.',
+          amountLabel: formatMinor(payment.amountMinor),
+          payee: payment.payeeDisplayName || 'this recipient',
+          requiresGuardian: true,
+        });
       }
       // Two provider chains, and the payment has to reach whichever one is
       // live. The bus feeds the stub providers; the latch feeds the native
