@@ -113,12 +113,19 @@ sleep 12
 
 say "What Ruko did"
 adb logcat -d 2>/dev/null | grep -E "RukoPay|RukoBridge" | tail -4 | sed 's/^/  /'
-FRONT="$(adb shell dumpsys activity activities 2>/dev/null | grep -m1 topResumedActivity | grep -o 'com\.[a-z.]*')"
+# Look for the overlay WINDOW, not the foreground activity.
+#
+# The interruption is drawn as a TYPE_APPLICATION_OVERLAY window on top of the
+# payment app, which deliberately leaves the payment app resumed underneath --
+# that is what lets the pending payment survive. So topResumedActivity stays
+# PayNow even when Ruko has taken the screen, and checking it reported a
+# successful interception as a failure.
+OVERLAY="$(adb shell dumpsys window windows 2>/dev/null | grep -c "$RUKO_PKG")"
 echo
-if [ "$FRONT" = "$RUKO_PKG" ]; then
-  printf "\033[32m✓ Ruko took the screen before the payment completed.\033[0m\n"
+if [ "${OVERLAY:-0}" -gt 0 ]; then
+  printf "\033[32m✓ Ruko is on screen over the payment. Nothing has been paid.\033[0m\n"
 else
-  printf "\033[33m! PayNow is still in front — Ruko did not interrupt this one.\033[0m\n"
+  printf "\033[33m! No Ruko window over the payment — it did not interrupt this one.\033[0m\n"
   echo "  Open Ruko to see the score and which evidence it had."
 fi
 echo
