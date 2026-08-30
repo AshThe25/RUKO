@@ -153,8 +153,8 @@ export function GuardianScreen() {
                 {(a.reasons ?? []).slice(0, 4).map((reason, i) => (
                   <Row
                     key={`${a.id}-${i}`}
-                    label={typeof reason === 'string' ? reason : String(reason)}
-                    value=""
+                    label={reasonLabel(reason)}
+                    value={reasonPoints(reason)}
                   />
                 ))}
                 <Txt variant="caption" tone="tertiary" style={styles.payee}>
@@ -202,3 +202,26 @@ const styles = StyleSheet.create({
   actions: {marginTop: space.lg},
   allow: {marginTop: space.sm},
 });
+
+/**
+ * A stored reason is either a plain string (older alert rows) or a RiskReason
+ * object. Rendering the object directly produced "[object Object]" on the
+ * guardian's screen — the one place the evidence has to be readable.
+ */
+function reasonLabel(reason: unknown): string {
+  if (typeof reason === 'string') return reason;
+  if (reason && typeof reason === 'object') {
+    const r = reason as {label?: unknown; code?: unknown};
+    if (typeof r.label === 'string') return r.label;
+    if (typeof r.code === 'string') return r.code;
+  }
+  return 'Unrecognised reason';
+}
+
+function reasonPoints(reason: unknown): string {
+  if (reason && typeof reason === 'object') {
+    const r = reason as {points?: unknown};
+    if (typeof r.points === 'number') return `+${Math.round(r.points)}`;
+  }
+  return '';
+}
