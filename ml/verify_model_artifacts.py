@@ -127,6 +127,33 @@ def check_model(model_dir: Path) -> list[str]:
                         f"      disk: {actual}"
                     )
 
+            # The check above only proves the ml/ copy matches the card the
+            # same export wrote -- that is tautological whenever the ml/ copy
+            # exists, and it never touches the file that actually ships. A
+            # shipped weight file can carry a different name in the APK than
+            # in ml/ (the fraud gate's card also says "model_int8.onnx" but
+            # ships as fraud_gate_int8.onnx), so this must not assume the
+            # names line up: it only asks whether this exact model directory
+            # is represented, by content, among what the APK actually bundles.
+            # A directory that ships no int8 weights at all (fp32-only, or a
+            # model not meant to ship yet) is not this check's concern -- that
+            # is handled separately, below, by the tracked-weights check.
+            if (
+                expected
+                and path.suffix == ".onnx"
+                and "int8" in filename
+                and APK_ASSETS.is_dir()
+            ):
+                apk_hashes = {sha256(c) for c in APK_ASSETS.glob("*.onnx")}
+                if apk_hashes and expected not in apk_hashes:
+                    problems.append(
+                        f"BLOCK {name}: {filename} (sha256 {expected[:12]}...) is "
+                        f"not present, under any filename, among the .onnx files "
+                        f"actually bundled in {APK_ASSETS.relative_to(REPO_ROOT)} "
+                        f"-- the app is running something else, or falling back "
+                        f"to the lexicon."
+                    )
+
     # 3. Weights the card says ship, which git is quietly ignoring.
     #
     # Scoped to *declared* artifacts on purpose. A model directory legitimately
