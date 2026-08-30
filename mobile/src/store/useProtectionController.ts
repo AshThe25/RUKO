@@ -14,46 +14,56 @@ import {
   type DetectedPayment,
 } from '@/services/native/nativeProviders';
 import {NATIVE_EVENTS, onNativeEvent} from '@/services/native/RukoNative';
-import {useCallback, useEffect, useRef} from 'react';
-import type {GuardianAlert, InvestigationTrigger} from '@contracts';
+import {useCallback, useEffect} from 'react';
+import type {
+  GuardianAlert,
+  GuardianConnectionState,
+  InvestigationResult,
+  InvestigationTrigger,
+} from '@contracts';
 import {useDemo, useRuntime} from '@/services/ServicesContext';
 import {prepareScenario} from '@/services/stubs/prepareScenario';
 import type {ScenarioId} from '@/services/stubs/scenarios';
 import {motion} from '@/theme';
 import {formatMinor} from '@/utils/format';
-import {currentUser} from '@/services/cloud/auth';
+import {currentUser, myIsMinor} from '@/services/cloud/auth';
 import {raiseAlert} from '@/services/cloud/trustedCircle';
+import {checkSpendAndNotify} from '@/services/cloud/spendOversight';
 import {DEFAULT_APPROVAL_THRESHOLD_MINOR as SPEND_APPROVAL_THRESHOLD_MINOR} from '@/risk/policy';
+import {newId} from '@/utils/id';
 import {useProtectionStore, type InterventionOutcome} from './protectionStore';
 
 /** The phone stops waiting on the guardian after this and decides alone. */
 const GUARDIAN_TIMEOUT_SEC = 45;
 
+/**
+ * There is one investigation at a time, and one reveal pacing it — so both
+ * live at module scope rather than in a hook instance.
+ *
+ * They were refs, and this hook is mounted more than once: the Router holds a
+ * copy so payment watching outlives any screen, and each screen holds another
+ * for its callbacks. Two copies meant two reveal timers, each counting its own
+ * way through one shared trace, and a screen that waits for `revealed >=
+ * trace.length` can never see two counters agree. The investigation finished;
+ * the feed sat on "Looking at this payment." forever.
+ */
+let revealTimer: ReturnType<typeof setInterval> | null = null;
+/** Guards against a second run starting on top of one already in progress. */
+let investigationInFlight = false;
+/**
+ * Which payment the current investigation is about, as `amount:payeeHash`.
+ *
+ * Module scope for the same reason as the two above: this deduplicates the
+ * keypad's per-keystroke readings, and a copy of it per mounted hook
+ * deduplicates nothing — each copy sees its own first reading as new.
+ */
+let inFlightPayment: string | null = null;
+
 export function useProtectionController() {
   const runtime = useRuntime();
   const demo = useDemo();
-  const revealTimer = useRef<ReturnType<typeof setInterval> | null>(null);
-  /** Which payment the current investigation is about. See onPaymentDetected. */
-  const inFlight = useRef<string | null>(null);
 
   const store = useProtectionStore;
-
-  // Keep the guardian connection state in the store so every screen can show
-  // it without subscribing to the channel itself.
-  useEffect(() => {
-    const unsub = demo.guardian.state.subscribe(state => {
-      store.getState().setGuardianState(state);
-    });
-    return unsub;
-  }, [demo.guardian, store]);
-
-  useEffect(() => {
-    return () => {
-      if (revealTimer.current) {
-        clearInterval(revealTimer.current);
-      }
-    };
-  }, []);
 
   /**
    * Reveals the trace one line at a time. The work is already finished — this
@@ -63,18 +73,18 @@ export function useProtectionController() {
    */
   const revealTrace = useCallback(
     (total: number, onComplete: () => void) => {
-      if (revealTimer.current) {
-        clearInterval(revealTimer.current);
+      if (revealTimer) {
+        clearInterval(revealTimer);
       }
       let shown = 0;
       store.getState().setRevealed(0);
-      revealTimer.current = setInterval(() => {
+      revealTimer = setInterval(() => {
         shown += 1;
         store.getState().setRevealed(shown);
         if (shown >= total) {
-          if (revealTimer.current) {
-            clearInterval(revealTimer.current);
-            revealTimer.current = null;
+          if (revealTimer) {
+            clearInterval(revealTimer);
+            revealTimer = null;
           }
           onComplete();
         }
@@ -122,8 +132,67 @@ export function useProtectionController() {
     [runtime.services.guardian, store],
   );
 
+  /**
+   * Money actually left. Record it and let the spend monitor decide whether a
+   * guardian should hear about it.
+   *
+   * Deliberately not on the manipulation path. A child buying game credit is
+   * spending, not being manipulated, and routing it through the risk score
+   * would tell a parent they may be being scammed when they are not. This
+   * raises its own alert, with its own reason codes.
+   *
+   * Called only where a payment was not stopped -- an intervention the user
+   * obeyed is money that never moved, and a parent told about it would be
+   * told about a payment that did not happen.
+   */
+  const notePaymentMade = useCallback(
+    async (result: InvestigationResult) => {
+      const payment = result.evidence.payment;
+      if (payment.amountMinor === null) {
+        return;
+      }
+      try {
+        await runtime.services.behaviour.recordTransaction({
+          id: newId('tx'),
+          payeeHash: payment.payeeHash ?? 'unknown',
+          amountMinor: payment.amountMinor,
+          timestamp: Date.now(),
+          riskScoreAtTime: result.risk.score,
+        });
+        const check = await checkSpendAndNotify(
+          runtime.services.behaviour,
+          await myIsMinor(),
+        );
+        if (check.assessment.triggered) {
+          console.warn(
+            `[ruko-spend] ${check.assessment.band}: ${check.assessment.triggers.join(', ')} — ` +
+              `guardian ${check.notified ? 'told' : 'not told'}` +
+              (check.error ? ` (${check.error})` : ''),
+          );
+        }
+      } catch (error) {
+        // Spend oversight is a second opinion, never a gate on the payment
+        // path. A failure here must not take the investigation down with it.
+        console.warn(
+          `[ruko-spend] could not check spending: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    },
+    [runtime.services.behaviour],
+  );
+
   const runInvestigation = useCallback(
     async (trigger: InvestigationTrigger) => {
+      // One payment, one investigation. The same payment reaches this from two
+      // directions -- the demo's Pay button and the native payment-detected
+      // event it causes -- and two runs sharing the store's single trace
+      // interleave into a feed that never completes.
+      if (investigationInFlight) {
+        return;
+      }
+      investigationInFlight = true;
       const s = store.getState();
       s.resetInvestigation();
       s.setStatus('loading');
@@ -163,6 +232,7 @@ export function useProtectionController() {
         });
 
         revealTrace(result.trace.length, () => {
+          investigationInFlight = false;
           if (interrupts) {
             store.getState().setMachineState('INTERVENTION');
             store.getState().navigate('intervention');
@@ -183,7 +253,17 @@ export function useProtectionController() {
                 'This payment matches a pattern seen in reported scams.',
               amountLabel: formatMinor(result.evidence.payment.amountMinor),
               payee: result.evidence.payment.payeeDisplayName ?? 'this recipient',
-              requiresGuardian: result.risk.requiresGuardianApproval === true,
+              // Both kinds of guardian involvement count: a critical score the
+              // user may still override, and a spend limit they may not.
+              //
+              // But only claim a contact is waiting when there is actually one
+              // to wait for. The overlay's guardian copy says "they have been
+              // notified", and saying that to someone whose phone is signed out
+              // is worse than saying nothing at all.
+              requiresGuardian:
+                (result.risk.escalateToGuardian === true ||
+                  result.risk.requiresGuardianApproval === true) &&
+                store.getState().guardianState === 'ONLINE',
             }).then(shown => {
               if (!shown) {
                 // The warning never reached the screen. Say so in the audit
@@ -212,15 +292,18 @@ export function useProtectionController() {
             // warning, because the guardian escalation still reads it.
             releaseDetectedPayment();
             store.getState().setMachineState('RESOLVED');
+            // Nothing interrupted it, so this payment is going through.
+            void notePaymentMade(result);
           }
         });
       } catch (error) {
+        investigationInFlight = false;
         const message = error instanceof Error ? error.message : String(error);
         store.getState().setStatus('error', message);
         store.getState().setMachineState('MONITORING');
       }
     },
-    [escalate, revealTrace, runtime.services.agent, store],
+    [escalate, notePaymentMade, revealTrace, runtime.services.agent, store],
   );
 
   /**
@@ -253,10 +336,10 @@ export function useProtectionController() {
       const identity = `${payment.amountMinor}:${payment.payeeHash}`;
       const busy =
         state.machineState === 'INVESTIGATION' || state.machineState === 'INTERVENTION';
-      if (busy && identity === inFlight.current) {
+      if (busy && identity === inFlightPayment) {
         return;
       }
-      inFlight.current = identity;
+      inFlightPayment = identity;
 
       /**
        * The spend gate fires from the reading that triggered this, not from
@@ -321,41 +404,6 @@ export function useProtectionController() {
     },
     [demo.bus, runInvestigation, store],
   );
-
-  // Watching for payments starts with the app and stays on. It costs nothing
-  // but the accessibility service, and a protection feature the user has to
-  // remember to switch on is one that is off when it matters.
-  useEffect(() => {
-    void startPaymentWatch().then(reason => {
-      if (reason) {
-        store.getState().setWatchUnavailable(reason);
-      } else {
-        store.getState().setWatchUnavailable(null);
-      }
-    });
-  }, [store]);
-
-  useEffect(() => {
-    return onNativeEvent<DetectedPayment>(NATIVE_EVENTS.paymentDetected, payment => {
-      void onPaymentDetected(payment);
-    });
-  }, [onPaymentDetected]);
-
-  useEffect(() => {
-    return onNativeEvent<{stopped: boolean}>(NATIVE_EVENTS.interventionResolved, ({stopped}) => {
-      // The user has answered the warning either way, so the payment is no
-      // longer the one under investigation.
-      releaseDetectedPayment();
-      const result = store.getState().result;
-      if (!result) return;
-      // What the user did with the warning is the most valuable thing Ruko
-      // learns, and the only honest record of whether it helped.
-      store
-        .getState()
-        .updateOutcome(result.sessionId, stopped ? 'USER_STOPPED' : 'USER_CONTINUED');
-      store.getState().setMachineState(stopped ? 'RESOLVED' : 'MONITORING');
-    });
-  }, [store]);
 
   /** Loads a scenario's context and starts the protected listening session. */
   const startScenario = useCallback(
@@ -428,5 +476,103 @@ export function useProtectionController() {
     [demo.bus, runtime.services.conversation, store],
   );
 
-  return {runInvestigation, startScenario, confirmPayment, endSession, escalate, onPaymentDetected};
+  return {
+    runInvestigation,
+    startScenario,
+    confirmPayment,
+    endSession,
+    escalate,
+    onPaymentDetected,
+    notePaymentMade,
+  };
+}
+
+/**
+ * The device-wide half of the controller. Mounted exactly once, by the Router.
+ *
+ * These listeners must outlive any screen, but they must also exist only once.
+ * They used to sit in `useProtectionController`, which every screen calls for
+ * its callbacks -- so a single detected payment was delivered to as many
+ * handlers as there were mounted copies, and each one started an investigation
+ * of its own. The runs interleaved in the store's single trace and the feed
+ * stopped on "Looking at this payment." with two steps spinning at once, which
+ * a strictly sequential agent cannot otherwise produce.
+ */
+export function useProtectionOrchestrator() {
+  const controller = useProtectionController();
+  const {onPaymentDetected, notePaymentMade} = controller;
+  const runtime = useRuntime();
+  const store = useProtectionStore;
+
+  // Keep the guardian connection state in the store so every screen can show
+  // it without subscribing to the channel itself.
+  //
+  // From the channel that is actually in use. This read `demo.guardian`, which
+  // is always the stub -- so on any build with Supabase credentials the pill
+  // said Offline forever and `escalate()` returned before reaching sendAlert,
+  // while the intervention still told the user their contact had been
+  // notified. Both channels expose the same emitter; nothing else changes.
+  const channel = runtime.services.guardian;
+  useEffect(() => {
+    const observable = channel as Partial<{
+      state: {subscribe: (cb: (s: GuardianConnectionState) => void) => () => void};
+    }>;
+    if (!observable.state) {
+      // Not observable: take the one reading it can give rather than sitting
+      // on a stale default.
+      store.getState().setGuardianState(channel.getState());
+      return;
+    }
+    return observable.state.subscribe(state => {
+      store.getState().setGuardianState(state);
+    });
+  }, [channel, store]);
+
+  useEffect(() => {
+    return () => {
+      if (revealTimer) {
+        clearInterval(revealTimer);
+        revealTimer = null;
+      }
+    };
+  }, []);
+
+  // Watching for payments starts with the app and stays on. It costs nothing
+  // but the accessibility service, and a protection feature the user has to
+  // remember to switch on is one that is off when it matters.
+  useEffect(() => {
+    void startPaymentWatch().then(reason => {
+      store.getState().setWatchUnavailable(reason ?? null);
+    });
+  }, [store]);
+
+  useEffect(() => {
+    return onNativeEvent<DetectedPayment>(NATIVE_EVENTS.paymentDetected, payment => {
+      void onPaymentDetected(payment);
+    });
+  }, [onPaymentDetected]);
+
+  useEffect(() => {
+    return onNativeEvent<{stopped: boolean}>(NATIVE_EVENTS.interventionResolved, ({stopped}) => {
+      // The user has answered the warning either way, so the payment is no
+      // longer the one under investigation.
+      releaseDetectedPayment();
+      const result = store.getState().result;
+      if (!result) return;
+      // What the user did with the warning is the most valuable thing Ruko
+      // learns, and the only honest record of whether it helped.
+      store
+        .getState()
+        .updateOutcome(result.sessionId, stopped ? 'USER_STOPPED' : 'USER_CONTINUED');
+      store.getState().setMachineState(stopped ? 'RESOLVED' : 'MONITORING');
+      // Warned, and went ahead anyway. The money moved, so the spend monitor
+      // gets its say -- a guardian who was told about the scam still wants to
+      // know the payment happened.
+      if (!stopped) {
+        void notePaymentMade(result);
+      }
+    });
+  }, [notePaymentMade, store]);
+
+  return controller;
 }

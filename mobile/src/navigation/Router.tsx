@@ -16,7 +16,7 @@ import {
   HoldScreen,
 } from '@/screens';
 import {useProtectionStore} from '@/store/protectionStore';
-import {useProtectionController} from '@/store/useProtectionController';
+import {useProtectionOrchestrator} from '@/store/useProtectionController';
 import type {RouteName} from '@/types';
 
 const SCREENS: Record<RouteName, React.ComponentType> = {
@@ -43,12 +43,10 @@ const SCREENS: Record<RouteName, React.ComponentType> = {
  * simpler to guarantee here than to fight a navigator over.
  */
 export function Router() {
-  // Mounted here rather than in a screen, because the watcher it installs has
-  // to outlive whatever screen the user happens to be on. It was previously
-  // only mounted by the investigation and demo screens, which meant Ruko
-  // watched for payments only once an investigation was already running --
-  // the one moment it no longer needed to.
-  useProtectionController();
+  // Mounted here rather than in a screen, because the watchers it installs
+  // have to outlive whatever screen the user happens to be on -- and, just as
+  // importantly, exist only once. This is the only place that may call it.
+  useProtectionOrchestrator();
 
   const route = useProtectionStore(s => s.route);
   const back = useProtectionStore(s => s.back);

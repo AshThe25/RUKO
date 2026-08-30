@@ -7,6 +7,7 @@ import {Router} from '@/navigation/Router';
 import {ServicesProvider} from '@/services/ServicesContext';
 import {listenForOAuth, upsertProfile} from '@/services/cloud/auth';
 import {useProtectionStore} from '@/store/protectionStore';
+import {useGuardianWatch} from '@/services/cloud/useGuardianWatch';
 
 function App(): React.JSX.Element {
   // App-wide, not per-screen. The browser round trip can outlive any single
@@ -14,6 +15,10 @@ function App(): React.JSX.Element {
   // link -- and a dropped authorisation code is unrecoverable without asking
   // the user to sign in again.
   const navigate = useProtectionStore(st => st.navigate);
+
+  // A guardian must be told wherever they are in the app — or with it in the
+  // background. Same reasoning as the OAuth listener below.
+  useGuardianWatch();
   useEffect(
     () =>
       listenForOAuth(result => {

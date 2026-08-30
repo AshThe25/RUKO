@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {StyleSheet, View} from 'react-native';
+import {StyleSheet, Vibration, View} from 'react-native';
 import type {GuardianAlert} from '@contracts';
 import {Button, Card, EmptyState, Pill, Row, Screen, Txt} from '@/components';
 import {colors, riskPalette, space} from '@/theme';
@@ -13,6 +13,7 @@ import {
   type Alert as CloudAlert,
 } from '@/services/cloud/trustedCircle';
 import {cloudConfigured} from '@/services/cloud/supabase';
+import {showNativeIntervention} from '@/services/native/nativeProviders';
 
 /**
  * Guardian link status, and — until the Office Kit is wired up — a stand-in
@@ -43,10 +44,14 @@ export function GuardianScreen() {
     });
     // RLS decides what arrives, so a new alert for someone we do not watch
     // never reaches this callback at all.
-    const stop = subscribeToAlerts(row => {
+    // The loud part (overlay + vibration) lives in useGuardianWatch at the app
+    // root, so it fires wherever the guardian is. This only keeps the list on
+    // this screen current.
+    const stop = subscribeToAlerts(() => {
       void listAlertsIWatch().then(rows => {
         if (live) setWatched(rows);
       });
+
     });
     return () => {
       live = false;
