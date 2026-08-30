@@ -300,6 +300,7 @@ export function evaluateRisk(evidence: RiskEvidence): RiskResult {
     degraded: degradedReasons.length > 0,
     degradedReasons: [...new Set([...degradedReasons, ...policy.notes])],
     escalateToGuardian: policy.escalateToGuardian,
+    requiresGuardianApproval: policy.requiresGuardianApproval,
     modelVersion: conv?.modelVersion ?? 'none',
     weightsVersion: WEIGHTS_VERSION,
     policyVersion: POLICY_VERSION,

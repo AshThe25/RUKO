@@ -376,6 +376,8 @@ export interface RiskResult {
   degradedReasons: string[];
   /** Should the guardian / Office Kit be notified? Policy decides, not the model. */
   escalateToGuardian: boolean;
+  /** True when the amount alone requires a trusted contact to approve it. */
+  requiresGuardianApproval: boolean;
 
   // --- audit trail: everything needed to reproduce this decision ---
   modelVersion: string;

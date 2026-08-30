@@ -250,6 +250,7 @@ export function evaluate(evidence: RiskEvidence): RiskResult {
     corroboratingFamilies,
     degraded,
     degradedReasons,
+    requiresGuardianApproval: false,
     escalateToGuardian: level === 'CRITICAL',
     modelVersion: conv?.modelVersion ?? 'none',
     weightsVersion: STUB_WEIGHTS_VERSION,

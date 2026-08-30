@@ -135,7 +135,11 @@ export function useProtectionController() {
 
         const interrupts =
           result.risk.policyAction === 'BLOCK_WARNING' ||
-          result.risk.policyAction === 'STRONG_WARNING';
+          result.risk.policyAction === 'STRONG_WARNING' ||
+          // Crossing the spend limit interrupts on its own. A ₹7,878 game
+          // top-up scores SAFE and should: nothing about it is deceptive. The
+          // reason to stop it is the amount, not the manipulation.
+          result.risk.requiresGuardianApproval === true;
 
         store.getState().recordEvent({
           sessionId: result.sessionId,
@@ -174,7 +178,7 @@ export function useProtectionController() {
                 'This payment matches a pattern seen in reported scams.',
               amountLabel: formatMinor(result.evidence.payment.amountMinor),
               payee: result.evidence.payment.payeeDisplayName ?? 'this recipient',
-              requiresGuardian: result.risk.escalateToGuardian === true,
+              requiresGuardian: result.risk.requiresGuardianApproval === true,
             }).then(shown => {
               if (!shown) {
                 // The warning never reached the screen. Say so in the audit
@@ -190,7 +194,7 @@ export function useProtectionController() {
                 });
               }
             });
-            if (result.risk.escalateToGuardian) {
+            if (result.risk.escalateToGuardian || result.risk.requiresGuardianApproval) {
               escalate(result.sessionId)
                 .then(outcome => store.getState().updateOutcome(result.sessionId, outcome))
                 // A guardian round-trip that fails leaves the phone's own
