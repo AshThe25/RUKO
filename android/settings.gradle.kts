@@ -34,6 +34,10 @@ if (androidSdkAvailable) {
     // The installable harness: RukoPayDemo plus an engineering screen that
     // reports what the device genuinely supports. Not the product UI.
     include(":ruko-devapp")
+    // The demo UPI app. Standalone by design — it shares no code with Ruko, so
+    // detecting it exercises the same accessibility and notification paths a
+    // real payment app would.
+    include(":paynow")
 } else {
     logger.lifecycle(
         "[ruko] No Android SDK detected — building :ruko-core only. " +

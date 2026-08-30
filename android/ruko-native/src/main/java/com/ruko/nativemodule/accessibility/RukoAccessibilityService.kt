@@ -1,6 +1,7 @@
 package com.ruko.nativemodule.accessibility
 
 import android.accessibilityservice.AccessibilityService
+import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import com.ruko.nativemodule.payment.AccessibilityPaymentProvider
@@ -26,10 +27,12 @@ class RukoAccessibilityService : AccessibilityService() {
 
     private var lastTraversalAtMs = 0L
     private var lastPackage: String? = null
+    private var lastNoProviderLogMs = 0L
 
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
+        Log.i(TAG, "connected")
     }
 
     override fun onDestroy() {
@@ -44,7 +47,17 @@ class RukoAccessibilityService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         val packageName = event?.packageName?.toString() ?: return
-        val active = provider ?: return
+        val active = provider
+        if (active == null) {
+            // The single most confusing failure this service has: enabled,
+            // bound, receiving events, and doing nothing because JS never
+            // attached a provider. Say so out loud.
+            if (packageName in PAYMENT_PACKAGES && System.currentTimeMillis() - lastNoProviderLogMs > 5_000L) {
+                lastNoProviderLogMs = System.currentTimeMillis()
+                Log.w(TAG, "payment app '$packageName' in front but no provider attached")
+            }
+            return
+        }
 
         if (packageName !in PAYMENT_PACKAGES) {
             // Left the payment app entirely: forget whatever we had.
@@ -67,6 +80,7 @@ class RukoAccessibilityService : AccessibilityService() {
             root.recycle()
         }
 
+        Log.i(TAG, "read ${texts.size} nodes from $packageName")
         active.onScreenRead(texts, packageName, now)
     }
 
@@ -110,6 +124,12 @@ class RukoAccessibilityService : AccessibilityService() {
          */
         val PAYMENT_PACKAGES = setOf(
             "com.ruko.paydemo",
+            // PayNow, the demo UPI wallet in `android/paynow`. Listed here for
+            // the same reason as the others and by the same rule: it is a
+            // payment surface Ruko is expected to read. It shares no code with
+            // Ruko, so it is read through the accessibility tree exactly as a
+            // shipping UPI app would be.
+            "com.ruko.paynow",
             "com.google.android.apps.nbu.paisa.user", // Google Pay India
             "com.phonepe.app",
             "net.one97.paytm",
@@ -135,6 +155,7 @@ class RukoAccessibilityService : AccessibilityService() {
             provider = null
         }
 
+        private const val TAG = "RukoA11y"
         private const val THROTTLE_MS = 400L
         private const val MAX_DEPTH = 40
         private const val MAX_NODES = 200

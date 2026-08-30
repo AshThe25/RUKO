@@ -763,15 +763,57 @@
   </div>
 </section>
 
+<!-- PAYNOW -->
+<section class="block shell" id="paynow">
+  <div class="inner">
+    <div class="block-head center rv">
+      <span class="eyebrow">The other app</span>
+      <h2>Something to test it against</h2>
+      <p class="lede">Ruko is only interesting if it works on a payment app it was not built for. So we wrote a second, separate one &mdash; PayNow, a working UPI wallet &mdash; and gave it no knowledge of Ruko at all.</p>
+    </div>
+    <div class="cards">
+      <div class="card rv">
+        <span class="k">No shared code</span>
+        <p>PayNow and Ruko share no module, no broadcast, no private channel. PayNow draws a payment screen and posts ordinary message notifications, exactly as any wallet does. Ruko has to read it through the accessibility tree and the notification listener, the same way it would read PhonePe. A demo where the two halves are wired together proves nothing.</p>
+      </div>
+      <div class="card rv">
+        <span class="k">Three situations</span>
+        <p>A bank-impersonation thread that ends in a &#8377;500 &ldquo;KYC verification&rdquo; transfer. A grooming conversation that ends in a &#8377;2,000 demand. And a child topping up a game, where no message is threatening and no single payment is large &mdash; the one that language alone cannot catch.</p>
+      </div>
+      <div class="card rv">
+        <span class="k">An unlimited balance</span>
+        <p>The wallet never runs out. That is a demo decision with a point to it: if a payment gets stopped, it was stopped by Ruko, never by PayNow running short of imaginary money.</p>
+      </div>
+    </div>
+    <div class="shots" style="margin-top:44px">
+      <figure class="shot rv">
+        <img src="/shots/paynow-home.png" alt="PayNow wallet home screen showing a balance and a list of recent payees" loading="lazy" width="900">
+        <figcaption>PayNow. A wallet, with payees and threads &mdash; not a single-purpose prop.</figcaption>
+      </figure>
+      <figure class="shot rv">
+        <img src="/shots/paynow-chat.png" alt="A message thread from a sender named KYC Verification Desk pressing for a payment" loading="lazy" width="900">
+        <figcaption>Each incoming line is also posted as a real system notification, which is how Ruko sees it.</figcaption>
+      </figure>
+      <figure class="shot rv">
+        <img src="/shots/paynow-confirm.png" alt="PayNow confirm payment screen showing 500 rupees to kyc.verify9931@ybl" loading="lazy" width="900">
+        <figcaption>The confirmation screen. Every field is a real text node, so it can be read rather than guessed at.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
 <!-- DOWNLOAD -->
 <section class="dl shell" id="download">
   <div class="bloom"><i class="warm" style="top:auto;bottom:-190px;opacity:.5"></i></div>
   <div class="inner">
     <span class="eyebrow">Prototype build · Android</span>
     <h2 style="margin-top:16px">Put it on your phone</h2>
-    <p class="lede">Ruko runs entirely on-device. Nothing to sign up for, no account to create. Install it, grant the microphone, and it stays quiet until it matters.</p>
-    <div class="hero-cta"><a class="pill pill-solid pill-lg" href="/ruko.apk" download>Download for Android</a></div>
-    <p class="dl-note">16 MB · Android 8.0+ · 64-bit. Sideloaded, not a Play Store listing — Ruko needs permissions Play policy restricts. <a href="#" data-open-dl style="text-decoration:underline">How to install</a></p>
+    <p class="lede">Ruko runs entirely on-device. Nothing to sign up for, no account to create. Install it, grant the permissions, and it stays quiet until it matters. PayNow is the demo wallet to point it at.</p>
+    <div class="hero-cta">
+      <a class="pill pill-solid pill-lg" href="/ruko.apk" download>Download Ruko</a>
+      <a class="pill pill-ghost pill-lg" href="/paynow.apk" download>Download PayNow</a>
+    </div>
+    <p class="dl-note">Ruko 48 MB · PayNow 2.4 MB · Android 8.0+ · 64-bit. Install both to try the whole thing: PayNow is the wallet, Ruko is what sits between you and it. Sideloaded rather than a Play Store listing, because Ruko needs permissions Play policy restricts. <a href="#" data-open-dl style="text-decoration:underline">How to install</a></p>
   </div>
 </section>
 
@@ -784,7 +826,7 @@
       </div>
       <div class="fcol"><span>Team</span><a href="#">Aishwarya — Mobile</a><a href="#">Vedant — Model &amp; risk</a><a href="#">Puneesh — Android &amp; relay</a></div>
       <div class="fcol"><span>Product</span><a href="#how">How it works</a><a href="#score">The score</a><a href="#limits">Limits</a></div>
-      <div class="fcol"><span>Get it</span><a href="#download">Download</a><a href="#top">Back to top</a></div>
+      <div class="fcol"><span>Get it</span><a href="#download">Download</a><a href="#paynow">PayNow demo wallet</a><a href="#top">Back to top</a></div>
     </div>
     <div class="foot-end"><span>© Ruko</span><span>iQOO Hackathon · 2026</span></div>
   </div>
@@ -792,16 +834,18 @@
 
 <div class="backdrop" id="dl-modal" role="dialog" aria-modal="true" aria-labelledby="dl-h">
   <div class="modal">
-    <span class="eyebrow">Android · 16 MB</span>
-    <h3 id="dl-h">Installing takes three steps.</h3>
+    <span class="eyebrow">Android · two APKs</span>
+    <h3 id="dl-h">Installing takes four steps.</h3>
     <p>This is a sideloaded APK rather than a Play Store listing, because Ruko needs the microphone and accessibility permissions that Play policy restricts — for good reasons. You are trusting us with those, so everything it does with them stays on the phone.</p>
     <ol class="msteps">
       <li><b>1</b><span>Settings → Security → allow installs from your browser or file manager.</span></li>
-      <li><b>2</b><span>Open <code style="display:inline;padding:2px 6px;margin:0;border:0;background:var(--sunk)">ruko.apk</code> and confirm.</span></li>
-      <li><b>3</b><span>Grant microphone access. Accessibility and notifications are optional — Ruko works with less, it just sees less.</span></li>
+      <li><b>2</b><span>Open <code style="display:inline;padding:2px 6px;margin:0;border:0;background:var(--sunk)">ruko.apk</code> and confirm. Then <code style="display:inline;padding:2px 6px;margin:0;border:0;background:var(--sunk)">paynow.apk</code>, the demo wallet.</span></li>
+      <li><b>3</b><span>Grant Ruko accessibility access and &ldquo;display over other apps&rdquo;. These two are what let it read a payment screen and interrupt one — without them it runs, but it cannot come between you and a payment.</span></li>
+      <li><b>4</b><span>Microphone and notification access are what add calls and messages. Ruko works with less, it just sees less.</span></li>
     </ol>
     <p class="small" style="margin-top:16px">Requires Android 8.0 or newer, 64-bit. Debug-signed prototype: uninstall any earlier copy first.</p>
     <a class="pill pill-solid" href="/ruko.apk" download style="margin-top:24px;width:100%;justify-content:center">Download ruko.apk</a>
+    <a class="pill pill-ghost" href="/paynow.apk" download style="margin-top:10px;width:100%;justify-content:center">Download paynow.apk</a>
     <button class="pill pill-ghost" data-close-dl style="margin-top:10px;width:100%;justify-content:center">Close</button>
   </div>
 </div>

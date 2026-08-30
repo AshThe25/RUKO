@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Posting a real notification is what lets Ruko's NotificationListener
+         see an incoming message. A simulated in-app-only message would not
+         exercise that path at all. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.PayNow">
+
+        <activity
+            android:name=".HomeActivity"
+            android:exported="true"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity android:name=".PayActivity" android:exported="false" />
+        <activity android:name=".ConfirmActivity" android:exported="false" />
+        <activity android:name=".PinActivity" android:exported="false" />
+        <activity android:name=".SuccessActivity" android:exported="false" />
+        <activity android:name=".ChatActivity" android:exported="false" />
+    </application>
+</manifest>

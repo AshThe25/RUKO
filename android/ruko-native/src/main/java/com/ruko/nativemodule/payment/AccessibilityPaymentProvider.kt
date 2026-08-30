@@ -1,5 +1,6 @@
 package com.ruko.nativemodule.payment
 
+import android.util.Log
 import com.ruko.core.EvidenceSource
 import com.ruko.core.PaymentEvidence
 import com.ruko.core.PaymentScreenParser
@@ -19,6 +20,25 @@ class AccessibilityPaymentProvider(
     private val payeeHasher: (String) -> String,
 ) : PaymentContextProvider {
 
+    /**
+     * Called once when a payment first appears on screen.
+     *
+     * Polling alone was not enough: nothing polled this provider unless a
+     * session was already running, so a payment the user started on their own
+     * was read and then silently discarded. Ruko has to be told a payment
+     * appeared in order to interrupt it.
+     */
+    @Volatile
+    var onPaymentAppeared: ((PaymentEvidence) -> Unit)? = null
+
+    /**
+     * Identity of the payment we have already announced. A payment screen
+     * fires content-changed events continuously, so without this the callback
+     * would fire dozens of times for one payment.
+     */
+    @Volatile
+    private var announced: String? = null
+
     override val source = EvidenceSource.ACCESSIBILITY
 
     @Volatile
@@ -37,12 +57,36 @@ class AccessibilityPaymentProvider(
         nowEpochMs: Long = System.currentTimeMillis(),
     ) {
         val parsed = PaymentScreenParser.parse(texts)
-        latest = if (parsed.isUsable) Reading(parsed, packageName, nowEpochMs) else null
+        Log.i(
+            "RukoPay",
+            "parsed usable=${parsed.isUsable} amount=${parsed.amountMinor} " +
+                "conf=${parsed.confidence} signals=${parsed.signals}",
+        )
+        if (!parsed.isUsable) {
+            latest = null
+            return
+        }
+        latest = Reading(parsed, packageName, nowEpochMs)
+
+        // Amount plus payee is the payment's identity. Two genuinely separate
+        // payments of the same amount to the same payee are indistinguishable
+        // here, which is the right trade: announcing one of them twice would be
+        // far worse than treating a rapid repeat as the same screen.
+        val identity = "${parsed.amountMinor}:${parsed.payeeId ?: parsed.payee}"
+        if (identity == announced) return
+        announced = identity
+
+        val listener = onPaymentAppeared
+        Log.i("RukoPay", "announcing payment, listener=${listener != null}")
+        current()?.let { evidence -> listener?.invoke(evidence) }
     }
 
     /** Called when the payment screen goes away. */
     fun clear() {
         latest = null
+        // Leaving the payment screen ends the payment. The next one is new
+        // even if it is for the same amount to the same payee.
+        announced = null
     }
 
     override fun isAvailable(): Boolean = freshReading() != null

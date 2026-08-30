@@ -189,7 +189,11 @@ export function createServices(options: CreateServicesOptions = {}): RukoRuntime
     demo: {bus, behaviour, guardian},
     origins,
     usingStubs: Object.values(origins).some(o => o === 'stub'),
-    demoAvailable: !native,
+    // Available in native builds too. The scenario runs through the real
+    // providers, engine and model -- it seeds an input, it does not fake an
+    // outcome -- and hiding it in the only build worth demoing meant there was
+    // no way to show what the product does without a genuine scam call.
+    demoAvailable: true,
   };
 }
 

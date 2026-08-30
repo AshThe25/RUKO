@@ -116,6 +116,13 @@ export interface RukoNativeSpec {
    */
   setShareAudioWithJs(enabled: boolean): Promise<boolean>;
   startProtection(): Promise<NativeProtectionState>;
+  /**
+   * Watch payment screens without starting the microphone. Rejects when the
+   * accessibility service is not enabled, which is a state the user must be
+   * told about rather than one to retry quietly.
+   */
+  startPaymentWatch(): Promise<boolean>;
+  stopPaymentWatch(): Promise<boolean>;
   stopProtection(): Promise<NativeProtectionState>;
   getProtectionState(): Promise<NativeProtectionState>;
   signal(name: string): Promise<NativeProtectionState>;
@@ -125,7 +132,25 @@ export interface RukoNativeSpec {
   getDeviceAIBackend(): Promise<NativeAiBackend | null>;
   getPermissionState(): Promise<NativePermissionState>;
   openSettingsFor(permission: string): Promise<boolean>;
-  beginDemoPayment(amountRupees: number, payee: string, payeeId: string): Promise<void>;
+  /**
+   * Drive a payment through the real pipeline. Takes integer paise, matching
+   * payment.schema.ts and the Kotlin signature -- it was declared as rupees
+   * here, which would have shown an amount a hundred times too small.
+   */
+  beginDemoPayment(amountMinor: number, payee: string, payeeId: string): Promise<void>;
+  /**
+   * Draws the interruption over the foreground app. Rejects when the overlay
+   * permission is missing, which is a real outcome the caller must surface —
+   * not a detail to swallow.
+   */
+  showIntervention(
+    headline: string,
+    reason: string,
+    amountLabel: string,
+    payee: string,
+    requiresGuardian: boolean,
+  ): Promise<boolean>;
+  hideIntervention(): Promise<boolean>;
   endDemoPayment(): Promise<void>;
 }
 
@@ -135,6 +160,8 @@ export const NATIVE_EVENTS = {
   speechSegment: 'ruko:onSpeechSegment',
   callStateChanged: 'ruko:onCallStateChanged',
   error: 'ruko:onNativeError',
+  paymentDetected: 'ruko:onPaymentDetected',
+  interventionResolved: 'ruko:onInterventionResolved',
 } as const;
 
 export type NativeEventName = (typeof NATIVE_EVENTS)[keyof typeof NATIVE_EVENTS];

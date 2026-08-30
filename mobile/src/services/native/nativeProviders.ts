@@ -389,3 +389,82 @@ function noTranscript(phase: 'idle' | 'listening', segments = 0): ConversationEv
     timestamp: now(),
   };
 }
+
+/**
+ * Seed a payment through the native demo provider, which sits in the same
+ * chain the accessibility reader does. A no-op without the native module, so
+ * a stub build keeps working unchanged.
+ */
+export async function openNativeDemoPayment(
+  amountMinor: number,
+  payee: string,
+  payeeId: string,
+): Promise<void> {
+  const native = getNativeModule();
+  if (!native?.beginDemoPayment) return;
+  await safeNative(() => native.beginDemoPayment(amountMinor, payee, payeeId));
+}
+
+/** What the accessibility service saw when a payment appeared on screen. */
+export interface DetectedPayment {
+  amountMinor: number;
+  payeeDisplayName: string;
+  payeeHash: string;
+  appPackage: string;
+  timestamp: number;
+}
+
+/**
+ * Draw Ruko's interruption on top of the payment app.
+ *
+ * Returns false when the overlay could not be shown — almost always because
+ * "Display over other apps" was never granted. The caller must treat that as
+ * "the user was not warned", never as a silent success: the whole product
+ * claim is that something appears before the money moves.
+ */
+export async function showNativeIntervention(args: {
+  headline: string;
+  reason: string;
+  amountLabel: string;
+  payee: string;
+  requiresGuardian: boolean;
+}): Promise<boolean> {
+  const native = getNativeModule();
+  if (!native?.showIntervention) return false;
+  const shown = await safeNative(() =>
+    native.showIntervention(
+      args.headline,
+      args.reason,
+      args.amountLabel,
+      args.payee,
+      args.requiresGuardian,
+    ),
+  );
+  return shown === true;
+}
+
+export async function hideNativeIntervention(): Promise<void> {
+  const native = getNativeModule();
+  if (!native?.hideIntervention) return;
+  await safeNative(() => native.hideIntervention());
+}
+
+/**
+ * Begin watching for payment screens.
+ *
+ * Returns the reason it could not start, or null on success. Callers must
+ * surface a failure: a Ruko that silently is not watching looks exactly like a
+ * Ruko that is.
+ */
+export async function startPaymentWatch(): Promise<string | null> {
+  const native = getNativeModule();
+  if (!native?.startPaymentWatch) {
+    return 'This build has no native module, so payment screens cannot be read.';
+  }
+  try {
+    await native.startPaymentWatch();
+    return null;
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
+  }
+}

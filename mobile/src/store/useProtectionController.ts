@@ -5,12 +5,20 @@
  * investigation, pacing the live feed, escalating to a guardian, and recording
  * the audit trail. Screens call these functions; they never touch a provider.
  */
+import {
+  openNativeDemoPayment,
+  showNativeIntervention,
+  startPaymentWatch,
+  type DetectedPayment,
+} from '@/services/native/nativeProviders';
+import {NATIVE_EVENTS, onNativeEvent} from '@/services/native/RukoNative';
 import {useCallback, useEffect, useRef} from 'react';
 import type {GuardianAlert, InvestigationTrigger} from '@contracts';
 import {useDemo, useRuntime} from '@/services/ServicesContext';
 import {prepareScenario} from '@/services/stubs/prepareScenario';
 import type {ScenarioId} from '@/services/stubs/scenarios';
 import {motion} from '@/theme';
+import {formatMinor} from '@/utils/format';
 import {useProtectionStore, type InterventionOutcome} from './protectionStore';
 
 /** The phone stops waiting on the guardian after this and decides alone. */
@@ -147,6 +155,39 @@ export function useProtectionController() {
           if (interrupts) {
             store.getState().setMachineState('INTERVENTION');
             store.getState().navigate('intervention');
+
+            // During a real payment the user is looking at their UPI app, not
+            // at Ruko. Setting the in-app screen alone would mean the warning
+            // exists but nobody sees it, so the same verdict is also drawn as
+            // an overlay on top of whatever is in front.
+            showNativeIntervention({
+              headline:
+                result.risk.policyAction === 'BLOCK_WARNING'
+                  ? 'Stop. This looks like a scam.'
+                  : 'Wait — check this before you pay.',
+              // The top reason is the one worth the user's attention; the rest are in
+              // the app. A generic line only when the engine gave none.
+              reason:
+                result.risk.reasons[0]?.label ??
+                'This payment matches a pattern seen in reported scams.',
+              amountLabel: formatMinor(result.evidence.payment.amountMinor),
+              payee: result.evidence.payment.payeeDisplayName ?? 'this recipient',
+              requiresGuardian: result.risk.escalateToGuardian === true,
+            }).then(shown => {
+              if (!shown) {
+                // The warning never reached the screen. Say so in the audit
+                // trail rather than recording an interruption that did not
+                // actually happen.
+                store.getState().pushTrace({
+                  timestamp: Date.now(),
+                  seq: result.trace.length + 1,
+                  kind: 'ERROR',
+                  message:
+                    'Could not show the warning over your payment app — ' +
+                    '"Display over other apps" is off.',
+                });
+              }
+            });
             if (result.risk.escalateToGuardian) {
               escalate(result.sessionId)
                 .then(outcome => store.getState().updateOutcome(result.sessionId, outcome))
@@ -166,6 +207,61 @@ export function useProtectionController() {
     },
     [escalate, revealTrace, runtime.services.agent, store],
   );
+
+  /**
+   * Investigate a payment the user started themselves.
+   *
+   * This is the path that matters in production: the accessibility service
+   * reads a payment screen in a UPI app and Ruko interrupts. Everything else —
+   * the demo scenarios, the manual trigger — exists to exercise this one.
+   */
+  const onPaymentDetected = useCallback(
+    async (payment: DetectedPayment) => {
+      const state = store.getState();
+      // A payment arriving while an investigation is already on screen is the
+      // same payment being re-read, or one the user is already being warned
+      // about. Either way, starting a second investigation would replace the
+      // warning they are currently reading.
+      if (state.machineState === 'INVESTIGATION' || state.machineState === 'INTERVENTION') {
+        return;
+      }
+      demo.bus.openPayment(payment.amountMinor, payment.payeeDisplayName, payment.payeeHash);
+      await runInvestigation('PAYMENT_SCREEN_DETECTED');
+    },
+    [demo.bus, runInvestigation, store],
+  );
+
+  // Watching for payments starts with the app and stays on. It costs nothing
+  // but the accessibility service, and a protection feature the user has to
+  // remember to switch on is one that is off when it matters.
+  useEffect(() => {
+    void startPaymentWatch().then(reason => {
+      if (reason) {
+        store.getState().setWatchUnavailable(reason);
+      } else {
+        store.getState().setWatchUnavailable(null);
+      }
+    });
+  }, [store]);
+
+  useEffect(() => {
+    return onNativeEvent<DetectedPayment>(NATIVE_EVENTS.paymentDetected, payment => {
+      void onPaymentDetected(payment);
+    });
+  }, [onPaymentDetected]);
+
+  useEffect(() => {
+    return onNativeEvent<{stopped: boolean}>(NATIVE_EVENTS.interventionResolved, ({stopped}) => {
+      const result = store.getState().result;
+      if (!result) return;
+      // What the user did with the warning is the most valuable thing Ruko
+      // learns, and the only honest record of whether it helped.
+      store
+        .getState()
+        .updateOutcome(result.sessionId, stopped ? 'USER_STOPPED' : 'USER_CONTINUED');
+      store.getState().setMachineState(stopped ? 'RESOLVED' : 'MONITORING');
+    });
+  }, [store]);
 
   /** Loads a scenario's context and starts the protected listening session. */
   const startScenario = useCallback(
@@ -196,6 +292,15 @@ export function useProtectionController() {
       scenario.payment.payeeDisplayName,
       scenario.payment.payeeHash,
     );
+    // In a native build the payment provider is the device's own, so writing to
+    // the demo bus alone leaves it reading an empty screen. The native module
+    // has a demo provider in the same chain for exactly this: it seeds the
+    // input the real providers then read, rather than substituting an outcome.
+    await openNativeDemoPayment(
+      scenario.payment.amountMinor,
+      scenario.payment.payeeDisplayName ?? 'Demo payee',
+      scenario.payment.payeeHash ?? 'demo',
+    );
     store.getState().setMachineState('PAYMENT_WATCH');
     await runInvestigation(scenario.trigger);
   }, [demo.bus, runInvestigation, store]);
@@ -216,5 +321,5 @@ export function useProtectionController() {
     [demo.bus, runtime.services.conversation, store],
   );
 
-  return {runInvestigation, startScenario, confirmPayment, endSession, escalate};
+  return {runInvestigation, startScenario, confirmPayment, endSession, escalate, onPaymentDetected};
 }

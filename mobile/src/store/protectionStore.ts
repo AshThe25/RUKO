@@ -96,6 +96,16 @@ interface ProtectionStore {
   setResult: (result: InvestigationResult | null) => void;
   resetInvestigation: () => void;
 
+  /**
+   * Why Ruko is not currently watching for payments, or null when it is.
+   *
+   * Surfaced in the UI because the failure mode this guards against is the
+   * app looking protected while nothing is attached — which is exactly what
+   * happened before payment watching was separated from the microphone.
+   */
+  watchUnavailable: string | null;
+  setWatchUnavailable: (reason: string | null) => void;
+
   /* guardian */
   guardianState: GuardianConnectionState;
   guardianAlert: GuardianAlert | null;
@@ -171,6 +181,9 @@ export const useProtectionStore = create<ProtectionStore>()(
   setResult: result => set({result}),
   resetInvestigation: () =>
     set({status: 'idle', error: null, trace: [], revealed: 0, result: null, guardianDecision: null, guardianAlert: null}),
+
+  watchUnavailable: null,
+  setWatchUnavailable: reason => set({watchUnavailable: reason}),
 
   guardianState: 'UNPAIRED',
   guardianAlert: null,

@@ -20,6 +20,7 @@ import com.ruko.nativemodule.accessibility.RukoAccessibilityService
 import com.ruko.nativemodule.ai.DeviceAiDiagnostics
 import com.ruko.nativemodule.audio.AudioSessionManager
 import com.ruko.nativemodule.call.CallContextProvider
+import com.ruko.nativemodule.intervention.InterventionOverlay
 import com.ruko.nativemodule.monitoring.RukoForegroundService
 import com.ruko.nativemodule.notifications.RukoNotificationListenerService
 import com.ruko.nativemodule.payment.AccessibilityPaymentProvider
@@ -50,6 +51,29 @@ class RukoNativeModule(
 
     private val accessibilityPayments = AccessibilityPaymentProvider { payeeId ->
         PayeeHasher.hash(payeeId, payeeSalt)
+    }.apply {
+        // A payment appearing on screen is the one event Ruko cannot afford to
+        // miss, and it arrives whether or not JS happens to be polling. The
+        // scoring still happens in JS against the deterministic engine — this
+        // only carries the news across the bridge.
+        onPaymentAppeared = { evidence ->
+            // An amount is what makes a payment actionable. Without one there
+            // is nothing to warn about that the user cannot already see, so
+            // the event is dropped rather than sent half-formed.
+            val amountMinor = evidence.amountMinor
+            if (amountMinor != null) {
+                emit(
+                    EVENT_PAYMENT_DETECTED,
+                    Arguments.createMap().apply {
+                        putDouble("amountMinor", amountMinor.toDouble())
+                        putString("payeeDisplayName", evidence.payeeDisplayName)
+                        putString("payeeHash", evidence.payeeHash)
+                        putString("appPackage", evidence.appPackage)
+                        putDouble("timestamp", evidence.timestamp.toDouble())
+                    },
+                )
+            }
+        }
     }
 
     private val payments = LayeredPaymentContextProvider(
@@ -115,8 +139,89 @@ class RukoNativeModule(
         promise.resolve(stateMap())
     }
 
+    /**
+     * Start watching payment screens, without starting the microphone.
+     *
+     * These were previously the same call, so nothing watched for payments
+     * unless a listening session was running — which meant a payment the user
+     * started on their own was never seen, even with every permission granted.
+     * Reading the foreground payment screen needs the accessibility service and
+     * nothing else: no microphone, no foreground service, no notification.
+     * Tying it to the microphone bought no privacy and cost the core feature.
+     */
+    @ReactMethod
+    fun startPaymentWatch(promise: Promise) {
+        if (!RukoAccessibilityService.isConnected()) {
+            promise.reject(
+                "ACCESSIBILITY_NOT_ENABLED",
+                "Ruko cannot see payment screens until its accessibility service is enabled.",
+            )
+            return
+        }
+        RukoAccessibilityService.attach(accessibilityPayments)
+        promise.resolve(true)
+    }
+
+    @ReactMethod
+    fun stopPaymentWatch(promise: Promise) {
+        RukoAccessibilityService.detach()
+        promise.resolve(true)
+    }
+
     @ReactMethod
     fun getProtectionState(promise: Promise) = promise.resolve(stateMap())
+
+    // ----------------------------------------------------------- intervention
+
+    /**
+     * Draw the interruption over whatever app is in front.
+     *
+     * Called from JS only after the deterministic engine has produced a
+     * decision. Nothing here decides anything; this method renders a verdict
+     * that was already reached, which is why it takes finished copy rather
+     * than a score.
+     */
+    @ReactMethod
+    fun showIntervention(
+        headline: String,
+        reason: String,
+        amountLabel: String,
+        payee: String,
+        requiresGuardian: Boolean,
+        promise: Promise,
+    ) {
+        if (!InterventionOverlay.canShow(reactContext)) {
+            promise.reject(
+                "OVERLAY_PERMISSION_MISSING",
+                "Ruko needs 'Display over other apps' to interrupt a payment. " +
+                    "Without it the warning cannot be shown on top of the payment app.",
+            )
+            return
+        }
+
+        InterventionOverlay.show(
+            reactContext,
+            InterventionOverlay.Decision(
+                headline = headline,
+                reason = reason,
+                amountLabel = amountLabel,
+                payee = payee,
+                requiresGuardian = requiresGuardian,
+            ),
+        ) { stopped ->
+            emit(
+                EVENT_INTERVENTION_RESOLVED,
+                Arguments.createMap().apply { putBoolean("stopped", stopped) },
+            )
+        }
+        promise.resolve(true)
+    }
+
+    @ReactMethod
+    fun hideIntervention(promise: Promise) {
+        InterventionOverlay.hide()
+        promise.resolve(true)
+    }
 
     /**
      * Signals from the JS layer that change what should be running.
@@ -478,6 +583,8 @@ class RukoNativeModule(
         const val EVENT_SPEECH = "ruko:onSpeechSegment"
         const val EVENT_CALL_STATE = "ruko:onCallStateChanged"
         const val EVENT_ERROR = "ruko:onNativeError"
+        const val EVENT_PAYMENT_DETECTED = "ruko:onPaymentDetected"
+        const val EVENT_INTERVENTION_RESOLVED = "ruko:onInterventionResolved"
 
         private const val PREFS = "ruko_native"
         private const val KEY_SALT = "payee_salt"

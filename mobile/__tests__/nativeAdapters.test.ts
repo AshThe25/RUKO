@@ -19,16 +19,20 @@ import {hasNativeModule} from '@/services/native/RukoNative';
 import {createServices, stubbedParts} from '@/services/createServices';
 
 describe('payment payloads', () => {
-  it('converts rupees to paise', () => {
+  // The bridge sends integer paise as `amountMinor` and epoch milliseconds as
+  // `observedAt`. These tests previously described a `amount`-in-rupees field
+  // the bridge has never sent, which is exactly how the units bug survived: the
+  // suite was green against a contract that did not exist.
+  it('takes the amount in paise, without rescaling it', () => {
     const evidence = toPaymentEvidence({
       active: true,
-      amount: 48000,
+      amountMinor: 4_800_000,
       currency: 'INR',
       payee: 'Ravi Verify',
       payeeHash: 'abc',
       source: 'ACCESSIBILITY',
       packageName: 'com.example.upi',
-      observedAt: '2026-08-29T10:00:00.000Z',
+      observedAt: 1_756_461_600_000,
     });
     expect(evidence.available).toBe(true);
     expect(evidence.amountMinor).toBe(4_800_000);
@@ -36,16 +40,16 @@ describe('payment payloads', () => {
     expect(evidence.appPackage).toBe('com.example.upi');
   });
 
-  it('does not lose paise to floating point', () => {
+  it('keeps paise exact rather than rounding through rupees', () => {
     const evidence = toPaymentEvidence({
       active: true,
-      amount: 1234.56,
+      amountMinor: 123456,
       currency: 'INR',
       payee: 'X',
       payeeHash: 'h',
       source: 'DEMO',
       packageName: null,
-      observedAt: '',
+      observedAt: 0,
     });
     expect(evidence.amountMinor).toBe(123456);
   });
@@ -53,13 +57,13 @@ describe('payment payloads', () => {
   it('marks an active but unreadable payment screen unavailable, not empty', () => {
     const evidence = toPaymentEvidence({
       active: true,
-      amount: 0,
+      amountMinor: 0,
       currency: 'INR',
       payee: null,
       payeeHash: null,
       source: 'ACCESSIBILITY',
       packageName: null,
-      observedAt: '',
+      observedAt: 0,
     });
     expect(evidence.active).toBe(true);
     expect(evidence.available).toBe(false);
@@ -174,7 +178,14 @@ describe('service wiring', () => {
   it('names the parts that are still stand-ins so the UI can say so', () => {
     const runtime = createServices();
     const parts = stubbedParts(runtime.origins);
-    expect(parts).toEqual(expect.arrayContaining(['risk engine', 'speech', 'payment screen']));
+    // The risk engine is no longer in this list, and that is the point: it
+    // runs for real in every build, native or not, because it is pure
+    // deterministic scoring with no device dependency. What remains stubbed is
+    // only what genuinely needs the device.
+    expect(parts).toEqual(
+      expect.arrayContaining(['call state', 'payment screen', 'notifications']),
+    );
+    expect(parts).not.toContain('risk engine');
   });
 
   it('reports the loaded classifier and engine versions, not defaults', async () => {
@@ -184,8 +195,10 @@ describe('service wiring', () => {
 
     expect(diagnostics.classifier.modelVersion).toBe('stub-lexicon-v0');
     expect(diagnostics.classifier.backend).toBe('HEURISTIC');
-    expect(diagnostics.asr.available).toBe(false);
-    expect(diagnostics.asr.backend).toBe('UNAVAILABLE');
-    expect(diagnostics.riskEngine.weightsVersion).toBe('weights-v1-spec20');
+    // ASR is reachable even without the native module: transcription is a
+    // call to the backend proxy, not an on-device capability. Reporting it as
+    // unavailable here would understate what a stub build can actually do.
+    expect(diagnostics.asr.available).toBe(true);
+    expect(diagnostics.riskEngine.weightsVersion).toBe('ruko-weights-v1');
   });
 });
