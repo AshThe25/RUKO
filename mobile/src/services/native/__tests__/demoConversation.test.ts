@@ -17,7 +17,7 @@ const evidence = (over = {}) => ({
   ...over,
 });
 
-function fakeMic() {
+function fakeMic(): any {
   let running = false;
   return {
     source: 'ON_DEVICE_MODEL',
@@ -35,7 +35,7 @@ function fakeMic() {
   };
 }
 
-function busWith(lines) {
+function busWith(lines: any): any {
   const listeners = [];
   return {
     getScenario: () => (lines ? {lines} : null),
