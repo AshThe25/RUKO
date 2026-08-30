@@ -363,7 +363,17 @@ export function createNativeNotificationProvider(): NotificationContextProvider 
     toNotificationEvidence(null),
     () => safeNative(() => native?.getNotificationContext()),
     toNotificationEvidence,
-    [NATIVE_EVENTS.protectionState],
+    // Re-read when a payment appears, not only when protection is toggled.
+    //
+    // Notifications arrive continuously while protection state changes almost
+    // never, so this provider held the empty reading it took at startup for
+    // the rest of the session. The listener was doing its job -- four scam
+    // messages kept, suspicion 0.55 -- and the native bridge returned them
+    // correctly; the investigation simply asked a cache that had never been
+    // refreshed and was told "no recent payment messages".
+    //
+    // A payment appearing is exactly the moment that answer matters.
+    [NATIVE_EVENTS.protectionState, NATIVE_EVENTS.paymentDetected],
   );
 }
 
