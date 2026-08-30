@@ -47,7 +47,11 @@ export async function signUpWithEmail(email: string, password: string): Promise<
 }
 
 export async function signOut(): Promise<void> {
-  await supabase.auth.signOut();
+  // `scope: 'global'` revokes the refresh token server-side, not just the copy
+  // in this app's storage. A local-only sign-out leaves a token that can still
+  // be refreshed, which is how a handed-over phone kept letting the previous
+  // person back in without ever asking for a password.
+  await supabase.auth.signOut({scope: 'global'});
 }
 
 /** Fires on sign-in, sign-out and token refresh. Returns an unsubscribe. */
@@ -90,7 +94,19 @@ export async function upsertProfile(user: AuthUser, isMinor: boolean): Promise<v
 export async function signInWithGoogle(): Promise<{error: string | null}> {
   const {data, error} = await supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: {redirectTo: REDIRECT_URL, skipBrowserRedirect: true},
+    options: {
+      redirectTo: REDIRECT_URL,
+      skipBrowserRedirect: true,
+      // Always show Google's account chooser.
+      //
+      // Without this Google silently reuses whatever account the system
+      // browser last signed in with, so on a shared or handed-over phone the
+      // sign-in button appears to work and lands you in someone else's
+      // account. That is precisely the wrong failure for an app whose whole
+      // job is a second person watching over the first: a guardian who cannot
+      // sign in as themselves cannot be a guardian.
+      queryParams: {prompt: 'select_account'},
+    },
   });
   if (error) return {error: error.message};
   if (!data?.url) return {error: 'no authorisation url returned'};

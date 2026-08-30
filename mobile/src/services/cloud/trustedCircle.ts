@@ -77,8 +77,18 @@ export async function raiseAlert(input: {
   reasons: string[];
   amountMinor?: number | null;
   payeeLabel?: string | null;
+  /**
+   * The payment crossed the spend limit and cannot proceed without a decision.
+   *
+   * This bypasses the score threshold on purpose. A limit breach is not a
+   * suspicion -- it is a rule the guardian set -- and it is almost always a
+   * low score, because a child topping up a game says nothing manipulative.
+   * Suppressing it for scoring too low would silence the exact alert the
+   * guardian asked to receive.
+   */
+  requiresApproval?: boolean;
 }): Promise<{error: string | null}> {
-  if (input.score < NOTIFY_AT) {
+  if (!input.requiresApproval && input.score < NOTIFY_AT) {
     // Below the line Ruko stays quiet. Telling a parent about every ₹200
     // payment is how a family turns the alerts off before the day one matters.
     return {error: null};
@@ -91,6 +101,7 @@ export async function raiseAlert(input: {
     reasons: input.reasons,
     amount_minor: input.amountMinor ?? null,
     payee_label: input.payeeLabel ?? null,
+    requires_approval: input.requiresApproval === true,
   });
   return {error: error?.message ?? null};
 }

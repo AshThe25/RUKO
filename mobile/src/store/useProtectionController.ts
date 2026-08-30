@@ -21,6 +21,8 @@ import {prepareScenario} from '@/services/stubs/prepareScenario';
 import type {ScenarioId} from '@/services/stubs/scenarios';
 import {motion} from '@/theme';
 import {formatMinor} from '@/utils/format';
+import {currentUser} from '@/services/cloud/auth';
+import {raiseAlert} from '@/services/cloud/trustedCircle';
 import {DEFAULT_APPROVAL_THRESHOLD_MINOR as SPEND_APPROVAL_THRESHOLD_MINOR} from '@/risk/policy';
 import {useProtectionStore, type InterventionOutcome} from './protectionStore';
 
@@ -275,6 +277,28 @@ export function useProtectionController() {
        */
       if (payment.amountMinor >= SPEND_APPROVAL_THRESHOLD_MINOR) {
         store.getState().setMachineState('INTERVENTION');
+
+        // Tell the guardian. Escalation used to live only inside the
+        // investigation's completion callback, which never ran for a limit
+        // breach -- the payment tool had already lost the screen, so the
+        // policy saw nothing pending and never asked for a guardian. The
+        // overlay said "they have been notified" while no alert was written.
+        void currentUser().then(user => {
+          if (!user) return;
+          void raiseAlert({
+            subjectId: user.id,
+            kind: 'payment',
+            band: 'MEDIUM',
+            score: 0,
+            reasons: [
+              `${formatMinor(payment.amountMinor)} is at or above the ` +
+                `${formatMinor(SPEND_APPROVAL_THRESHOLD_MINOR)} limit you set.`,
+            ],
+            amountMinor: payment.amountMinor,
+            payeeLabel: payment.payeeDisplayName || null,
+            requiresApproval: true,
+          });
+        });
         void showNativeIntervention({
           headline: 'This needs approval first.',
           reason:
