@@ -1,65 +1,51 @@
 import React, {useEffect, useRef} from 'react';
 import {Animated, Easing, StyleSheet, View, ViewStyle} from 'react-native';
-import {colors, motion} from '@/theme';
+import {colors} from '@/theme';
 import {useReducedMotion} from './useReducedMotion';
 
 /**
- * The ambient bloom from the landing page, rebuilt for the phone.
+ * The ambient bloom, as a lotus.
  *
  * The site runs warm amber into calm indigo because that is the product's arc:
- * alarm resolving into calm. Bringing it into the app means someone who
- * installs from the site recognises what they installed.
+ * alarm resolving into calm. Concentric discs carried the colour but said
+ * nothing — a lotus is the right form for a product about protection in India,
+ * and it reads as care rather than as a scanner or a radar sweep.
  *
- * Built from stacked translucent circles rather than a gradient library. The
- * project has no SVG or gradient dependency and adding one to draw a decorative
- * shape is a poor trade — twenty overlapping views composite on the GPU and
- * cost nothing. Alpha accumulates toward the centre, which is what makes the
- * falloff read as a soft radial glow rather than a flat disc.
+ * Two rings of petals, the outer offset by half a step so the gaps of one sit
+ * behind the mass of the other. Each petal is a single View: a rounded corner
+ * on opposing sides makes a leaf, and rotating it about a translated origin
+ * arranges the ring. That keeps the whole thing free of any SVG or gradient
+ * dependency — adding a native module to draw a decorative shape is a poor
+ * trade, and twenty translucent views composite on the GPU for nothing.
+ *
+ * Alpha accumulates where petals overlap, which is what gives the soft falloff
+ * toward the centre without a real gradient.
  */
 interface BloomProps {
-  /** Diameter of the widest ring. */
   size?: number;
   /** Warm first, cool second — the order the arc runs in. */
   tint?: 'warm' | 'cool' | 'duo';
-  /** Slow drift. Disabled automatically under reduce-motion. */
   animated?: boolean;
   style?: ViewStyle;
 }
 
-const RINGS = 9;
+const OUTER_PETALS = 12;
+const INNER_PETALS = 10;
 
-export function Bloom({size = 300, tint = 'duo', animated = true, style}: BloomProps) {
+export function Bloom({size = 260, tint = 'duo', animated = true, style}: BloomProps) {
   const reduceMotion = useReducedMotion();
-  const drift = useRef(new Animated.Value(0)).current;
-  // Breathing is a second, slower cycle than the drift. One value doing both
-  // ties the swell to the sideways travel, and the pair moving in lockstep
-  // reads as a single mechanical loop rather than something alive.
   const breath = useRef(new Animated.Value(0)).current;
+  const spin = useRef(new Animated.Value(0)).current;
   const shouldAnimate = animated && !reduceMotion;
 
   useEffect(() => {
     if (!shouldAnimate) {
-      drift.setValue(0);
+      breath.setValue(0.5);
+      spin.setValue(0);
       return;
     }
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(drift, {
-          toValue: 1,
-          duration: motion.slow * 26,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(drift, {
-          toValue: 0,
-          duration: motion.slow * 26,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    // Roughly the cadence of calm breathing. Slow enough that it is felt
-    // rather than watched -- a fast pulse on a security screen reads as alarm.
+    // Roughly the cadence of calm breathing. Slow enough to be felt rather than
+    // watched: a fast pulse on a security screen reads as alarm.
     const breathing = Animated.loop(
       Animated.sequence([
         Animated.timing(breath, {
@@ -76,21 +62,32 @@ export function Bloom({size = 300, tint = 'duo', animated = true, style}: BloomP
         }),
       ]),
     );
-    loop.start();
+    // A very slow turn, under a degree a second. It should never be caught
+    // moving; it should only look different if you come back to it.
+    const turning = Animated.loop(
+      Animated.timing(spin, {
+        toValue: 1,
+        duration: 48000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    );
     breathing.start();
+    turning.start();
     return () => {
-      loop.stop();
       breathing.stop();
+      turning.stop();
     };
-  }, [drift, breath, shouldAnimate]);
+  }, [breath, spin, shouldAnimate]);
 
-  const warmShift = drift.interpolate({inputRange: [0, 1], outputRange: [0, size * 0.05]});
-  const coolShift = drift.interpolate({inputRange: [0, 1], outputRange: [0, -size * 0.05]});
-  // The two layers breathe slightly out of phase, so the edge softens and
-  // firms instead of the whole shape scaling as one disc.
-  const warmBreath = breath.interpolate({inputRange: [0, 1], outputRange: [0.82, 1.18]});
-  const coolBreath = breath.interpolate({inputRange: [0, 1], outputRange: [1.16, 0.86]});
+  const outerScale = breath.interpolate({inputRange: [0, 1], outputRange: [0.86, 1.14]});
+  const innerScale = breath.interpolate({inputRange: [0, 1], outputRange: [1.12, 0.9]});
   const glow = breath.interpolate({inputRange: [0, 1], outputRange: [0.62, 1]});
+  const turn = spin.interpolate({inputRange: [0, 1], outputRange: ['0deg', '360deg']});
+  const counterTurn = spin.interpolate({inputRange: [0, 1], outputRange: ['0deg', '-360deg']});
+
+  const warm = tint !== 'cool';
+  const cool = tint !== 'warm';
 
   return (
     <View
@@ -98,65 +95,106 @@ export function Bloom({size = 300, tint = 'duo', animated = true, style}: BloomP
       importantForAccessibility="no-hide-descendants"
       accessibilityElementsHidden
       style={[styles.wrap, {width: size, height: size}, style]}>
-      {tint !== 'cool' ? (
+      {/* Outer ring: the wider, warmer skirt of the flower. */}
+      {warm ? (
         <Animated.View
           style={[
             styles.layer,
-            {
-              opacity: glow,
-              transform: [
-                {translateX: warmShift},
-                {translateY: warmShift},
-                {scale: warmBreath},
-              ],
-            },
+            {opacity: glow, transform: [{rotate: turn}, {scale: outerScale}]},
           ]}>
-          <Rings color={colors.high} size={size * 0.86} />
+          <PetalRing
+            count={OUTER_PETALS}
+            size={size}
+            length={size * 0.44}
+            width={size * 0.34}
+            color={colors.high}
+            offset={0}
+          />
         </Animated.View>
       ) : null}
-      {tint !== 'warm' ? (
+
+      {/* Inner ring: cooler, half-step offset, breathing against the outer. */}
+      {cool ? (
         <Animated.View
           style={[
             styles.layer,
-            {
-              opacity: glow,
-              transform: [
-                {translateX: coolShift},
-                {translateY: coolShift},
-                {scale: coolBreath},
-              ],
-            },
+            {opacity: glow, transform: [{rotate: counterTurn}, {scale: innerScale}]},
           ]}>
-          <Rings color={colors.accent} size={size} />
+          <PetalRing
+            count={INNER_PETALS}
+            size={size}
+            length={size * 0.3}
+            width={size * 0.26}
+            color={colors.accent}
+            offset={180 / INNER_PETALS}
+          />
         </Animated.View>
       ) : null}
+
+      {/* The centre, built from stacked translucent discs. A single solid one
+          acquired a hard edge and read as a button rather than as the place the
+          glow is brightest. */}
+      <Animated.View style={[styles.layer, {opacity: glow, transform: [{scale: innerScale}]}]}>
+        {[0.34, 0.26, 0.18, 0.11].map(f => (
+          <View
+            key={f}
+            style={[
+              styles.seed,
+              {width: size * f, height: size * f, borderRadius: (size * f) / 2},
+            ]}
+          />
+        ))}
+      </Animated.View>
     </View>
   );
 }
 
-/** One colour's radial falloff: concentric discs of equal, low alpha. */
-function Rings({color, size}: {color: string; size: number}) {
+/**
+ * One ring of petals. Each is rotated about the centre and pushed outward, so
+ * the ring is described by rotation alone rather than by trigonometry per item.
+ */
+function PetalRing({
+  count,
+  size,
+  length,
+  width,
+  color,
+  offset,
+}: {
+  count: number;
+  size: number;
+  length: number;
+  width: number;
+  color: string;
+  offset: number;
+}) {
   return (
     <View style={styles.layer}>
-      {Array.from({length: RINGS}, (_, i) => {
-        // Squared spacing puts more rings near the centre, where a real radial
-        // gradient is brightest. Linear spacing reads as a flat disc.
-        const t = (RINGS - i) / RINGS;
-        const d = size * t * t;
+      {Array.from({length: count}, (_, i) => {
+        const angle = offset + (360 / count) * i;
         return (
           <View
             key={i}
             style={[
-              styles.ring,
+              styles.petal,
               {
-                width: d,
-                height: d,
-                borderRadius: d / 2,
+                width,
+                height: length,
                 backgroundColor: color,
-                // Tuned for the light ground: on #FCFCFD the accumulated tint
-                // has to be stronger than it would be over near-black before
-                // it reads as a glow rather than a smudge.
-                opacity: 0.075,
+                // Rounded on opposing corners: a leaf, not a lozenge.
+                borderTopLeftRadius: width,
+                borderTopRightRadius: width,
+                borderBottomLeftRadius: width * 0.28,
+                borderBottomRightRadius: width * 0.28,
+                transform: [
+                  {rotate: `${angle}deg`},
+                  // Push along the petal's own axis so it radiates from centre.
+                  {translateY: -length * 0.42},
+                ],
+                marginLeft: -width / 2,
+                marginTop: -length / 2,
+                left: size / 2,
+                top: size / 2,
               },
             ]}
           />
@@ -168,10 +206,9 @@ function Rings({color, size}: {color: string; size: number}) {
 
 const styles = StyleSheet.create({
   wrap: {alignItems: 'center', justifyContent: 'center'},
-  layer: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ring: {position: 'absolute'},
+  layer: {...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center'},
+  // Low enough that a single petal is barely visible: the shape should
+  // emerge from where they overlap, the way a real glow falls off.
+  petal: {position: 'absolute', opacity: 0.07},
+  seed: {position: 'absolute', backgroundColor: colors.accent, opacity: 0.06},
 });
