@@ -45,7 +45,7 @@
       "ftc_csv_sha256": "8e253a4a652abfa92ac3766feff8da2bef16f45ab3f0f434f212a7aafc3effe5",
       "ncsu_sms_csv_sha256": "d125c394af792faeb2b71b3f7100cad3b4cece02aff78cb4ec1fb9e7db90f230",
       "imc_csv_sha256": "1bbd1e9e82c3ea023112207b80da268a5c4a07d2353c2b0898360ab037fa9a64",
-      "callcenter_files": 1217,
+      "callcenter_files": 0,
       "uci_sms_sha256": "7d039a24a6083ed9ef0f806ebad56bbb976e3aeb8de05669173bfdc4996c239d"
     },
     "split_policy": "70/15/15 deterministic source-call/message group split before capping; exact conflicting labels excluded; exact window duplicates removed from later splits.",
@@ -58,49 +58,46 @@
     "preprocessing": "Whitespace normalisation and removal of source PII-redaction placeholders; no generated or translated text.",
     "split_summary": {
       "train": {
-        "rows": 9625,
+        "rows": 7425,
         "labels": {
-          "0": 4400,
+          "0": 2200,
           "1": 5225
         },
         "sources": {
           "uci_sms_ham": 2200,
           "imc25_non_india_smishing": 2200,
-          "callcenteren": 2200,
           "ncsu_sms_phishing": 2200,
           "ftc_robocall": 825
         },
-        "unique_groups": 8024
+        "unique_groups": 7150
       },
       "val": {
-        "rows": 1994,
+        "rows": 1544,
         "labels": {
           "1": 1094,
-          "0": 900
+          "0": 450
         },
         "sources": {
           "imc25_non_india_smishing": 450,
           "ncsu_sms_phishing": 450,
-          "callcenteren": 450,
           "uci_sms_ham": 450,
           "ftc_robocall": 194
         },
-        "unique_groups": 1651
+        "unique_groups": 1475
       },
       "test": {
-        "rows": 1951,
+        "rows": 1501,
         "labels": {
-          "0": 886,
-          "1": 1065
+          "1": 1065,
+          "0": 436
         },
         "sources": {
-          "callcenteren": 450,
           "imc25_non_india_smishing": 450,
           "ftc_robocall": 165,
           "uci_sms_ham": 436,
           "ncsu_sms_phishing": 450
         },
-        "unique_groups": 1614
+        "unique_groups": 1462
       }
     },
     "dropped_conflicting_text_hashes": 0,
@@ -113,59 +110,85 @@
     ]
   },
   "training": {
-    "epochs": 2,
-    "seconds": 431.2,
-    "initial_checkpoint": "ml/models/ruko-real-binary-v1/pytorch_model.pt",
+    "epochs": 4,
+    "seconds": 129.5,
+    "initial_checkpoint": null,
     "history": [
       {
         "epoch": 1,
-        "loss": 0.107,
-        "precision": 0.9864,
-        "recall": 0.9927,
-        "f1": 0.9895,
-        "accuracy": 0.9885,
-        "threshold": 0.39,
-        "tp": 1086,
-        "fp": 15,
-        "fn": 8,
-        "tn": 885
+        "loss": 0.2891,
+        "precision": 0.9917,
+        "recall": 0.9863,
+        "f1": 0.989,
+        "accuracy": 0.9845,
+        "threshold": 0.55,
+        "tp": 1079,
+        "fp": 9,
+        "fn": 15,
+        "tn": 441
       },
       {
         "epoch": 2,
-        "loss": 0.0422,
+        "loss": 0.045,
         "precision": 0.9909,
         "recall": 0.9927,
         "f1": 0.9918,
-        "accuracy": 0.991,
-        "threshold": 0.47,
+        "accuracy": 0.9883,
+        "threshold": 0.35,
         "tp": 1086,
         "fp": 10,
         "fn": 8,
-        "tn": 890
+        "tn": 440
+      },
+      {
+        "epoch": 3,
+        "loss": 0.0353,
+        "precision": 0.9963,
+        "recall": 0.9909,
+        "f1": 0.9936,
+        "accuracy": 0.9909,
+        "threshold": 0.65,
+        "tp": 1084,
+        "fp": 4,
+        "fn": 10,
+        "tn": 446
+      },
+      {
+        "epoch": 4,
+        "loss": 0.0305,
+        "precision": 0.9954,
+        "recall": 0.9927,
+        "f1": 0.9941,
+        "accuracy": 0.9916,
+        "threshold": 0.46,
+        "tp": 1086,
+        "fp": 5,
+        "fn": 8,
+        "tn": 445
       }
     ]
   },
   "validation": {
-    "precision": 0.9909,
+    "precision": 0.9954,
     "recall": 0.9927,
-    "f1": 0.9918,
-    "accuracy": 0.991,
-    "threshold": 0.47,
+    "f1": 0.9941,
+    "accuracy": 0.9916,
+    "threshold": 0.46,
     "tp": 1086,
-    "fp": 10,
+    "fp": 5,
     "fn": 8,
-    "tn": 890
+    "tn": 445
   },
   "test": {
-    "precision": 0.9905,
-    "recall": 0.9812,
-    "f1": 0.9858,
-    "accuracy": 0.9846,
-    "threshold": 0.47,
-    "tp": 1045,
-    "fp": 10,
-    "fn": 20,
-    "tn": 876
+    "precision": 0.9953,
+    "recall": 0.9887,
+    "f1": 0.992,
+    "accuracy": 0.9887,
+    "threshold": 0.46,
+    "tp": 1053,
+    "fp": 5,
+    "fn": 12,
+    "tn": 431
   },
   "honesty": [
     "All fine-tuning examples are human-origin transcripts; no synthetic/LLM-generated rows are included.",
