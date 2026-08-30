@@ -196,10 +196,12 @@ export async function inviteGuardian(
 
   let {error} = await supabase.from('trusted_links').insert(row);
 
-  // 42703 is "column does not exist": a database that has not had the
-  // subject_email migration applied yet. Fall back rather than making invites
-  // fail on a deployment that is one migration behind.
-  if (error?.code === '42703') {
+  // A database that has not had the subject_email migration applied yet.
+  // Postgres reports 42703 ("column does not exist"), but PostgREST rejects it
+  // earlier with PGRST204 off its own schema cache and never reaches Postgres —
+  // so checking only 42703 left real invites failing on exactly the deployment
+  // this fallback exists for.
+  if (error?.code === '42703' || error?.code === 'PGRST204') {
     const {subject_email: _omitted, ...withoutEmail} = row;
     ({error} = await supabase.from('trusted_links').insert(withoutEmail));
   }

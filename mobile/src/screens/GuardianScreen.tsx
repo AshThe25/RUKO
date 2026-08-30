@@ -203,8 +203,20 @@ const styles = StyleSheet.create({
  * object. Rendering the object directly produced "[object Object]" on the
  * guardian's screen — the one place the evidence has to be readable.
  */
+/**
+ * Spend triggers reach the guardian as machine codes, because that is what the
+ * alerts column stores. A parent reading SINGLE_LARGE_PAYMENT at the moment
+ * they are deciding about their child's money is being handed the database's
+ * vocabulary instead of an explanation.
+ */
+const SPEND_TRIGGER_COPY: Record<string, string> = {
+  SINGLE_LARGE_PAYMENT: 'One payment above the limit you set',
+  CUMULATIVE_THRESHOLD: 'Several payments adding up past the limit you set',
+  RAPID_REPEAT_PAYMENTS: 'Unusually many payments in a short burst',
+};
+
 function reasonLabel(reason: unknown): string {
-  if (typeof reason === 'string') return reason;
+  if (typeof reason === 'string') return SPEND_TRIGGER_COPY[reason] ?? reason;
   if (reason && typeof reason === 'object') {
     const r = reason as {label?: unknown; code?: unknown};
     if (typeof r.label === 'string') return r.label;
