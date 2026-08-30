@@ -235,3 +235,20 @@ export async function listLinks(): Promise<TrustedLink[]> {
 export function inviterLabel(link: TrustedLink): string | null {
   return link.subject_name?.trim() || link.subject_email?.trim() || null;
 }
+
+/**
+ * Change the limit on a link. Only the guardian may: a child raising their own
+ * allowance would make the arrangement decorative, and row-level security
+ * refuses the write rather than trusting this function to be called correctly.
+ */
+export async function setSpendLimit(
+  linkId: string,
+  limitMinor: number,
+  windowMinutes = 180,
+): Promise<{error: string | null}> {
+  const {error} = await supabase
+    .from('trusted_links')
+    .update({spend_limit_minor: Math.round(limitMinor), window_minutes: windowMinutes})
+    .eq('id', linkId);
+  return {error: error?.message ?? null};
+}

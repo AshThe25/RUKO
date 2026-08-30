@@ -1,4 +1,8 @@
 <meta charset="utf-8">
+<!-- Without this every phone renders the page at 980px and zooms out, so the
+     media queries below never match and the layout is only ever the desktop
+     one, shrunk. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Ruko</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -387,6 +391,84 @@
   .rv{opacity:0;transform:translateY(22px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
   .rv.in{opacity:1;transform:none}
 
+
+
+  /* ---------- device screenshots ---------- */
+  .shots{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:44px;
+    align-items:start;
+  }
+  .shot{margin:0}
+  .shot img{
+    width:100%;height:auto;display:block;
+    border:1px solid var(--line);border-radius:20px;
+    background:var(--sunk);
+  }
+  .shot figcaption{
+    font-size:.84rem;line-height:1.5;color:var(--muted);margin-top:12px;
+  }
+  @media (max-width: 760px){
+    /* One at a time on a phone: three phone screenshots side by side on a
+       phone are unreadable at any size that fits. */
+    .shots{grid-template-columns:1fr;gap:32px}
+    .shot img{max-width:320px;margin-inline:auto}
+    .shot figcaption{text-align:center}
+  }
+
+  /* ---------- small screens ----------
+     The page was built at desktop width and only reflowed its grids. On a
+     phone the display type still set the page's minimum width, the phone mock
+     forced a horizontal scrollbar, and tap targets sat under the 44px the
+     platform guidelines ask for. */
+  @media (max-width: 760px) {
+    /* Long words at 6.4vw overflow a narrow screen: the headline cannot be
+       allowed to decide the page width. */
+    h1 { font-size: clamp(2.1rem, 9vw, 3.2rem); overflow-wrap: break-word; }
+    h2 { font-size: clamp(1.6rem, 6.4vw, 2.2rem); overflow-wrap: break-word; }
+    .lede { font-size: 1rem; }
+
+    .block { padding: clamp(40px, 12vw, 64px) 0; }
+    .hero { padding: clamp(32px, 10vw, 56px) 0 clamp(28px, 8vw, 40px); }
+
+    /* Every grid to one column. Two columns at 360px is not a layout. */
+    .cards, .score-grid, .stats, .foot { grid-template-columns: 1fr; }
+    .stats { gap: 12px; }
+
+    /* The mock is the widest fixed element on the page and was what pushed the
+       body sideways. */
+    .phone { width: min(240px, 68vw); }
+    .phone-wrap { margin-top: clamp(32px, 9vw, 48px); }
+
+    /* Full-width so a thumb cannot miss them, and tall enough to satisfy the
+       44px minimum touch target. */
+    .pill, .pill-lg { width: 100%; justify-content: center; min-height: 48px; }
+    .hero-cta { flex-direction: column; align-items: stretch; gap: 10px; }
+
+    .ledger .lrow { font-size: .9rem; }
+    .ltotal b { font-size: 2rem; }
+    .vu-cols { height: 96px; }
+    .modal { padding: 22px; }
+    .foot-end { flex-direction: column; align-items: flex-start; }
+  }
+
+  /* ---------- very small ---------- */
+  @media (max-width: 380px) {
+    .shell { padding-inline: 16px; }
+    .vu-labels span { font-size: 8px; }
+    .scen .quote { font-size: 1.02rem; }
+  }
+
+  /* ---------- large screens ----------
+     Beyond about 1400px the measure grows past comfortable reading length, so
+     the column stops rather than tracking the window. */
+  @media (min-width: 1400px) {
+    .inner { max-width: 1180px; }
+  }
+
+  /* Nothing on the page should ever be the reason the body scrolls sideways. */
+  html, body { max-width: 100%; overflow-x: hidden; }
+  img, svg, canvas { max-width: 100%; height: auto; }
+
   @media(prefers-reduced-motion:reduce){
     *{animation:none!important;transition:none!important}
     .rv{opacity:1;transform:none}
@@ -610,7 +692,7 @@
       <div class="limit rv"><span class="x">—</span><div><h3>It cannot record your phone call</h3><p>Android reserves call audio for privileged system apps. Ruko hears the room through the ordinary microphone: works on speaker, deaf at the ear, and says so.</p></div></div>
       <div class="limit rv"><span class="x">—</span><div><h3>It cannot cancel a payment inside GPay or PhonePe</h3><p>No public API lets one app block another's transaction. Ruko reads what's visible on screen and interrupts the decision, not the transfer. The real fix is OEM integration.</p></div></div>
       <div class="limit rv"><span class="x">—</span><div><h3>It doesn't understand every language yet</h3><p>English and romanised Hinglish today. Devanagari needs a tokeniser roughly five times larger — a real gap, not a rounding error.</p></div></div>
-      <div class="limit rv"><span class="x">—</span><div><h3>It will sometimes be wrong</h3><p>0.63 macro F1 on hand-written text it has never seen — useful, not solved. That is exactly why arithmetic makes the final call, and "continue anyway" is always one tap away.</p></div></div>
+      <div class="limit rv"><span class="x">—</span><div><h3>It will sometimes be wrong</h3><p>0.657 macro F1 on hand-written text it has never seen — useful, not solved. That is exactly why arithmetic makes the final call, and "continue anyway" is always one tap away.</p></div></div>
     </div>
   </div>
 </section>
@@ -623,10 +705,60 @@
       <h2>The numbers we'd rather not round up</h2>
     </div>
     <div class="stats">
-      <div class="stat rv"><b class="num">0.631</b><span class="k">Macro F1</span><small>Hand-authored text, never seen. We quote this over the flattering 0.837.</small></div>
-      <div class="stat rv"><b class="num">1.12<span style="font-size:1rem">ms</span></b><span class="k">Median inference</span><small>Host CPU, int8. On-device latency is shown live in the app.</small></div>
-      <div class="stat rv"><b class="num">1.87<span style="font-size:1rem">%</span></b><span class="k">Quantisation drift</span><small>Label decisions flipped after 4× compression, against a 3% ceiling.</small></div>
-      <div class="stat rv"><b class="num">275</b><span class="k">Tests passing</span><small>Across the risk engine, the app, and the relay.</small></div>
+      <div class="stat rv"><b class="num">0.657</b><span class="k">Macro F1</span><small>Six-tactic model, on hand-authored text it has never seen. We quote this over the flattering in-distribution number.</small></div>
+      <div class="stat rv"><b class="num">0.986</b><span class="k">Real-data F1</span><small>A separate binary fraud gate, trained only on 13,570 human-origin rows. No synthetic text at all.</small></div>
+      <div class="stat rv"><b class="num">NNAPI</b><span class="k">Runs on the phone</span><small>int8 model on the iQOO's neural accelerator. Verified on hardware, not a target.</small></div>
+      <div class="stat rv"><b class="num">0</b><span class="k">Cloud calls to detect</span><small>Detection never leaves the device. Transcription is opt-in and off by default.</small></div>
+    </div>
+  </div>
+</section>
+
+<!-- REAL SCREENS -->
+<section class="block shell">
+  <div class="inner">
+    <div class="block-head center rv">
+      <span class="eyebrow">Running on an iQOO 15</span>
+      <h2>Not a mockup</h2>
+      <p class="lede">These are screenshots off the device, not renders. The middle one is the app reporting on itself &mdash; which model is loaded, on which backend, and whether it needed the internet.</p>
+    </div>
+    <div class="shots">
+      <figure class="shot rv">
+        <img src="/shots/home.png" alt="Ruko home screen showing Protection on, and On-device NNAPI" loading="lazy" width="900">
+        <figcaption>Quiet is the normal state. The meter shows the microphone is live.</figcaption>
+      </figure>
+      <figure class="shot rv">
+        <img src="/shots/engineering.png" alt="Engineering screen listing the risk engine, weights and policy versions" loading="lazy" width="900">
+        <figcaption>It states what is actually loaded, including when something is a fallback.</figcaption>
+      </figure>
+      <figure class="shot rv">
+        <img src="/shots/menu.png" alt="Ruko menu listing Trusted circle, Guardian, History and Permissions" loading="lazy" width="900">
+        <figcaption>Everything that is not the answer lives one tap away.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- WHAT ELSE IT WATCHES -->
+<section class="block shell">
+  <div class="inner">
+    <div class="block-head center rv">
+      <span class="eyebrow">Beyond one payment</span>
+      <h2>Small amounts add up</h2>
+      <p class="lede">A cap on a single payment never sees six &#8377;500 purchases in an afternoon. Ruko watches the window, not just the transaction.</p>
+    </div>
+    <div class="cards">
+      <div class="card rv">
+        <span class="k">Cumulative spend</span>
+        <p>Six &#8377;500 payments reach &#8377;3,000 without one of them being large. The trusted contact sets the line &mdash; &#8377;500 by default, and only they can change it &mdash; and is told when the total crosses it, not for every purchase, which is how families end up muting the alerts.</p>
+      </div>
+      <div class="card rv">
+        <span class="k">Approval, not just a notice</span>
+        <p>Past the limit, Ruko holds the screen until a trusted contact approves or declines in their own app. Holds lapse on their own after thirty minutes: a guardian who is asleep must not leave someone stranded.</p>
+      </div>
+      <div class="card rv">
+        <span class="k">Grooming and sextortion</span>
+        <p>The same six pressure signals appear when a child is being groomed &mdash; secrecy, threat, isolation. Ruko reads them with on-device rules, and safeguarding advice is deliberately excluded so warning a child never looks like abusing one.</p>
+      </div>
     </div>
   </div>
 </section>
