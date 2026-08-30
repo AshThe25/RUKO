@@ -42,6 +42,12 @@ ml/models/**/*.onnx
 # runtime. They are committed through git LFS (see .gitattributes), and
 # their sha256 is recorded in model_card.json.
 !ml/models/ruko-manip-v1/onnx/model_int8.onnx
+# Shipped weights must each be un-ignored by name. The broad rules above exist
+# so stray checkpoints stay out of git, but they also mean a NEW model dir is
+# swallowed silently: `git add` reports success and commits nothing, which is
+# how manip-v1 shipped on the lexicon for weeks. ml/verify_model_artifacts.py
+# turns that silence into a failure.
+!ml/models/ruko-real-multisource-v1/onnx/model_int8.onnx
 ml/models/**/*.pt
 ml/models/**/checkpoints/
 ml/runs/
