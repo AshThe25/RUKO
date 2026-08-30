@@ -14,7 +14,7 @@ import {
   type DetectedPayment,
 } from '@/services/native/nativeProviders';
 import {NATIVE_EVENTS, onNativeEvent} from '@/services/native/RukoNative';
-import {useCallback, useEffect, useRef} from 'react';
+import {useCallback, useEffect} from 'react';
 import type {GuardianAlert, InvestigationTrigger} from '@contracts';
 import {useDemo, useRuntime} from '@/services/ServicesContext';
 import {prepareScenario} from '@/services/stubs/prepareScenario';
@@ -26,29 +26,26 @@ import {useProtectionStore, type InterventionOutcome} from './protectionStore';
 /** The phone stops waiting on the guardian after this and decides alone. */
 const GUARDIAN_TIMEOUT_SEC = 45;
 
+/**
+ * There is one investigation at a time, and one reveal pacing it — so both
+ * live at module scope rather than in a hook instance.
+ *
+ * They were refs, and this hook is mounted more than once: the Router holds a
+ * copy so payment watching outlives any screen, and each screen holds another
+ * for its callbacks. Two copies meant two reveal timers, each counting its own
+ * way through one shared trace, and a screen that waits for `revealed >=
+ * trace.length` can never see two counters agree. The investigation finished;
+ * the feed sat on "Looking at this payment." forever.
+ */
+let revealTimer: ReturnType<typeof setInterval> | null = null;
+/** Guards against a second run starting on top of one already in progress. */
+let investigationInFlight = false;
+
 export function useProtectionController() {
   const runtime = useRuntime();
   const demo = useDemo();
-  const revealTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const store = useProtectionStore;
-
-  // Keep the guardian connection state in the store so every screen can show
-  // it without subscribing to the channel itself.
-  useEffect(() => {
-    const unsub = demo.guardian.state.subscribe(state => {
-      store.getState().setGuardianState(state);
-    });
-    return unsub;
-  }, [demo.guardian, store]);
-
-  useEffect(() => {
-    return () => {
-      if (revealTimer.current) {
-        clearInterval(revealTimer.current);
-      }
-    };
-  }, []);
 
   /**
    * Reveals the trace one line at a time. The work is already finished — this
@@ -58,18 +55,18 @@ export function useProtectionController() {
    */
   const revealTrace = useCallback(
     (total: number, onComplete: () => void) => {
-      if (revealTimer.current) {
-        clearInterval(revealTimer.current);
+      if (revealTimer) {
+        clearInterval(revealTimer);
       }
       let shown = 0;
       store.getState().setRevealed(0);
-      revealTimer.current = setInterval(() => {
+      revealTimer = setInterval(() => {
         shown += 1;
         store.getState().setRevealed(shown);
         if (shown >= total) {
-          if (revealTimer.current) {
-            clearInterval(revealTimer.current);
-            revealTimer.current = null;
+          if (revealTimer) {
+            clearInterval(revealTimer);
+            revealTimer = null;
           }
           onComplete();
         }
@@ -119,6 +116,14 @@ export function useProtectionController() {
 
   const runInvestigation = useCallback(
     async (trigger: InvestigationTrigger) => {
+      // One payment, one investigation. The same payment reaches this from two
+      // directions -- the demo's Pay button and the native payment-detected
+      // event it causes -- and two runs sharing the store's single trace
+      // interleave into a feed that never completes.
+      if (investigationInFlight) {
+        return;
+      }
+      investigationInFlight = true;
       const s = store.getState();
       s.resetInvestigation();
       s.setStatus('loading');
@@ -154,6 +159,7 @@ export function useProtectionController() {
         });
 
         revealTrace(result.trace.length, () => {
+          investigationInFlight = false;
           if (interrupts) {
             store.getState().setMachineState('INTERVENTION');
             store.getState().navigate('intervention');
@@ -206,6 +212,7 @@ export function useProtectionController() {
           }
         });
       } catch (error) {
+        investigationInFlight = false;
         const message = error instanceof Error ? error.message : String(error);
         store.getState().setStatus('error', message);
         store.getState().setMachineState('MONITORING');
@@ -242,41 +249,6 @@ export function useProtectionController() {
     },
     [demo.bus, runInvestigation, store],
   );
-
-  // Watching for payments starts with the app and stays on. It costs nothing
-  // but the accessibility service, and a protection feature the user has to
-  // remember to switch on is one that is off when it matters.
-  useEffect(() => {
-    void startPaymentWatch().then(reason => {
-      if (reason) {
-        store.getState().setWatchUnavailable(reason);
-      } else {
-        store.getState().setWatchUnavailable(null);
-      }
-    });
-  }, [store]);
-
-  useEffect(() => {
-    return onNativeEvent<DetectedPayment>(NATIVE_EVENTS.paymentDetected, payment => {
-      void onPaymentDetected(payment);
-    });
-  }, [onPaymentDetected]);
-
-  useEffect(() => {
-    return onNativeEvent<{stopped: boolean}>(NATIVE_EVENTS.interventionResolved, ({stopped}) => {
-      // The user has answered the warning either way, so the payment is no
-      // longer the one under investigation.
-      releaseDetectedPayment();
-      const result = store.getState().result;
-      if (!result) return;
-      // What the user did with the warning is the most valuable thing Ruko
-      // learns, and the only honest record of whether it helped.
-      store
-        .getState()
-        .updateOutcome(result.sessionId, stopped ? 'USER_STOPPED' : 'USER_CONTINUED');
-      store.getState().setMachineState(stopped ? 'RESOLVED' : 'MONITORING');
-    });
-  }, [store]);
 
   /** Loads a scenario's context and starts the protected listening session. */
   const startScenario = useCallback(
@@ -350,4 +322,73 @@ export function useProtectionController() {
   );
 
   return {runInvestigation, startScenario, confirmPayment, endSession, escalate, onPaymentDetected};
+}
+
+/**
+ * The device-wide half of the controller. Mounted exactly once, by the Router.
+ *
+ * These listeners must outlive any screen, but they must also exist only once.
+ * They used to sit in `useProtectionController`, which every screen calls for
+ * its callbacks -- so a single detected payment was delivered to as many
+ * handlers as there were mounted copies, and each one started an investigation
+ * of its own. The runs interleaved in the store's single trace and the feed
+ * stopped on "Looking at this payment." with two steps spinning at once, which
+ * a strictly sequential agent cannot otherwise produce.
+ */
+export function useProtectionOrchestrator() {
+  const controller = useProtectionController();
+  const {onPaymentDetected} = controller;
+  const demo = useDemo();
+  const store = useProtectionStore;
+
+  // Keep the guardian connection state in the store so every screen can show
+  // it without subscribing to the channel itself.
+  useEffect(() => {
+    const unsub = demo.guardian.state.subscribe(state => {
+      store.getState().setGuardianState(state);
+    });
+    return unsub;
+  }, [demo.guardian, store]);
+
+  useEffect(() => {
+    return () => {
+      if (revealTimer) {
+        clearInterval(revealTimer);
+        revealTimer = null;
+      }
+    };
+  }, []);
+
+  // Watching for payments starts with the app and stays on. It costs nothing
+  // but the accessibility service, and a protection feature the user has to
+  // remember to switch on is one that is off when it matters.
+  useEffect(() => {
+    void startPaymentWatch().then(reason => {
+      store.getState().setWatchUnavailable(reason ?? null);
+    });
+  }, [store]);
+
+  useEffect(() => {
+    return onNativeEvent<DetectedPayment>(NATIVE_EVENTS.paymentDetected, payment => {
+      void onPaymentDetected(payment);
+    });
+  }, [onPaymentDetected]);
+
+  useEffect(() => {
+    return onNativeEvent<{stopped: boolean}>(NATIVE_EVENTS.interventionResolved, ({stopped}) => {
+      // The user has answered the warning either way, so the payment is no
+      // longer the one under investigation.
+      releaseDetectedPayment();
+      const result = store.getState().result;
+      if (!result) return;
+      // What the user did with the warning is the most valuable thing Ruko
+      // learns, and the only honest record of whether it helped.
+      store
+        .getState()
+        .updateOutcome(result.sessionId, stopped ? 'USER_STOPPED' : 'USER_CONTINUED');
+      store.getState().setMachineState(stopped ? 'RESOLVED' : 'MONITORING');
+    });
+  }, [store]);
+
+  return controller;
 }
