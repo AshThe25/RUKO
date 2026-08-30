@@ -209,6 +209,27 @@ export const motion = {
   slow: 380,
   /** Cadence of the investigation feed, ms between tool results. */
   investigationStep: 620,
+
+  /**
+   * Springs, not durations, for anything a finger starts.
+   *
+   * A timing curve always takes the same time no matter how far it travels, so
+   * a small movement feels sluggish and a large one feels rushed. A spring is
+   * defined by how it decelerates, so both land naturally -- which is most of
+   * what makes a native-feeling interface feel that way.
+   *
+   * All three are critically damped or close to it: no overshoot on anything
+   * carrying information, because a number that bounces past its value and
+   * settles back reads as instability in a product about trust.
+   */
+  spring: {
+    /** Sheets, screen-level entrances. Travels far, settles without wobble. */
+    sheet: {damping: 30, stiffness: 220, mass: 0.9},
+    /** Cards, list rows, anything appearing in place. */
+    enter: {damping: 26, stiffness: 260, mass: 0.7},
+    /** Press feedback. Fast enough to feel attached to the finger. */
+    press: {damping: 20, stiffness: 420, mass: 0.5},
+  },
 } as const;
 
 export const layout = {

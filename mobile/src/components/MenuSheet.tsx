@@ -1,6 +1,7 @@
-import React from 'react';
-import {Modal, Pressable, ScrollView, StyleSheet, View} from 'react-native';
-import {colors, radius, space} from '@/theme';
+import React, {useEffect, useRef} from 'react';
+import {Animated, Modal, Pressable, ScrollView, StyleSheet, View} from 'react-native';
+import {colors, motion, radius, space} from '@/theme';
+import {useReducedMotion} from './useReducedMotion';
 import {Txt} from './Txt';
 
 export interface MenuItem {
@@ -28,16 +29,50 @@ export function MenuSheet({
   items: MenuItem[];
   onClose: () => void;
 }) {
+  const reduced = useReducedMotion();
+  const t = useRef(new Animated.Value(0)).current;
+
+  // Spring rather than Modal's built-in slide: the stock animation is a fixed
+  // duration, so the sheet arrives at the same speed however far it travels
+  // and lands with a stop. A spring decelerates into place, which is the
+  // difference people read as native.
+  useEffect(() => {
+    if (reduced) {
+      t.setValue(visible ? 1 : 0);
+      return;
+    }
+    Animated.spring(t, {
+      toValue: visible ? 1 : 0,
+      useNativeDriver: true,
+      ...motion.spring.sheet,
+    }).start();
+  }, [visible, reduced, t]);
+
   return (
     <Modal
       visible={visible}
       transparent
-      animationType="slide"
+      animationType="none"
       onRequestClose={onClose}
       statusBarTranslucent>
       {/* Tapping the dimmed area closes: the expected way out of a sheet. */}
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Close menu" />
-      <View style={styles.sheet}>
+      <Animated.View style={[styles.backdrop, {opacity: t}]}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close menu" />
+      </Animated.View>
+      <Animated.View
+        style={[
+          styles.sheet,
+          {
+            transform: [
+              {
+                translateY: t.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [420, 0],
+                }),
+              },
+            ],
+          },
+        ]}>
         <View style={styles.grabber} />
         <Txt variant="label" tone="tertiary" uppercase style={styles.heading}>
           Ruko
@@ -51,6 +86,7 @@ export function MenuSheet({
                 onClose();
                 item.onPress();
               }}
+              android_ripple={{color: colors.surfacePressed}}
               style={({pressed}) => [styles.row, pressed && styles.rowPressed]}>
               <View style={styles.rowText}>
                 <Txt variant="bodyStrong">{item.label}</Txt>
@@ -64,7 +100,7 @@ export function MenuSheet({
             </Pressable>
           ))}
         </ScrollView>
-      </View>
+      </Animated.View>
     </Modal>
   );
 }

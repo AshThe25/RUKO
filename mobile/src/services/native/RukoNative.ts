@@ -92,8 +92,15 @@ export interface NativePermissionState {
 export interface NativeSpeechSegment {
   durationMs: number;
   sampleCount: number;
-  /** Not sent today. Typed here so the adapter can use it the day it is. */
+  /** Set when the local ASR produces one. Absent today. */
   transcript?: string;
+  /**
+   * The utterance as base64 WAV, present only when the user has switched cloud
+   * transcription on. Absent by default: the microphone permission means Ruko
+   * may listen on the device, not that audio may leave it.
+   */
+  audioWavBase64?: string;
+  sampleRateHz?: number;
 }
 
 export interface NativeError {
@@ -103,6 +110,11 @@ export interface NativeError {
 }
 
 export interface RukoNativeSpec {
+  /**
+   * Allow a speech segment's audio to reach JavaScript. Off until called with
+   * true, so audio leaving the device stays the user's decision.
+   */
+  setShareAudioWithJs(enabled: boolean): Promise<boolean>;
   startProtection(): Promise<NativeProtectionState>;
   stopProtection(): Promise<NativeProtectionState>;
   getProtectionState(): Promise<NativeProtectionState>;

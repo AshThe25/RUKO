@@ -344,9 +344,16 @@ class RukoNativeModule(
                     Arguments.createMap().apply {
                         putInt("durationMs", durationMs)
                         putInt("sampleCount", pcm.size)
-                        // The PCM itself never crosses the bridge. It goes to
-                        // the local ASR in the native layer; JS gets the shape
-                        // of the utterance, not its contents.
+                        // The PCM crosses the bridge only when the user has
+                        // switched cloud transcription on. Off -- the default --
+                        // JS gets the shape of the utterance and never its
+                        // contents, because "nothing leaves the phone" is a
+                        // promise the product is built on rather than a setting
+                        // we hope nobody changes.
+                        if (shareAudioWithJs) {
+                            putString("audioWavBase64", wavBase64(pcm))
+                            putInt("sampleRateHz", SAMPLE_RATE_HZ)
+                        }
                     },
                 )
             }
@@ -413,7 +420,58 @@ class RukoNativeModule(
         return salt
     }
 
+    /**
+     * Whether a speech segment's audio may be handed to JavaScript.
+     *
+     * Off by default and settable only from JS, so the decision lives with the
+     * user's own toggle rather than being implied by any other permission. The
+     * microphone permission means Ruko may listen on the device; it does not
+     * mean audio may leave it.
+     */
+    @Volatile
+    private var shareAudioWithJs: Boolean = false
+
+    @ReactMethod
+    fun setShareAudioWithJs(enabled: Boolean, promise: Promise) {
+        shareAudioWithJs = enabled
+        promise.resolve(enabled)
+    }
+
+    /**
+     * Wrap 16-bit mono PCM in a WAV header. The transcription endpoint takes a
+     * file, not raw samples, and doing this here avoids shipping the header
+     * bytes through the bridge as a second payload.
+     */
+    private fun wavBase64(pcm: ShortArray): String {
+        val dataBytes = pcm.size * 2
+        val out = java.io.ByteArrayOutputStream(44 + dataBytes)
+        val header = java.nio.ByteBuffer.allocate(44).order(java.nio.ByteOrder.LITTLE_ENDIAN)
+        val rate = SAMPLE_RATE_HZ
+        header.put("RIFF".toByteArray())
+        header.putInt(36 + dataBytes)
+        header.put("WAVEfmt ".toByteArray())
+        header.putInt(16)            // PCM header size
+        header.putShort(1)           // PCM, uncompressed
+        header.putShort(1)           // mono
+        header.putInt(rate)
+        header.putInt(rate * 2)      // byte rate
+        header.putShort(2)           // block align
+        header.putShort(16)          // bits per sample
+        header.put("data".toByteArray())
+        header.putInt(dataBytes)
+        out.write(header.array())
+
+        val body = java.nio.ByteBuffer.allocate(dataBytes).order(java.nio.ByteOrder.LITTLE_ENDIAN)
+        pcm.forEach { body.putShort(it) }
+        out.write(body.array())
+
+        return android.util.Base64.encodeToString(out.toByteArray(), android.util.Base64.NO_WRAP)
+    }
+
     companion object {
+        /** Matches VoiceActivityDetector.Config, which is what the mic runs at. */
+        const val SAMPLE_RATE_HZ = 16000
+
         const val NAME = "RukoNative"
 
         const val EVENT_STATE = "ruko:onProtectionState"

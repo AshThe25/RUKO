@@ -16,9 +16,33 @@ const BARS = 34;
  * a repeating pattern. Driven by the native driver: it must never compete with
  * the classifier for the JS thread while a session is running.
  */
-export function AudioMeter({active}: {active: boolean}) {
+export function AudioMeter({
+  active,
+  /**
+   * 0..1 loudness of the last utterance. The meter reflects what was actually
+   * heard rather than looping regardless -- a meter that moves the same way in
+   * silence teaches people to ignore it.
+   */
+  level = 0.5,
+}: {
+  active: boolean;
+  level?: number;
+}) {
   const reduced = useReducedMotion();
   const phase = useRef(new Animated.Value(0)).current;
+  const amp = useRef(new Animated.Value(0.35)).current;
+
+  // Ease toward the new level instead of snapping: speech energy is spiky, and
+  // a meter that jumps on every frame reads as noise rather than a voice.
+  useEffect(() => {
+    Animated.spring(amp, {
+      toValue: 0.25 + Math.max(0, Math.min(1, level)) * 0.75,
+      useNativeDriver: true,
+      damping: 14,
+      stiffness: 90,
+      mass: 0.6,
+    }).start();
+  }, [level, amp]);
 
   useEffect(() => {
     if (!active || reduced) {
@@ -53,11 +77,14 @@ export function AudioMeter({active}: {active: boolean}) {
                 transform: [
                   {
                     scaleY: active && !reduced
-                      ? phase.interpolate({
-                          inputRange: [0, 0.5, 1],
-                          outputRange: [base, peak, base],
-                        })
-                      : base,
+                      ? Animated.multiply(
+                          phase.interpolate({
+                            inputRange: [0, 0.5, 1],
+                            outputRange: [base, peak, base],
+                          }),
+                          amp,
+                        )
+                      : base * 0.5,
                   },
                 ],
               },

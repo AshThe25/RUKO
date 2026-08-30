@@ -32,6 +32,23 @@ const EMPTY: TranscriptionResult = {transcript: '', languageCode: null, error: n
  * than throwing: a transcription failure must degrade the quality of a check,
  * never interrupt protection that is already running on the device.
  */
+/**
+ * Transcribe one base64 WAV window. Returns '' on any failure, so a caller can
+ * treat "could not hear it" and "heard nothing" the same way -- neither should
+ * interrupt a protection session.
+ */
+export async function transcribeBase64Wav(
+  wavBase64: string,
+  language: TranscribeLanguage = 'en-IN',
+): Promise<string> {
+  const res = await transcribeWindow(
+    {uri: `data:audio/wav;base64,${wavBase64}`, type: 'audio/wav', name: 'window.wav'},
+    language,
+    true,
+  );
+  return res.transcript;
+}
+
 export async function transcribeWindow(
   audio: Blob | {uri: string; type: string; name: string},
   language: TranscribeLanguage,

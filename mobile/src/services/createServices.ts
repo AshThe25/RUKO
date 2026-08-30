@@ -37,6 +37,7 @@ import {
 } from './stubs/deviceStubs';
 import {StubGuardianChannel} from './stubs/guardianStub';
 import {cloudConfigured} from './cloud/supabase';
+import {transcribeBase64Wav} from './cloud/transcription';
 import {SupabaseGuardianChannel} from './cloud/supabaseGuardian';
 import {
   ENGINE_VERSION,
@@ -130,7 +131,13 @@ export function createServices(options: CreateServicesOptions = {}): RukoRuntime
     ? createNativeNotificationProvider()
     : createNotificationProvider(bus);
   const conversation = native
-    ? createNativeConversationProvider(transcript => classifier.classify(transcript))
+    ? createNativeConversationProvider(
+        transcript => classifier.classify(transcript),
+        // Only reached when the user has switched cloud transcription on: the
+        // native side withholds the audio otherwise, so this is never called
+        // with anything to send.
+        cloudConfigured ? wav => transcribeBase64Wav(wav) : undefined,
+      )
     : createConversationProvider(bus);
 
   // The versions are carried on the object because diagnostics reads them from

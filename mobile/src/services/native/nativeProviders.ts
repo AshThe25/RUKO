@@ -294,6 +294,12 @@ export function createNativeNotificationProvider(): NotificationContextProvider 
  */
 export function createNativeConversationProvider(
   classify: (transcript: string) => Promise<ConversationEvidence>,
+  /**
+   * Turns one utterance into text. Supplied by the caller so this file stays
+   * free of network concerns and can be tested without one. Absent means the
+   * device has no way to transcribe, and segments are counted, not read.
+   */
+  transcribe?: (wavBase64: string) => Promise<string>,
 ): ConversationProvider {
   const native = getNativeModule();
   const emitter = new Emitter<ConversationEvidence>(noTranscript('idle'));
@@ -316,11 +322,23 @@ export function createNativeConversationProvider(
         NATIVE_EVENTS.speechSegment,
         async segment => {
           segmentsHeard += 1;
-          if (!segment?.transcript) {
+          // Prefer a local transcript. Otherwise transcribe the audio, which
+          // is only present when the user has switched that on.
+          let text = segment?.transcript ?? '';
+          if (!text && segment?.audioWavBase64 && transcribe) {
+            try {
+              text = await transcribe(segment.audioWavBase64);
+            } catch {
+              // A transcription failure degrades the quality of a check. It
+              // must never interrupt protection already running on the device.
+              text = '';
+            }
+          }
+          if (!text) {
             emitter.emit(noTranscript('listening', segmentsHeard));
             return;
           }
-          transcript.push(segment.transcript);
+          transcript.push(text);
           // Sliding window: the recent conversation, not the whole call.
           if (transcript.length > 24) {
             transcript = transcript.slice(-24);
