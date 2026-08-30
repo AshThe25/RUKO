@@ -6,6 +6,13 @@ import {colors, riskPalette, space} from '@/theme';
 import {useDemo} from '@/services/ServicesContext';
 import {useProtectionStore} from '@/store/protectionStore';
 import {formatMinor} from '@/utils/format';
+import {
+  acknowledgeAlert,
+  listAlertsIWatch,
+  subscribeToAlerts,
+  type Alert as CloudAlert,
+} from '@/services/cloud/trustedCircle';
+import {cloudConfigured} from '@/services/cloud/supabase';
 
 /**
  * Guardian link status, and — until the Office Kit is wired up — a stand-in
@@ -19,8 +26,41 @@ export function GuardianScreen() {
   const navigate = useProtectionStore(s => s.navigate);
   const guardianState = useProtectionStore(s => s.guardianState);
   const [alert, setAlert] = useState<GuardianAlert | null>(null);
+  // Alerts raised by someone this phone watches over. Before this the screen
+  // only ever read the local stub inbox, so a guardian signed in on their own
+  // phone sat on "Nothing waiting" for ever: the alert reached the database and
+  // the web console, and the one device the guardian actually carries never
+  // heard about it.
+  const [watched, setWatched] = useState<CloudAlert[]>([]);
 
   useEffect(() => demo.guardian.inbox.subscribe(setAlert), [demo.guardian]);
+
+  useEffect(() => {
+    if (!cloudConfigured) return;
+    let live = true;
+    void listAlertsIWatch().then(rows => {
+      if (live) setWatched(rows);
+    });
+    // RLS decides what arrives, so a new alert for someone we do not watch
+    // never reaches this callback at all.
+    const stop = subscribeToAlerts(row => {
+      void listAlertsIWatch().then(rows => {
+        if (live) setWatched(rows);
+      });
+    });
+    return () => {
+      live = false;
+      stop();
+    };
+  }, []);
+
+  const onAcknowledge = async (id: string) => {
+    // Optimistic: the row is gone from the list the moment it is acted on, and
+    // the refetch below corrects it if the write was refused.
+    setWatched(current => current.filter(a => a.id !== id));
+    await acknowledgeAlert(id);
+    void listAlertsIWatch().then(setWatched);
+  };
 
   const online = guardianState === 'ONLINE';
 
@@ -92,10 +132,45 @@ export function GuardianScreen() {
               />
             </View>
           </>
+        ) : watched.length > 0 ? (
+          <>
+            {watched.map(a => (
+              <View key={a.id} style={styles.watched}>
+                <Txt variant="heading">{formatMinor(a.amount_minor ?? 0)}</Txt>
+                <Txt variant="body" tone="secondary" style={styles.payee}>
+                  to {a.payee_label ?? 'an unnamed recipient'}
+                </Txt>
+                <Row
+                  label="Risk"
+                  value={`${a.score}/100 · ${a.band}`}
+                  valueColor={a.band === 'CRITICAL' ? colors.critical : colors.medium}
+                />
+                {(a.reasons ?? []).slice(0, 4).map((reason, i) => (
+                  <Row
+                    key={`${a.id}-${i}`}
+                    label={typeof reason === 'string' ? reason : String(reason)}
+                    value=""
+                  />
+                ))}
+                <Txt variant="caption" tone="tertiary" style={styles.payee}>
+                  {a.acknowledged_at ? 'Acknowledged' : 'Waiting for you'}
+                </Txt>
+                {a.acknowledged_at ? null : (
+                  <View style={styles.actions}>
+                    <Button
+                      label="I've seen this"
+                      onPress={() => void onAcknowledge(a.id)}
+                      testID={`guardian-ack-${a.id}`}
+                    />
+                  </View>
+                )}
+              </View>
+            ))}
+          </>
         ) : (
           <EmptyState
             title="Nothing waiting"
-            message="Critical payments appear here for review. This stands in for the Office Kit until it is connected."
+            message="Critical payments from someone you watch over appear here, the moment they happen."
           />
         )}
       </Card>
@@ -118,6 +193,7 @@ const styles = StyleSheet.create({
   connect: {minHeight: 40, paddingVertical: space.sm},
   note: {marginTop: space.md},
   payee: {marginTop: space.xs, marginBottom: space.md},
+  watched: {marginBottom: space.lg},
   actions: {marginTop: space.lg},
   allow: {marginTop: space.sm},
 });

@@ -124,6 +124,38 @@ export function subscribeToAlerts(onAlert: (alert: Alert) => void) {
 }
 
 /**
+ * Alerts raised by someone this phone watches over, newest first.
+ *
+ * RLS returns every alert this user may read, which includes their own. A
+ * guardian's inbox is the ones that are NOT theirs, so the filter is here
+ * rather than in the query: the policy decides what may be seen, and this
+ * decides what is worth showing.
+ */
+export async function listAlertsIWatch(limit = 50): Promise<Alert[]> {
+  const {data: session} = await supabase.auth.getSession();
+  const me = session.session?.user.id;
+  if (!me) return [];
+  const all = await listIncomingAlerts(limit);
+  return all.filter(a => a.subject_id !== me);
+}
+
+/**
+ * Tell the database a guardian has seen this. The subject's phone is waiting on
+ * exactly this UPDATE — it is what turns "reviewing" into a decision before the
+ * 45-second timeout, and what stops a second guardian answering the same alert.
+ */
+export async function acknowledgeAlert(alertId: string): Promise<{error: string | null}> {
+  const {data: session} = await supabase.auth.getSession();
+  const me = session.session?.user.id;
+  if (!me) return {error: 'not signed in'};
+  const {error} = await supabase
+    .from('alerts')
+    .update({acknowledged_at: new Date().toISOString(), acknowledged_by: me})
+    .eq('id', alertId);
+  return {error: error?.message ?? null};
+}
+
+/**
  * Invite a guardian by email. Nobody knows another person's user id, so the
  * invite names an address and is claimed by whoever signs in with it. Until
  * then guardian_id is null and the link grants nothing -- alerts require an
