@@ -114,7 +114,7 @@ export function HomeScreen() {
         </>
       )}
 
-      <AudioMeter active={protectionEnabled && machineState !== 'IDLE'} />
+      <AudioMeter active={protectionEnabled} />
 
       <View style={styles.statRow}>
         <Stat label="Checks today" value={String(checks)} />
@@ -285,9 +285,17 @@ const styles = StyleSheet.create({
   quiet: {alignItems: 'center', marginTop: space.xl, marginBottom: space.sm},
   quietTitle: {marginTop: space.lg},
   quietSub: {marginTop: space.md},
-  statRow: {flexDirection: 'row', marginTop: space.xl, marginBottom: space.lg},
-  stat: {flex: 1},
-  statLabel: {marginTop: 4},
+  statRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: space.xl,
+    marginBottom: space.xl,
+  },
+  // Centred, not left-aligned: the headline above is centred, and three
+  // left-aligned columns under it read as ragged because the values have
+  // different widths -- "0" against "Offline".
+  stat: {flex: 1, alignItems: 'center'},
+  statLabel: {marginTop: 6, textAlign: 'center'},
   card: {marginTop: space.md},
   kv: {flexDirection: 'row', justifyContent: 'space-between', paddingVertical: space.sm},
   link: {marginTop: space.md},

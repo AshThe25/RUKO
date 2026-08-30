@@ -31,6 +31,10 @@ const RINGS = 9;
 export function Bloom({size = 300, tint = 'duo', animated = true, style}: BloomProps) {
   const reduceMotion = useReducedMotion();
   const drift = useRef(new Animated.Value(0)).current;
+  // Breathing is a second, slower cycle than the drift. One value doing both
+  // ties the swell to the sideways travel, and the pair moving in lockstep
+  // reads as a single mechanical loop rather than something alive.
+  const breath = useRef(new Animated.Value(0)).current;
   const shouldAnimate = animated && !reduceMotion;
 
   useEffect(() => {
@@ -54,12 +58,39 @@ export function Bloom({size = 300, tint = 'duo', animated = true, style}: BloomP
         }),
       ]),
     );
+    // Roughly the cadence of calm breathing. Slow enough that it is felt
+    // rather than watched -- a fast pulse on a security screen reads as alarm.
+    const breathing = Animated.loop(
+      Animated.sequence([
+        Animated.timing(breath, {
+          toValue: 1,
+          duration: 3200,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(breath, {
+          toValue: 0,
+          duration: 3800,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
     loop.start();
-    return () => loop.stop();
-  }, [drift, shouldAnimate]);
+    breathing.start();
+    return () => {
+      loop.stop();
+      breathing.stop();
+    };
+  }, [drift, breath, shouldAnimate]);
 
   const warmShift = drift.interpolate({inputRange: [0, 1], outputRange: [0, size * 0.05]});
   const coolShift = drift.interpolate({inputRange: [0, 1], outputRange: [0, -size * 0.05]});
+  // The two layers breathe slightly out of phase, so the edge softens and
+  // firms instead of the whole shape scaling as one disc.
+  const warmBreath = breath.interpolate({inputRange: [0, 1], outputRange: [0.94, 1.06]});
+  const coolBreath = breath.interpolate({inputRange: [0, 1], outputRange: [1.05, 0.95]});
+  const glow = breath.interpolate({inputRange: [0, 1], outputRange: [0.82, 1]});
 
   return (
     <View
@@ -71,7 +102,14 @@ export function Bloom({size = 300, tint = 'duo', animated = true, style}: BloomP
         <Animated.View
           style={[
             styles.layer,
-            {transform: [{translateX: warmShift}, {translateY: warmShift}]},
+            {
+              opacity: glow,
+              transform: [
+                {translateX: warmShift},
+                {translateY: warmShift},
+                {scale: warmBreath},
+              ],
+            },
           ]}>
           <Rings color={colors.high} size={size * 0.86} />
         </Animated.View>
@@ -80,7 +118,14 @@ export function Bloom({size = 300, tint = 'duo', animated = true, style}: BloomP
         <Animated.View
           style={[
             styles.layer,
-            {transform: [{translateX: coolShift}, {translateY: coolShift}]},
+            {
+              opacity: glow,
+              transform: [
+                {translateX: coolShift},
+                {translateY: coolShift},
+                {scale: coolBreath},
+              ],
+            },
           ]}>
           <Rings color={colors.accent} size={size} />
         </Animated.View>

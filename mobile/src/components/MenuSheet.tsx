@@ -31,26 +31,34 @@ export function MenuSheet({
 }) {
   const reduced = useReducedMotion();
   const t = useRef(new Animated.Value(0)).current;
+  // Modal unmounts the moment `visible` goes false, which cuts the exit
+  // animation off before its first frame. Holding it mounted until the spring
+  // settles is what gives the sheet a way out as well as a way in.
+  const [mounted, setMounted] = React.useState(visible);
 
   // Spring rather than Modal's built-in slide: the stock animation is a fixed
   // duration, so the sheet arrives at the same speed however far it travels
   // and lands with a stop. A spring decelerates into place, which is the
   // difference people read as native.
   useEffect(() => {
+    if (visible) setMounted(true);
     if (reduced) {
       t.setValue(visible ? 1 : 0);
+      if (!visible) setMounted(false);
       return;
     }
     Animated.spring(t, {
       toValue: visible ? 1 : 0,
       useNativeDriver: true,
       ...motion.spring.sheet,
-    }).start();
+    }).start(({finished}) => {
+      if (finished && !visible) setMounted(false);
+    });
   }, [visible, reduced, t]);
 
   return (
     <Modal
-      visible={visible}
+      visible={mounted}
       transparent
       animationType="none"
       onRequestClose={onClose}
