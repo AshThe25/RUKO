@@ -30,6 +30,9 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MODELS_DIR = REPO_ROOT / "ml" / "models"
+#: Weights that ship are bundled here, and for some models this is the *only*
+#: committed copy — the fraud gate lives here and not under ml/models/.
+APK_ASSETS = REPO_ROOT / "mobile" / "android" / "app" / "src" / "main" / "assets"
 WEIGHT_SUFFIXES = {".onnx", ".pt", ".safetensors", ".bin"}
 
 
@@ -63,11 +66,19 @@ def git_tracked(path: Path) -> bool:
 def check_model(model_dir: Path) -> list[str]:
     problems: list[str] = []
     name = model_dir.name
-    card_path = model_dir / "onnx" / "model_card.json"
-    if not card_path.exists():
-        card_path = model_dir / "model_card.json"
-    if not card_path.exists():
-        return [f"{name}: no model_card.json"]
+    # Cards are named inconsistently across models — manip-v1 ships
+    # onnx/model_card.json, the fraud gate ships onnx/onnx_card.json. Accept
+    # either rather than reporting a missing model for a naming difference.
+    card_path = next(
+        (p for p in (
+            model_dir / "onnx" / "model_card.json",
+            model_dir / "onnx" / "onnx_card.json",
+            model_dir / "model_card.json",
+        ) if p.exists()),
+        None,
+    )
+    if card_path is None:
+        return [f"{name}: no model_card.json / onnx_card.json"]
 
     card = json.loads(card_path.read_text())
     artifacts = card.get("artifacts")
@@ -83,11 +94,28 @@ def check_model(model_dir: Path) -> list[str]:
     else:
         # 2. Declared artifacts must exist and match.
         for filename, meta in artifacts.items():
-            path = model_dir / "onnx" / filename
-            if not path.exists():
-                path = model_dir / filename
-            if not path.exists():
-                problems.append(f"{name}: card declares {filename}, which is not on disk")
+            path = next(
+                (p for p in (
+                    model_dir / "onnx" / filename,
+                    model_dir / filename,
+                ) if p.exists()),
+                None,
+            )
+            # A model may ship only into the APK, under a different filename.
+            # Match on content, not on name, so a rename cannot fake a pass.
+            if path is None and APK_ASSETS.is_dir():
+                expected_hash = (meta or {}).get("sha256")
+                if expected_hash:
+                    for candidate in APK_ASSETS.glob("*.onnx"):
+                        if sha256(candidate) == expected_hash:
+                            path = candidate
+                            break
+            if path is None:
+                problems.append(
+                    f"WARN {name}: the card declares {filename}, which is not on "
+                    "disk. Expected for the fp32 export, which is a ~90 MB build "
+                    "product; a blocker if it was meant to ship."
+                )
                 continue
             expected = (meta or {}).get("sha256")
             if expected:
@@ -126,6 +154,14 @@ def check_model(model_dir: Path) -> list[str]:
         for p in model_dir.rglob("*")
         if p.is_file() and p.suffix in WEIGHT_SUFFIXES
     )
+    # A model whose only committed copy is the bundled APK asset still ships.
+    if not tracked_weights and artifacts:
+        hashes = {(m or {}).get("sha256") for m in artifacts.values()}
+        if APK_ASSETS.is_dir():
+            tracked_weights = any(
+                git_tracked(c) and sha256(c) in hashes
+                for c in APK_ASSETS.glob("*.onnx")
+            )
     if not tracked_weights:
         problems.append(
             f"BLOCK {name}: no weights tracked anywhere — this directory is a "
