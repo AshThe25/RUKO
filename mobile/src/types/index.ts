@@ -3,6 +3,7 @@ export type RouteName =
   | 'onboarding'
   | 'signin'
   | 'circle'
+  | 'hold'
   | 'permissions'
   | 'home'
   | 'investigation'

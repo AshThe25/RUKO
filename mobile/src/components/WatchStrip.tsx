@@ -74,7 +74,7 @@ const ITEMS = [
   {label: 'Recipient', Icon: Person},
   {label: 'Caller', Icon: Phone},
   {label: 'Alerts', Icon: Bell},
-  {label: 'Behaviour', Icon: Bars},
+  {label: 'Habits', Icon: Bars},
 ];
 
 export function WatchStrip() {
@@ -122,5 +122,5 @@ const styles = StyleSheet.create({
   heading: {marginBottom: space.lg},
   row: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start'},
   item: {alignItems: 'center', gap: space.sm, flex: 1},
-  label: {fontSize: 9},
+  label: {fontSize: 9, textAlign: 'center'},
 });

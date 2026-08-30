@@ -8,6 +8,7 @@
  * whatever it finds here, so this is where the app's honesty is enforced.
  */
 import {Platform} from 'react-native';
+import {cloudConfigured} from './cloud/supabase';
 import type {
   DiagnosticsProvider,
   EngineDiagnostics,
@@ -45,11 +46,11 @@ function snapshot(deps: DiagnosticsDeps, ai: NativeAiBackend | null): EngineDiag
   return {
     classifier: deps.classifier.getModelInfo(),
     asr: {
-      // On-device ASR belongs to the native audio pipeline. `isReady` is the
-      // runtime's own answer; when there is no native module at all this is
-      // false and the engineering screen explains that demo transcripts are
-      // scripted text rather than recognised speech.
-      available: hasNativeModule() && runtime.ready,
+      // Two ways to get text: the native pipeline's own recogniser, or the
+      // cloud proxy the user can switch on. Reporting only the first said
+      // UNAVAILABLE on a build that could in fact transcribe, which is the
+      // same dishonesty as claiming a capability that is missing.
+      available: (hasNativeModule() && runtime.ready) || cloudConfigured,
       local: runtime.local,
       modelVersion: runtime.model,
       backend: runtime.backend,

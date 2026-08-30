@@ -52,7 +52,7 @@ export function EngineeringScreen() {
 
   if (!diagnostics) {
     return (
-      <Screen scroll={false} background={colors.darkBg}>
+      <Screen scroll={false} background={colors.bg}>
         <LoadingState label="Reading runtime state" />
       </Screen>
     );
@@ -62,21 +62,21 @@ export function EngineeringScreen() {
 
   return (
     <Screen
-      background={colors.darkBg}
+      background={colors.bg}
       testID="engineering-screen"
       footer={<Button label="Back" variant="ghost" onPress={() => navigate('home')} />}>
-      <Txt color={colors.darkTextSecondary} variant="label" uppercase>
+      <Txt color={colors.textSecondary} variant="label" uppercase>
         Ruko edge engine
       </Txt>
-      <Txt color={colors.darkText} variant="title" style={styles.headline}>
+      <Txt color={colors.text} variant="title" style={styles.headline}>
         What is actually loaded.
       </Txt>
-      <Txt color={colors.darkTextSecondary} variant="body" style={styles.sub}>
+      <Txt color={colors.textSecondary} variant="body" style={styles.sub}>
         Read from the runtime. Where something is a stand-in or has not been
         measured, this screen says so rather than showing a green tick.
       </Txt>
 
-      <Card tone={colors.darkSurface} borderColor={colors.darkBorder} title="Manipulation classifier" style={styles.card}>
+      <Card tone={colors.surface} borderColor={colors.border} title="Manipulation classifier" style={styles.card}>
         <Row onDark label="Model" value={classifier.modelVersion} />
         <Row
           label="Loaded"
@@ -112,7 +112,7 @@ export function EngineeringScreen() {
         </View>
       </Card>
 
-      <Card tone={colors.darkSurface} borderColor={colors.darkBorder} title="Speech recognition" style={styles.card}>
+      <Card tone={colors.surface} borderColor={colors.border} title="Speech recognition" style={styles.card}>
         <Row
           label="Available"
           value={asr.available ? 'Yes' : 'No'}
@@ -127,7 +127,7 @@ export function EngineeringScreen() {
         <Row onDark label="Model" value={asr.modelVersion ?? '—'} />
       </Card>
 
-      <Card tone={colors.darkSurface} borderColor={colors.darkBorder} title="Risk engine" style={styles.card}>
+      <Card tone={colors.surface} borderColor={colors.border} title="Risk engine" style={styles.card}>
         <Row onDark label="Engine" value={riskEngine.engineVersion} />
         <Row onDark label="Weights" value={riskEngine.weightsVersion} />
         <Row onDark label="Policy" value={riskEngine.policyVersion} />
@@ -144,7 +144,7 @@ export function EngineeringScreen() {
         ) : null}
       </Card>
 
-      <Card tone={colors.darkSurface} borderColor={colors.darkBorder} title="Device" style={styles.card}>
+      <Card tone={colors.surface} borderColor={colors.border} title="Device" style={styles.card}>
         <Row onDark label="Platform" value={`${Platform.OS} ${Platform.Version}`} />
         <Row onDark label="Model" value={diagnostics.deviceModel ?? 'Not read'} />
         <Row
@@ -155,7 +155,7 @@ export function EngineeringScreen() {
       </Card>
 
       {result ? (
-        <Card tone={colors.darkSurface} borderColor={colors.darkBorder} title="Last evaluation — every term" style={styles.card}>
+        <Card tone={colors.surface} borderColor={colors.border} title="Last evaluation — every term" style={styles.card}>
           {result.risk.contributions.map(c => (
             <Row
               key={c.code}
