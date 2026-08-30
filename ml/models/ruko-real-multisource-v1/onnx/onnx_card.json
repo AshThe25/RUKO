@@ -1,0 +1,20 @@
+{
+  "model_version": "ruko-real-multisource-v1",
+  "task": "binary suspected-fraud/manipulation text versus legitimate communication",
+  "output": "single logit; sigmoid -> P(fraud). NOT a seventh tactic.",
+  "base_model": "sentence-transformers/all-MiniLM-L6-v2",
+  "max_length": 64,
+  "threshold_from_validation_only": 0.46000000000000024,
+  "max_abs_prob_diff_fp32_vs_int8": 0.1207,
+  "integration_note": "Bounded corroborating evidence only, in the shape of notificationSuspicion. Must never reach CRITICAL alone; the six-tactic engine wins on disagreement.",
+  "artifacts": {
+    "model_fp32.onnx": {
+      "bytes": 90401476,
+      "sha256": "6909c7b1a63dd39616f692951081e4fd13109fea100cf3df708b85eadfe3b385"
+    },
+    "model_int8.onnx": {
+      "bytes": 22900722,
+      "sha256": "0583855ed39e82ab7024ca42605325e9559ee3a1af38f9657db51fdb8cb79646"
+    }
+  }
+}
