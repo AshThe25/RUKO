@@ -195,6 +195,20 @@ FAMILIES: list = [
         "Agar cooperate nahi kiya to legal action hoga aapke against.",
     )),
 
+    # --- widened coercion surface forms, digital arrest framing (v2) --- #
+    # The probe (probe_hinglish_parity.py) found "aap arrest ho jaayenge"
+    # style phrasing scored 1.00 in English but 0.02 in Hinglish -- the two
+    # families above only cover "warrant" and "case" framing, not the
+    # restraint/compliance framing that real digital-arrest scams use.
+    F("coerce_digital_arrest_hinglish", ("coercion",), "hinglish", (
+        "Agar aap is call ko turant nahi mante to aap arrest ho jaayenge.",
+        "Jab tak verification poori nahi hoti aap kahin bhi nahi ja sakte.",
+        "Non-cooperation ki sthiti mein aapko hirasat mein liya jayega.",
+        "Aapko is waqt digital custody mein maana jayega jab tak case clear na ho.",
+        "Ek baar FIR darj ho gayi to phir kuch nahi ho payega aapke liye.",
+        "Agar aap disconnect karte hain to yeh non-compliance mana jayega aur giraftari hogi.",
+    )),
+
     # ------------------------------------------------------------------ #
     # URGENCY
     # ------------------------------------------------------------------ #
@@ -522,6 +536,22 @@ FAMILIES: list = [
         "{remote} install kijiye aur code bataiye.",
         "Card ke peeche jo CVV likha hai wo bataiye.",
     )),
+
+    # --- widened credentialRequest surface forms (v2) ------------------ #
+    # This label had the narrowest Hinglish coverage of all six (one family
+    # against six English families), and the probe found "OTP bata dijiye"
+    # scored 1.00 in English but 0.16 in Hinglish. These vary the credential
+    # type, the verb, and where the request sits in the sentence.
+    F("cred_hinglish_wide", ("credentialRequest",), "hinglish", (
+        "Jo six digit code abhi aaya hai wo mujhe bata dijiye.",
+        "Netbanking ka password aur registered number dono confirm kariye.",
+        "Debit card ke peeche jo teen digit number hai wo padhiye mujhe.",
+        "Aadhar number aur uske saath jo code aaya hai dono bataiye.",
+        "Apna login PIN share kar dijiye, verification ke liye chahiye.",
+        "Screen share kar dijiye taaki main aapko guide kar sakoon settings tak.",
+        "Turant SMS mein aaya code padh kar sunaiye mujhe.",
+        "Card number aur expiry date confirm kariye please.",
+    )),
     F("cred_kyc", ("credentialRequest",), "en", (
         "Send me a photo of your Aadhaar card and PAN card on WhatsApp.",
         "Your KYC is pending, share your Aadhaar number for updating.",
@@ -718,5 +748,21 @@ FAMILIES: list = [
         "Paise transfer kar do is number pe, {large}.",
         "{wallet} se bhej dijiye {large}, main number deta hoon.",
         "Bas payment kar dijiye {large} ka, phir sab clear ho jayega.",
+    )),
+
+    # --- financialInstruction, trailing placement (v3) ------------------ #
+    # The two families above put the instruction sentence-initial. The probe
+    # found "UPI id par paise bhej dijiye" scored 0.47 in English but 0.00 in
+    # Hinglish -- these put the instruction mid- or end-sentence, after other
+    # tactic language, which is how real calls actually sequence it.
+    F("fin_hinglish_trailing", ("financialInstruction",), "hinglish", (
+        "Verification complete karne ke liye {large} rupaye jama karna hoga aapko.",
+        "Jo charge bataya hai wo clear kariye, {large}, {upi} par.",
+        "Process aage badhane ke liye pehle {large} ka payment kar dijiye.",
+        "Amount settle karne ke liye {wallet} se {large} bhej dijiye is number par.",
+        "Uske baad aapko sirf {large} is account mein transfer karna hoga, bas.",
+        "Main jo UPI id de raha hoon us par paise bhej dijiye.",
+        "Jo number abhi bataya hai us par payment kar dijiye, amount wahi rahega.",
+        "Jis account ka bataya hai usi mein bhej dijiye, dobara mat poochiye.",
     )),
 ]

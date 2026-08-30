@@ -48,7 +48,6 @@ export function CircleScreen() {
     void refresh();
   }, [refresh]);
 
-  const myEmail = (me?.email ?? '').toLowerCase();
   // Rows this person created: the people who would be told about them.
   const guarding = links.filter(l => l.subject_id === me?.id);
   // Rows addressed to this person: people who asked them to watch.

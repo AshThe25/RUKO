@@ -4,6 +4,13 @@
     "baseUrl": ".",
     "strict": true,
     "noUncheckedIndexedAccess": false,
+    // The React Native base config pins `types` to ["react-native", "jest"],
+    // which excludes @types/node even though it is installed. Half the test
+    // suite runs on `node:test` and imports node builtins, so every one of
+    // those files raised TS2307 "cannot find module 'node:test'" -- 43 errors
+    // that made `tsc --noEmit` useless as a signal. Extending the list rather
+    // than replacing it keeps the RN and Jest globals.
+    "types": ["react-native", "jest", "node"],
     "paths": {
       "@/*": ["src/*"],
       "@contracts": ["../docs/contracts/index.ts"],

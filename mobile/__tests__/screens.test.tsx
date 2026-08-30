@@ -11,19 +11,37 @@ import {Router} from '@/navigation/Router';
 import {useProtectionStore} from '@/store/protectionStore';
 import type {RouteName} from '@/types';
 
+/**
+ * Every tree mounted by this file, so each one can be unmounted again.
+ *
+ * Screens start entrance animations on mount. Left mounted, those animations
+ * keep scheduling timers after the test that created them has finished, and
+ * eventually fire against a torn-down Jest environment — which crashed the
+ * worker outright rather than failing an assertion, so the whole suite was
+ * reported as "failed to run" while every test in it actually passed.
+ */
+const mounted: ReactTestRenderer.ReactTestRenderer[] = [];
+
+function mount(element: React.ReactElement) {
+  let tree: ReactTestRenderer.ReactTestRenderer | undefined;
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(element);
+  });
+  mounted.push(tree!);
+  return tree!;
+}
+
 function renderAt(route: RouteName) {
   // Rehydration is async; screens under test are past it by definition.
   useProtectionStore.setState({route, stack: [route], hydrated: true});
-  const runtime = createServices();
-  let tree: ReactTestRenderer.ReactTestRenderer | undefined;
-  ReactTestRenderer.act(() => {
-    tree = ReactTestRenderer.create(
-      <ServicesProvider runtime={runtime}>
-        <Router />
-      </ServicesProvider>,
-    );
-  });
-  return tree!;
+  // The stub path, so a machine that happens to have a .env does not point
+  // these smoke tests at the real Supabase project.
+  const runtime = createServices({forceStubs: true});
+  return mount(
+    <ServicesProvider runtime={runtime}>
+      <Router />
+    </ServicesProvider>,
+  );
 }
 
 const ROUTES: RouteName[] = [
@@ -40,6 +58,11 @@ const ROUTES: RouteName[] = [
 
 describe('screens', () => {
   afterEach(() => {
+    ReactTestRenderer.act(() => {
+      while (mounted.length) {
+        mounted.pop()!.unmount();
+      }
+    });
     useProtectionStore.setState({
       route: 'home',
       stack: ['home'],
@@ -59,24 +82,19 @@ describe('screens', () => {
 
   it('shows nothing until the persisted state has been read back', () => {
     useProtectionStore.setState({route: 'home', stack: ['home'], hydrated: false});
-    const runtime = createServices();
-    let tree: ReactTestRenderer.ReactTestRenderer | undefined;
-    ReactTestRenderer.act(() => {
-      tree = ReactTestRenderer.create(
-        <ServicesProvider runtime={runtime}>
-          <Router />
-        </ServicesProvider>,
-      );
-    });
+    const runtime = createServices({forceStubs: true});
+    const tree = mount(
+      <ServicesProvider runtime={runtime}>
+        <Router />
+      </ServicesProvider>,
+    );
     // A returning user must never flash past onboarding on their way to home.
-    expect(JSON.stringify(tree!.toJSON())).not.toContain('Checks today');
+    expect(JSON.stringify(tree.toJSON())).not.toContain('Checks today');
   });
 
   it('renders the app shell', () => {
     useProtectionStore.setState({route: 'onboarding', stack: ['onboarding'], hydrated: true});
-    ReactTestRenderer.act(() => {
-      ReactTestRenderer.create(<App />);
-    });
+    mount(<App />);
   });
 
   it('renders the investigation screen in its error state', () => {

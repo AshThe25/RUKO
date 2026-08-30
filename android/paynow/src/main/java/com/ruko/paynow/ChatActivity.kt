@@ -1,8 +1,15 @@
 package com.ruko.paynow
 
+import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.method.LinkMovementMethod
+import android.text.style.ClickableSpan
+import android.text.style.StyleSpan
+import android.text.style.UnderlineSpan
 import android.view.Gravity
 import android.view.View
 import android.widget.EditText
@@ -100,7 +107,72 @@ class ChatActivity : AppCompatActivity() {
                 )
                 setPadding(dp(14), dp(11), dp(14), dp(11))
                 maxWidth = resources.displayMetrics.widthPixels * 3 / 4
+                // Only incoming messages are linkified. A UPI id the user typed
+                // themselves is not a thing that should offer to pay itself.
+                if (incoming) linkifyPayTargets(this, body)
             },
+        )
+    }
+
+    /**
+     * Turns a UPI id inside a message into a tappable pay link.
+     *
+     * This is how the scam actually arrives. Nobody reads "kyc.verify9931@ybl"
+     * out of a chat bubble and retypes it into a payee field -- the message
+     * hands them a link, they tap it, and the payment screen opens already
+     * filled in with the attacker's id and the amount demanded. Making the
+     * demo go through the payee list instead was quietly making the attack
+     * look more effortful than it is, and it skipped the one moment Ruko is
+     * built for: the jump straight from the pressure to the keypad.
+     *
+     * PayNow still shares no code with Ruko. This is an ordinary deep link
+     * inside one app; Ruko sees the payment screen it opens through the
+     * accessibility tree exactly as before.
+     */
+    private fun linkifyPayTargets(view: android.widget.TextView, body: String) {
+        val matches = VPA_REGEX.findAll(body).toList()
+        if (matches.isEmpty()) return
+
+        // The amount named in the same message, when there is one -- the
+        // demanded figure, prefilled the way a real payment link would.
+        val amountMinor = AMOUNT_REGEX.find(body)
+            ?.groupValues?.get(1)
+            ?.let { Money.parse(it.replace(",", "")) }
+
+        val span = SpannableString(body)
+        matches.forEach { match ->
+            val vpa = match.value
+            val payee = Accounts.recents.firstOrNull { it.vpa == vpa }
+            span.setSpan(
+                object : ClickableSpan() {
+                    override fun onClick(widget: View) = openPayment(vpa, payee?.name, amountMinor)
+                    override fun updateDrawState(ds: android.text.TextPaint) {
+                        ds.color = Ui.PURPLE
+                        ds.isUnderlineText = true
+                    }
+                },
+                match.range.first, match.range.last + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+            )
+            span.setSpan(
+                StyleSpan(android.graphics.Typeface.BOLD),
+                match.range.first, match.range.last + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+            )
+            span.setSpan(
+                UnderlineSpan(),
+                match.range.first, match.range.last + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+            )
+        }
+        view.text = span
+        view.movementMethod = LinkMovementMethod.getInstance()
+        view.highlightColor = android.graphics.Color.TRANSPARENT
+    }
+
+    private fun openPayment(vpa: String, name: String?, amountMinor: Long?) {
+        startActivity(
+            Intent(this, PayActivity::class.java)
+                .putExtra(PayActivity.EXTRA_NAME, name ?: vpa.substringBefore('@'))
+                .putExtra(PayActivity.EXTRA_VPA, vpa)
+                .apply { if (amountMinor != null) putExtra(PayActivity.EXTRA_PREFILL_MINOR, amountMinor) },
         )
     }
 
@@ -138,5 +210,11 @@ class ChatActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_SCRIPT = "script"
+
+        private val VPA_REGEX =
+            Regex("""\b[a-zA-Z0-9][a-zA-Z0-9._-]{1,48}@[a-zA-Z]{2,20}\b""")
+
+        private val AMOUNT_REGEX =
+            Regex("""(?:₹|rs\.?|inr)\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)""", RegexOption.IGNORE_CASE)
     }
 }

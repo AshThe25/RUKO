@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {createDemoAwareConversationProvider} from '../demoConversation.ts';
 
 // Minimal fakes — we are testing routing, not the model or the mic.
-const evidence = (over = {}) => ({
+const evidence = (over: Record<string, unknown> = {}): any => ({
   available: true,
   source: 'ON_DEVICE_MODEL',
   scores: {authority: 0, coercion: 0, urgency: 0, financialInstruction: 0, secrecy: 0, credentialRequest: 0},
@@ -36,12 +36,12 @@ function fakeMic(): any {
 }
 
 function busWith(lines: any): any {
-  const listeners = [];
+  const listeners: Array<(v: any) => void> = [];
   return {
     getScenario: () => (lines ? {lines} : null),
     transcript: {
-      emit: (v) => listeners.forEach((l) => l(v)),
-      subscribe: (l) => {
+      emit: (v: any) => listeners.forEach((l: (v: any) => void) => l(v)),
+      subscribe: (l: (v: any) => void) => {
         listeners.push(l);
         return () => {};
       },
@@ -63,12 +63,12 @@ describe('demo-aware conversation provider', () => {
 
   test('with a scenario, it plays scripted lines through the classifier and does NOT open the mic', async () => {
     const mic = fakeMic();
-    const seen = [];
+    const seen: string[] = [];
     const lines = [
       {atMs: 0, speaker: 'CALLER', text: 'calling from your bank'},
       {atMs: 0, speaker: 'CALLER', text: 'transfer 48000 immediately'},
     ];
-    const classify = async (t) => {
+    const classify = async (t: string) => {
       seen.push(t);
       return evidence({available: true, scores: {...evidence().scores, coercion: 0.9}});
     };

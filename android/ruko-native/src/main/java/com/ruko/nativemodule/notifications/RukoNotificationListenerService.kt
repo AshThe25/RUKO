@@ -4,6 +4,7 @@ import android.app.Notification
 import android.content.ComponentName
 import android.content.Context
 import android.provider.Settings
+import android.util.Log
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import com.ruko.core.NotificationEvidence
@@ -32,10 +33,17 @@ class RukoNotificationListenerService : NotificationListenerService() {
     override fun onListenerConnected() {
         super.onListenerConnected()
         connected = true
+        Log.i(TAG, "listener connected")
     }
 
     override fun onListenerDisconnected() {
         connected = false
+        Log.w(TAG, "listener disconnected")
+        // Notification access has ended, so the window ends with it. This is
+        // the honest place for the clear that used to live in `stopProtection`:
+        // there it fired whenever the microphone stopped, which is not the same
+        // thing as losing access to notifications.
+        clear()
         super.onListenerDisconnected()
     }
 
@@ -54,12 +62,26 @@ class RukoNotificationListenerService : NotificationListenerService() {
                 text = text,
                 postedAtEpochMs = posted.postTime,
             ),
-        ) ?: return // irrelevant: nothing is retained
+        )
 
-        synchronized(buffer) {
+        // Logs whether a notification was kept and why, but never the text of
+        // one that was dropped -- an irrelevant notification stays unlogged, as
+        // the class contract promises.
+        if (relevant == null) {
+            Log.i(TAG, "posted by ${posted.packageName}: not relevant, dropped")
+            return
+        }
+
+        val size = synchronized(buffer) {
             buffer.addLast(relevant)
             while (buffer.size > MAX_BUFFERED) buffer.removeFirst()
+            buffer.size
         }
+        Log.i(
+            TAG,
+            "kept from ${posted.packageName} suspicion=${relevant.suspicion} " +
+                "patterns=${relevant.matchedPatterns} buffered=$size",
+        )
     }
 
     companion object {
@@ -70,6 +92,8 @@ class RukoNotificationListenerService : NotificationListenerService() {
 
         /** Small on purpose: this is a lookback window, not a history. */
         private const val MAX_BUFFERED = 20
+
+        private const val TAG = "RukoNotif"
 
         /** True only when the user has granted notification access in Settings. */
         fun isEnabled(context: Context): Boolean {

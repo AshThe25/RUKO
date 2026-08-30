@@ -1,6 +1,7 @@
 package com.ruko.nativemodule.bridge
 
 import android.content.Context
+import android.util.Log
 import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -133,8 +134,37 @@ class RukoNativeModule(
     fun stopProtection(promise: Promise) {
         apply(machine.on(ProtectionSessionMachine.Signal.ProtectionDisabled))
         calls.stop()
-        RukoAccessibilityService.detach()
-        RukoNotificationListenerService.clear()
+        // The payment watch is deliberately NOT detached here, for exactly the
+        // reason the notification buffer is not cleared here either.
+        //
+        // `stopProtection` is the JS conversation provider stopping the
+        // microphone, which happens every time an investigation is dismissed.
+        // Detaching here meant that the first time the user read a verdict and
+        // tapped Done, Ruko stopped watching for payments for the rest of the
+        // process's life -- silently, with every permission still granted and
+        // the UI still saying PROTECTION ON. The accessibility service went on
+        // logging "payment app in front but no provider attached" to nobody.
+        //
+        // That defeats the whole point of splitting `startPaymentWatch` out of
+        // `startProtection`: watching a payment screen needs the accessibility
+        // service and nothing else, so it must not be torn down by the
+        // microphone's lifecycle. `stopPaymentWatch` is the call that ends it.
+        //
+        // The notification window is deliberately NOT cleared here.
+        //
+        // `stopProtection` is what the JS conversation provider calls to stop
+        // the microphone, which happens every time an investigation is
+        // dismissed -- not only when the user turns protection off. Clearing
+        // the buffer here therefore erased the scam messages a few seconds
+        // before the payment they were setting up, so the notification family
+        // reported "no recent payment messages" about messages Ruko had
+        // genuinely read and scored moments earlier.
+        //
+        // Nothing is retained indefinitely by dropping the call: the buffer
+        // holds at most 20 entries, they are redacted at capture, and
+        // `aggregate` only ever counts the last 30 minutes. It is cleared for
+        // real in `onListenerDisconnected`, which is where notification access
+        // actually ends.
         RukoForegroundService.stop(reactContext)
         promise.resolve(stateMap())
     }
@@ -291,10 +321,16 @@ class RukoNativeModule(
     @ReactMethod
     fun getNotificationContext(promise: Promise) {
         if (!RukoNotificationListenerService.isEnabled(reactContext)) {
+            Log.i("RukoNotif", "getNotificationContext -> access not granted")
             promise.resolve(null)
             return
         }
         val evidence = RukoNotificationListenerService.evidence()
+        Log.i(
+            "RukoNotif",
+            "getNotificationContext -> matches=${evidence.matchCount} " +
+                "suspicion=${evidence.suspicion} lookbackMin=${evidence.lookbackMinutes}",
+        )
         promise.resolve(
             Arguments.createMap().apply {
                 putDouble("suspicion", evidence.suspicion)

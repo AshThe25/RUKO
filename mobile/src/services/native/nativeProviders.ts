@@ -54,6 +54,27 @@ export function toEvidenceSource(nativeSource: string | null | undefined): Evide
   }
 }
 
+/**
+ * Android's backend names -> the contract's.
+ *
+ * The two vocabularies are not the same and never were. `ruko-core`'s enum is
+ * `CPU, NNAPI, QUALCOMM, RULES, UNKNOWN` and the bridge sends it verbatim
+ * (`putString("backend", runtime.backend.name)`), while the contract speaks of
+ * `QNN` and `HEURISTIC`. Only the contract's spellings were accepted here, so a
+ * device that genuinely initialised on the Qualcomm NPU reported `QUALCOMM` and
+ * was translated to `UNAVAILABLE` -- as was the rules fallback. The Engineering
+ * screen then said Ruko had no runtime at all on exactly the devices where it
+ * had the best one.
+ *
+ * Erring toward `UNAVAILABLE` at least never claimed acceleration that was not
+ * measured, which is why this went unnoticed. It is still a misreport, and the
+ * honesty rule cuts both ways: the screen must say what the runtime returned.
+ *
+ * QUALCOMM and QNN are the same thing (the Qualcomm Neural Network SDK), and
+ * RULES is the deterministic lexical path the contract calls HEURISTIC. Both
+ * spellings are accepted so the mapping keeps working whichever layer changes
+ * name first.
+ */
 export function toInferenceBackend(nativeBackend: string | null | undefined): InferenceBackend {
   switch (nativeBackend) {
     case 'CPU':
@@ -62,6 +83,13 @@ export function toInferenceBackend(nativeBackend: string | null | undefined): In
     case 'XNNPACK':
     case 'HEURISTIC':
       return nativeBackend;
+    case 'QUALCOMM':
+      return 'QNN';
+    case 'RULES':
+      return 'HEURISTIC';
+    // 'UNKNOWN' is ruko-core's way of saying it could not establish one, which
+    // is what UNAVAILABLE means here. Handled by the default, and named so the
+    // correspondence is not rediscovered later.
     default:
       return 'UNAVAILABLE';
   }
@@ -253,13 +281,77 @@ export function createNativeCallProvider(): CallContextProvider {
   );
 }
 
+/* ------------------------------------------------------------------ *
+ * The payment currently under investigation
+ * ------------------------------------------------------------------ */
+
+/**
+ * The payment that triggered the investigation now running.
+ *
+ * The accessibility reading is deliberately short-lived: it goes stale after
+ * 15s and is dropped when the user leaves the payment app, because acting on a
+ * payment someone already abandoned would be worse than not acting. That is
+ * right for *deciding whether to interrupt*, and wrong for *the investigation
+ * already under way* — which outlives the reading, especially once a guardian
+ * round-trip is involved.
+ *
+ * So the evidence that arrived with `ruko:onPaymentDetected` is held for the
+ * duration of the investigation it started. This is not a fabricated reading:
+ * it is the reading the accessibility service actually took, at the confidence
+ * it actually reported, kept rather than discarded. Nothing is invented here —
+ * `latchDetectedPayment` only ever stores what native measured.
+ */
+let latchedPayment: PaymentEvidence | null = null;
+
+/**
+ * A latch that is never released would make a finished payment look live to
+ * the next investigation, so it also expires on its own. Generous, because an
+ * investigation plus a 45s guardian escalation is legitimately slow; short
+ * enough that a leaked latch cannot survive into an unrelated payment.
+ */
+const LATCH_MAX_AGE_MS = 5 * 60_000;
+
+/** Hold the payment that triggered an investigation, for its duration. */
+export function latchDetectedPayment(payment: DetectedPayment): void {
+  latchedPayment = {
+    available: true,
+    source: 'ACCESSIBILITY',
+    active: true,
+    amountMinor: payment.amountMinor,
+    currency: 'INR',
+    payeeDisplayName: payment.payeeDisplayName,
+    payeeHash: payment.payeeHash,
+    appPackage: payment.appPackage,
+    timestamp: payment.timestamp,
+  };
+}
+
+/** The investigation is over: the payment is no longer the live one. */
+export function releaseDetectedPayment(): void {
+  latchedPayment = null;
+}
+
+/** Exposed for tests; callers should use the provider. */
+export function currentLatchedPayment(nowMs: number = now()): PaymentEvidence | null {
+  if (!latchedPayment) return null;
+  if (nowMs - latchedPayment.timestamp > LATCH_MAX_AGE_MS) {
+    latchedPayment = null;
+    return null;
+  }
+  return latchedPayment;
+}
+
 export function createNativePaymentProvider(): PaymentContextProvider {
   const native = getNativeModule();
   return pollingProvider<NativePaymentContext, PaymentEvidence>(
     'ACCESSIBILITY',
     toPaymentEvidence(null),
     () => safeNative(() => native?.getPaymentContext()),
-    toPaymentEvidence,
+    // The latched payment wins while one is held. The native reading is the
+    // same payment when it is still on screen and null once it is not, so
+    // preferring the latch costs nothing and is what keeps the evidence alive
+    // across the app switch into Ruko's own UI.
+    raw => currentLatchedPayment() ?? toPaymentEvidence(raw),
     [NATIVE_EVENTS.protectionState],
   );
 }
@@ -300,6 +392,21 @@ export function createNativeConversationProvider(
    * device has no way to transcribe, and segments are counted, not read.
    */
   transcribe?: (wavBase64: string) => Promise<string>,
+  /**
+   * Recent scam-message text, already redacted native-side.
+   *
+   * WHY THIS EXISTS. The manipulation model reads *language*, and a KYC scam
+   * run over chat uses the same coercion, authority and urgency it uses on a
+   * call. But the classifier was only ever fed ASR output, so with no call in
+   * progress the model sat idle through the exact attack it was trained for:
+   * the notification family contributed its 3-point ceiling, no conversation
+   * evidence existed at all, and a textbook scam scored in single figures.
+   *
+   * So when nothing was heard, the same model reads the messages instead. The
+   * evidence is marked `textSource: 'MESSAGES'` and the UI says so -- Ruko
+   * never claims to have heard something it read.
+   */
+  readMessageText?: () => Promise<string[]>,
   /**
    * Notified with the growing transcript each time a segment is transcribed,
    * so the pay screen can show the live words. Display-only: it can never
@@ -380,9 +487,55 @@ export function createNativeConversationProvider(
       emitter.emit(noTranscript('idle'));
     },
     isRunning: () => running,
-    read: async () => emitter.value,
+    read: async () => {
+      // Speech, whenever there is any: a live call is richer evidence than a
+      // handful of message excerpts, and it is what the reliability score was
+      // calibrated on.
+      if (emitter.value.available) return emitter.value;
+      const evidence = await classifyMessages(classify, readMessageText);
+      if (evidence) emitter.emit(evidence);
+      return emitter.value;
+    },
     subscribe: (l): Unsubscribe => emitter.subscribe(l),
   };
+}
+
+/**
+ * Run the manipulation model over recent message text.
+ *
+ * Returns null -- leaving the evidence honestly unavailable -- whenever there
+ * is no text to read or the model cannot produce a result. An empty score set
+ * would be read by the risk engine as "measured, and nothing concerning was
+ * said", which is a very different and much more dangerous claim.
+ */
+async function classifyMessages(
+  classify: (transcript: string) => Promise<ConversationEvidence>,
+  readMessageText?: () => Promise<string[]>,
+): Promise<ConversationEvidence | null> {
+  if (!readMessageText) return null;
+  let messages: string[] = [];
+  try {
+    messages = await readMessageText();
+  } catch {
+    return null;
+  }
+  const text = messages.map(m => m.trim()).filter(Boolean).join('. ');
+  if (!text) return null;
+
+  try {
+    const evidence = await classify(text);
+    if (!evidence.available) return null;
+    return {
+      ...evidence,
+      textSource: 'MESSAGES',
+      // The window is a count of messages, not a duration -- nothing was
+      // spoken, so claiming milliseconds of speech would be a fabrication.
+      windowMs: 0,
+      transcriptChars: text.length,
+    };
+  } catch {
+    return null;
+  }
 }
 
 function noTranscript(phase: 'idle' | 'listening', segments = 0): ConversationEvidence {

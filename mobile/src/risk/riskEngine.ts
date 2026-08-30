@@ -66,6 +66,29 @@ export const REASON_LABELS: Record<RiskReasonCode, string> = {
   SUSPICIOUS_NOTIFICATION: 'Recent messages use financial pressure language',
 };
 
+/**
+ * The same reasons, worded for evidence Ruko *read* rather than *heard*.
+ *
+ * Only the conversation family needs this: every other reason is already
+ * neutral about how it was observed. Telling someone "the caller is
+ * threatening you" when there was no call is a small lie, and a costly one --
+ * the first thing they do is check whether they are on a call, find they are
+ * not, and stop believing the rest of the warning.
+ */
+const MESSAGE_REASON_LABELS: Partial<Record<RiskReasonCode, string>> = {
+  COERCION: 'These messages are using a threat to pressure you',
+  AUTHORITY_IMPERSONATION: 'These messages claim to be from a bank or an authority',
+  FINANCIAL_INSTRUCTION: 'These messages are instructing you to send money',
+  CREDENTIAL_REQUEST: 'You were asked for an OTP, PIN or card details',
+  URGENCY: 'You are being rushed to act immediately',
+  SECRECY: 'You are being asked to keep this from other people',
+};
+
+/** Picks the wording that matches where the text actually came from. */
+export function reasonLabel(code: RiskReasonCode, fromMessages: boolean): string {
+  return (fromMessages && MESSAGE_REASON_LABELS[code]) || REASON_LABELS[code];
+}
+
 const CONVERSATION_TERMS: Array<[RiskReasonCode, ManipulationLabel]> = [
   ['COERCION', 'coercion'],
   ['AUTHORITY_IMPERSONATION', 'authority'],
@@ -259,7 +282,7 @@ export function evaluateRisk(evidence: RiskEvidence): RiskResult {
     .sort((a, b) => b.points - a.points)
     .map((c) => ({
       code: c.code,
-      label: REASON_LABELS[c.code],
+      label: reasonLabel(c.code, evidence.conversation?.textSource === 'MESSAGES'),
       points: Number(c.points.toFixed(2)),
       family: c.family,
     }));

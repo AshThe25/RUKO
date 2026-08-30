@@ -51,7 +51,7 @@ export function createNodeAdapter(ort: any): OnnxRuntimeAdapter {
   return {
     name: 'onnxruntime-node (test only)',
 
-    async createSession(modelPath: string, preferred: InferenceBackend[]): Promise<SessionHandle> {
+    async createSession(modelPath: string, _preferred: InferenceBackend[]): Promise<SessionHandle> {
       // Node only offers CPU here. Requesting the list honestly and reporting
       // what came back is the same discipline the device adapter uses.
       const raw = await ort.InferenceSession.create(modelPath, {

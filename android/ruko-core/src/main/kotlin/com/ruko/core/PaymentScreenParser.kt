@@ -54,6 +54,25 @@ object PaymentScreenParser {
         "payment failed", "transaction id",
     )
 
+    /**
+     * Words that label the user's *own* money rather than the money being sent.
+     *
+     * Every UPI app puts the account balance on the same screen as a "Send
+     * money" list, and the balance is nearly always the largest currency figure
+     * in the app. Without this, PayNow's home screen parsed as a live payment
+     * of the whole balance to the account holder's own UPI id -- so Ruko
+     * investigated the user paying themselves, every single time, whoever they
+     * had actually chosen to pay.
+     *
+     * A balance is never the amount of a payment. Amounts labelled this way are
+     * excluded from the reading rather than the screen being vetoed, because a
+     * genuine payment screen may legitimately show both.
+     */
+    private val BALANCE_MARKERS = listOf(
+        "available balance", "account balance", "wallet balance",
+        "total balance", "current balance", "available bal",
+    )
+
     private val AMOUNT_REGEX =
         Regex("""(?:₹|rs\.?|inr)\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)""", RegexOption.IGNORE_CASE)
 
@@ -131,9 +150,27 @@ object PaymentScreenParser {
      * almost always the largest currency-marked figure in the flow.
      */
     private fun findCurrencyAmount(texts: List<String>): Long? =
-        texts.flatMap { AMOUNT_REGEX.findAll(it).toList() }
+        texts.filterIndexed { index, _ -> !isBalanceAmount(texts, index) }
+            .flatMap { AMOUNT_REGEX.findAll(it).toList() }
             .mapNotNull { normaliseAmount(it.groupValues[1]) }
             .maxOrNull()
+
+    /**
+     * True when the amount on this line is the account balance.
+     *
+     * Both layouts are covered: the label inline with the figure
+     * ("Available balance ₹9,99,999") and the far more common label-above-value
+     * pair, where the balance sits on the line after its own caption.
+     */
+    private fun isBalanceAmount(texts: List<String>, index: Int): Boolean {
+        val self = texts[index].lowercase()
+        if (BALANCE_MARKERS.any { it in self }) return true
+        val previous = texts.getOrNull(index - 1)?.lowercase() ?: return false
+        // Only when the caption carries no figure of its own -- otherwise a
+        // balance line would also swallow the amount printed beneath it.
+        return BALANCE_MARKERS.any { it in previous } &&
+            !AMOUNT_REGEX.containsMatchIn(previous)
+    }
 
     /** Fallback: a bare number on or next to a line that says "amount". */
     private fun findBareAmountNearKeyword(texts: List<String>): Long? {

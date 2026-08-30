@@ -13,7 +13,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { OnnxClassifier } from '../onnxClassifier.ts';
 import { EnsembleClassifier } from '../ensembleClassifier.ts';
 import { createClassifier } from '../index.ts';
-import { calibrateScore, calibrateScores, fuseScores } from '../calibration.ts';
+import { calibrateScore, fuseScores } from '../calibration.ts';
 import { backendFromProvider } from '../runtime.ts';
 import { EXPECTED_MODEL_SHA256, LABEL_THRESHOLDS } from '../modelConfig.generated.ts';
 import type { OnnxRuntimeAdapter, OnnxSession } from '../runtime.ts';
@@ -39,7 +39,7 @@ function fakeAdapter(opts: {
   };
   return {
     name: 'fake',
-    async createSession(_path, preferred: InferenceBackend[]) {
+    async createSession(_path, _preferred: InferenceBackend[]) {
       if (opts.failCreate) throw new Error(opts.failCreate);
       return { session, backend: backendFromProvider(opts.grantedProvider ?? 'cpu') };
     },
