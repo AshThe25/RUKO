@@ -83,15 +83,22 @@ def main() -> int:
 
     # --- 2. Supabase ---------------------------------------------------------
     if supabase:
-        status, body = get(f"{supabase}/rest/v1/alerts?select=id&limit=1",
-                           {"apikey": key, "Accept-Profile": "ruko"})
-        if "PGRST106" in body:
-            report(FAIL, "ruko schema exposed to the API",
-                   "Dashboard -> Project Settings -> API -> Exposed schemas -> add 'ruko'")
-        elif status in (200, 401, 403) or "42501" in body:
-            report(OK, "ruko schema exposed", "(RLS still governs the rows, as intended)")
-        else:
-            report(WARN, "ruko schema exposed", f"unexpected: HTTP {status} {body[:120]}")
+        # Tables live in `public`, deliberately — see supabase/migrations/README.md.
+        # Ruko owns this project outright, so there is no separate schema to expose
+        # and no grants to forget. An earlier shared-project setup used a `ruko`
+        # schema and cost two debugging rounds (PGRST106, then 42501).
+        for table in ("profiles", "trusted_links", "alerts"):
+            status, body = get(f"{supabase}/rest/v1/{table}?select=id&limit=1",
+                               {"apikey": key})
+            if status == 200:
+                report(OK, f"public.{table} reachable")
+            elif status in (401, 403) or "42501" in body:
+                report(OK, f"public.{table} exists", "RLS refuses anonymous, as intended")
+            elif "PGRST205" in body or status == 404:
+                report(FAIL, f"public.{table} exists",
+                       "table not found — has the schema migration been applied?")
+            else:
+                report(WARN, f"public.{table} reachable", f"HTTP {status} {body[:110]}")
 
         status, body = get(f"{supabase}/auth/v1/settings", {"apikey": key})
         if status == 200:
