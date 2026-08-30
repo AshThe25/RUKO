@@ -29,6 +29,12 @@ class RukoAccessibilityService : AccessibilityService() {
     private var lastPackage: String? = null
     private var lastNoProviderLogMs = 0L
 
+    /**
+     * Ruko's own package. Read once from the service context rather than
+     * hard-coded, so the library keeps working in whatever app hosts it.
+     */
+    private val selfPackage: String by lazy { packageName }
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
@@ -60,7 +66,19 @@ class RukoAccessibilityService : AccessibilityService() {
         }
 
         if (packageName !in PAYMENT_PACKAGES) {
-            // Left the payment app entirely: forget whatever we had.
+            // Ruko coming to the front is not the user leaving the payment --
+            // it is Ruko interrupting it. Clearing here discarded the reading
+            // that had just triggered the investigation, so every evidence tool
+            // then reported "no payment in progress" about the very payment
+            // being investigated, and the score fell to zero.
+            //
+            // Our own window (the investigation screen, the overlay) therefore
+            // leaves the reading intact. `lastPackage` is deliberately not
+            // updated either, so returning to the payment app afterwards is not
+            // mistaken for a fresh arrival.
+            if (packageName == selfPackage) return
+
+            // Left for a genuinely different app: forget whatever we had.
             if (lastPackage in PAYMENT_PACKAGES) active.clear()
             lastPackage = packageName
             return
