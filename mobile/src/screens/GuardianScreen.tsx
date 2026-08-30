@@ -44,32 +44,14 @@ export function GuardianScreen() {
     });
     // RLS decides what arrives, so a new alert for someone we do not watch
     // never reaches this callback at all.
-    const stop = subscribeToAlerts(row => {
+    // The loud part (overlay + vibration) lives in useGuardianWatch at the app
+    // root, so it fires wherever the guardian is. This only keeps the list on
+    // this screen current.
+    const stop = subscribeToAlerts(() => {
       void listAlertsIWatch().then(rows => {
         if (live) setWatched(rows);
       });
 
-      // A guardian alert must never be silent. Someone is being pressured into
-      // paying right now, and a card that only appears if this screen happens
-      // to be open is not a warning — it is a log entry. So the same
-      // unmissable surface the subject gets is raised here: a system overlay
-      // that draws over whatever the guardian is doing, plus a vibration
-      // pattern, whether or not the app is in front.
-      const amount =
-        row.amount_minor === null || row.amount_minor === undefined
-          ? 'A payment'
-          : formatMinor(row.amount_minor);
-      Vibration.vibrate([0, 600, 250, 600, 250, 900]);
-      void showNativeIntervention({
-        headline: 'Someone you watch over needs you.',
-        reason:
-          row.band === 'CRITICAL'
-            ? 'Ruko stopped a payment that looks like a scam.'
-            : 'Ruko flagged a payment as risky.',
-        amountLabel: amount,
-        payee: row.payee_label ?? 'an unnamed recipient',
-        requiresGuardian: true,
-      });
     });
     return () => {
       live = false;
