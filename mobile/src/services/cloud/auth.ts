@@ -64,11 +64,17 @@ export function onAuthChange(cb: (user: AuthUser | null) => void): () => void {
  * are being asked to watch, and auth.users is not readable from the client.
  */
 export async function upsertProfile(user: AuthUser, isMinor: boolean): Promise<void> {
-  await supabase.from('profiles').upsert({
+  const {error} = await supabase.from('profiles').upsert({
     id: user.id,
     email: user.email ?? '',
     is_minor: isMinor,
   });
+  if (error) {
+    // trusted_links and alerts both reference this row. If it is missing, the
+    // first symptom is not a profile error — it is an alert insert failing a
+    // foreign key, which reads as "the guardian was never told".
+    console.warn(`[ruko-auth] profile upsert failed: ${error.message} (${error.code ?? '-'})`);
+  }
 }
 
 /**
