@@ -462,8 +462,12 @@ export async function startPaymentWatch(): Promise<string | null> {
     return 'This build has no native module, so payment screens cannot be read.';
   }
   try {
-    await native.startPaymentWatch();
-    return null;
+    const connected = await native.startPaymentWatch();
+    // The wiring is in place either way; this reports whether the device is
+    // actually delivering screen events yet.
+    return connected
+      ? null
+      : 'Ruko is not watching payment screens yet — turn on its accessibility service in Settings.';
   } catch (error) {
     return error instanceof Error ? error.message : String(error);
   }

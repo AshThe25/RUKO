@@ -151,15 +151,18 @@ class RukoNativeModule(
      */
     @ReactMethod
     fun startPaymentWatch(promise: Promise) {
-        if (!RukoAccessibilityService.isConnected()) {
-            promise.reject(
-                "ACCESSIBILITY_NOT_ENABLED",
-                "Ruko cannot see payment screens until its accessibility service is enabled.",
-            )
-            return
-        }
+        // Attach unconditionally. The provider is held statically, so it
+        // survives the accessibility service being started, stopped and
+        // restarted by the system -- which happens on its own schedule, not
+        // ours. Refusing to attach when the service was not up *yet* meant the
+        // whole feature depended on which of the two started first: if the app
+        // won that race, Ruko stayed blind for the rest of the process's life
+        // and said nothing about it.
         RukoAccessibilityService.attach(accessibilityPayments)
-        promise.resolve(true)
+
+        // Whether the service is up right now is still worth reporting, but it
+        // is a status for the UI to show, not a reason to skip the wiring.
+        promise.resolve(RukoAccessibilityService.isConnected())
     }
 
     @ReactMethod
@@ -190,7 +193,9 @@ class RukoNativeModule(
         requiresGuardian: Boolean,
         promise: Promise,
     ) {
+        android.util.Log.i("RukoBridge", "showIntervention called from JS: '$headline'")
         if (!InterventionOverlay.canShow(reactContext)) {
+            android.util.Log.w("RukoBridge", "overlay permission missing - cannot interrupt")
             promise.reject(
                 "OVERLAY_PERMISSION_MISSING",
                 "Ruko needs 'Display over other apps' to interrupt a payment. " +
@@ -483,6 +488,9 @@ class RukoNativeModule(
     }
 
     private fun emit(event: String, payload: WritableMap) {
+        if (event == EVENT_PAYMENT_DETECTED) {
+            android.util.Log.i("RukoBridge", "emit -> JS: $event")
+        }
         if (!reactContext.hasActiveReactInstance()) return
         reactContext
             .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
