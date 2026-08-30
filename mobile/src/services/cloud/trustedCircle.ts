@@ -19,6 +19,9 @@ export type LinkStatus = 'pending' | 'accepted' | 'revoked';
 export type AlertKind = 'payment' | 'call' | 'message' | 'sextortion';
 export type AlertBand = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
+/** Rs 500. Low enough to matter, high enough not to train a family to mute it. */
+export const DEFAULT_SPEND_LIMIT_MINOR = 50_000;
+
 export interface TrustedLink {
   id: string;
   subject_id: string;
@@ -27,6 +30,13 @@ export interface TrustedLink {
   relationship: Relationship;
   status: LinkStatus;
   created_at: string;
+  /**
+   * Set by the guardian, and stored on the link rather than the person: the
+   * same child may have a parent watching a low limit and a grandparent a
+   * looser one, and a per-user limit would force them to agree.
+   */
+  spend_limit_minor: number;
+  window_minutes: number;
   /**
    * Who proposed the link. An invitation reads "X added you as their parent",
    * and a name is the whole basis for deciding whether to accept it — nobody

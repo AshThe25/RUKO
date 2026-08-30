@@ -5,10 +5,12 @@ import {colors, radius, space, type} from '@/theme';
 import {useProtectionStore} from '@/store/protectionStore';
 import {currentUser, signOut, type AuthUser} from '@/services/cloud/auth';
 import {
+  DEFAULT_SPEND_LIMIT_MINOR,
   acceptInvite,
   inviteGuardian,
   inviterLabel,
   listLinks,
+  setSpendLimit,
   type Relationship,
   type TrustedLink,
 } from '@/services/cloud/trustedCircle';
@@ -68,6 +70,18 @@ export function CircleScreen() {
     } finally {
       setBusy(false);
     }
+  }
+
+  /**
+   * Only offered on links this person guards. The database refuses it either
+   * way, but showing a control that will be rejected is its own failure.
+   */
+  async function changeLimit(id: string, rupees: number) {
+    setBusy(true);
+    const {error} = await setSpendLimit(id, rupees * 100);
+    if (error) setMessage(error);
+    await refresh();
+    setBusy(false);
   }
 
   async function accept(id: string) {
@@ -161,9 +175,34 @@ export function CircleScreen() {
                         : 'Ruko could not confirm who sent this — only accept if you were expecting it'}
                   </Txt>
                 </View>
-                {l.status !== 'accepted' ? (
+                {l.status === 'accepted' ? (
+                  <View style={styles.limitBox}>
+                    <Txt variant="caption" tone="tertiary">
+                      Tell me when they spend more than
+                    </Txt>
+                    <View style={styles.limitChips}>
+                      {[500, 1000, 2000, 5000].map(r => {
+                        const active = (l.spend_limit_minor ?? DEFAULT_SPEND_LIMIT_MINOR) === r * 100;
+                        return (
+                          <Button
+                            key={r}
+                            label={`\u20B9${r}`}
+                            variant={active ? 'primary' : 'ghost'}
+                            onPress={() => changeLimit(l.id, r)}
+                            disabled={busy}
+                            style={styles.limitChip}
+                          />
+                        );
+                      })}
+                    </View>
+                    <Txt variant="caption" tone="tertiary" style={styles.small}>
+                      Counted across a few hours, not per payment — six small
+                      ones add up to the same money as one large one.
+                    </Txt>
+                  </View>
+                ) : (
                   <Button label="Accept" onPress={() => accept(l.id)} disabled={busy} />
-                ) : null}
+                )}
               </View>
             ))}
           </Card>
@@ -229,6 +268,9 @@ const styles = StyleSheet.create({
   dot: {width: 8, height: 8, borderRadius: 4},
   chips: {flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginTop: space.sm},
   chip: {flexGrow: 0},
+  limitBox: {marginTop: space.sm, gap: space.sm},
+  limitChips: {flexDirection: 'row', flexWrap: 'wrap', gap: space.sm},
+  limitChip: {flexGrow: 0, minWidth: 78},
   input: {
     marginTop: space.sm,
     paddingHorizontal: space.lg,
