@@ -150,3 +150,27 @@ export function listenForOAuth(onDone: (result: AuthResult) => void): () => void
   });
   return () => sub.remove();
 }
+
+/**
+ * Is this phone's account marked as a child's?
+ *
+ * Chosen at sign-in and stored on the profile, because the spend policy a
+ * parent wants for a teenager is not the one an adult child wants for an
+ * ageing parent. Unreadable or missing means adult: the looser policy is the
+ * safe way to be wrong about someone we cannot identify.
+ */
+export async function myIsMinor(): Promise<boolean> {
+  const {data} = await supabase.auth.getSession();
+  const id = data.session?.user.id;
+  if (!id) return false;
+  const {data: row, error} = await supabase
+    .from('profiles')
+    .select('is_minor')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) {
+    console.warn(`[ruko-auth] could not read is_minor: ${error.message}`);
+    return false;
+  }
+  return row?.is_minor === true;
+}

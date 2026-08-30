@@ -15,12 +15,20 @@ import {
 } from '@/services/native/nativeProviders';
 import {NATIVE_EVENTS, onNativeEvent} from '@/services/native/RukoNative';
 import {useCallback, useEffect} from 'react';
-import type {GuardianAlert, GuardianConnectionState, InvestigationTrigger} from '@contracts';
+import type {
+  GuardianAlert,
+  GuardianConnectionState,
+  InvestigationResult,
+  InvestigationTrigger,
+} from '@contracts';
 import {useDemo, useRuntime} from '@/services/ServicesContext';
 import {prepareScenario} from '@/services/stubs/prepareScenario';
 import type {ScenarioId} from '@/services/stubs/scenarios';
 import {motion} from '@/theme';
 import {formatMinor} from '@/utils/format';
+import {checkSpendAndNotify} from '@/services/cloud/spendOversight';
+import {myIsMinor} from '@/services/cloud/auth';
+import {newId} from '@/utils/id';
 import {useProtectionStore, type InterventionOutcome} from './protectionStore';
 
 /** The phone stops waiting on the guardian after this and decides alone. */
@@ -112,6 +120,57 @@ export function useProtectionController() {
       return decision.decision === 'ALLOW' ? 'GUARDIAN_ALLOWED' : 'GUARDIAN_BLOCKED';
     },
     [runtime.services.guardian, store],
+  );
+
+  /**
+   * Money actually left. Record it and let the spend monitor decide whether a
+   * guardian should hear about it.
+   *
+   * Deliberately not on the manipulation path. A child buying game credit is
+   * spending, not being manipulated, and routing it through the risk score
+   * would tell a parent they may be being scammed when they are not. This
+   * raises its own alert, with its own reason codes.
+   *
+   * Called only where a payment was not stopped -- an intervention the user
+   * obeyed is money that never moved, and a parent told about it would be
+   * told about a payment that did not happen.
+   */
+  const notePaymentMade = useCallback(
+    async (result: InvestigationResult) => {
+      const payment = result.evidence.payment;
+      if (payment.amountMinor === null) {
+        return;
+      }
+      try {
+        await runtime.services.behaviour.recordTransaction({
+          id: newId('tx'),
+          payeeHash: payment.payeeHash ?? 'unknown',
+          amountMinor: payment.amountMinor,
+          timestamp: Date.now(),
+          riskScoreAtTime: result.risk.score,
+        });
+        const check = await checkSpendAndNotify(
+          runtime.services.behaviour,
+          await myIsMinor(),
+        );
+        if (check.assessment.triggered) {
+          console.warn(
+            `[ruko-spend] ${check.assessment.band}: ${check.assessment.triggers.join(', ')} — ` +
+              `guardian ${check.notified ? 'told' : 'not told'}` +
+              (check.error ? ` (${check.error})` : ''),
+          );
+        }
+      } catch (error) {
+        // Spend oversight is a second opinion, never a gate on the payment
+        // path. A failure here must not take the investigation down with it.
+        console.warn(
+          `[ruko-spend] could not check spending: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    },
+    [runtime.services.behaviour],
   );
 
   const runInvestigation = useCallback(
@@ -215,6 +274,8 @@ export function useProtectionController() {
             // warning, because the guardian escalation still reads it.
             releaseDetectedPayment();
             store.getState().setMachineState('RESOLVED');
+            // Nothing interrupted it, so this payment is going through.
+            void notePaymentMade(result);
           }
         });
       } catch (error) {
@@ -224,7 +285,7 @@ export function useProtectionController() {
         store.getState().setMachineState('MONITORING');
       }
     },
-    [escalate, revealTrace, runtime.services.agent, store],
+    [escalate, notePaymentMade, revealTrace, runtime.services.agent, store],
   );
 
   /**
@@ -327,7 +388,15 @@ export function useProtectionController() {
     [demo.bus, runtime.services.conversation, store],
   );
 
-  return {runInvestigation, startScenario, confirmPayment, endSession, escalate, onPaymentDetected};
+  return {
+    runInvestigation,
+    startScenario,
+    confirmPayment,
+    endSession,
+    escalate,
+    onPaymentDetected,
+    notePaymentMade,
+  };
 }
 
 /**
@@ -343,7 +412,7 @@ export function useProtectionController() {
  */
 export function useProtectionOrchestrator() {
   const controller = useProtectionController();
-  const {onPaymentDetected} = controller;
+  const {onPaymentDetected, notePaymentMade} = controller;
   const runtime = useRuntime();
   const store = useProtectionStore;
 
@@ -408,8 +477,14 @@ export function useProtectionOrchestrator() {
         .getState()
         .updateOutcome(result.sessionId, stopped ? 'USER_STOPPED' : 'USER_CONTINUED');
       store.getState().setMachineState(stopped ? 'RESOLVED' : 'MONITORING');
+      // Warned, and went ahead anyway. The money moved, so the spend monitor
+      // gets its say -- a guardian who was told about the scam still wants to
+      // know the payment happened.
+      if (!stopped) {
+        void notePaymentMade(result);
+      }
     });
-  }, [store]);
+  }, [notePaymentMade, store]);
 
   return controller;
 }
